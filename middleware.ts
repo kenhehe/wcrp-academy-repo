@@ -31,8 +31,8 @@ export async function middleware(request: NextRequest) {
   const isIpoRoute      = pathname.startsWith('/dashboard/ipo')
   const isAcademyRoute  = pathname.startsWith('/dashboard/academy')
 
-  // No session → force login
-  if (!user && !isLoginRoute) {
+  // No session → force login (/ is the public summary board — allow through)
+  if (!user && !isLoginRoute && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
