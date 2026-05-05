@@ -2,12 +2,22 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const { pathname } = request.nextUrl
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  // Guard: env vars must be present or skip auth entirely
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[proxy] Missing Supabase env vars')
+    return NextResponse.next({ request })
+  }
+
+  let supabaseResponse = NextResponse.next({ request })
+  let user = null
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -20,20 +30,15 @@ export async function proxy(request: NextRequest) {
           )
         },
       },
-    }
-  )
+    })
 
-  // Refresh session — must not run any logic between createServerClient and getUser
-  // Wrapped in try/catch: if Supabase is unreachable the proxy must not 500
-  let user = null
-  try {
     const { data } = await supabase.auth.getUser()
     user = data.user
-  } catch {
-    // Supabase unreachable — treat as unauthenticated, let pages handle it
+  } catch (err) {
+    console.error('[proxy] Supabase error:', err)
+    // Fail open — let the page handle missing session
   }
 
-  const { pathname } = request.nextUrl
   const isLoginRoute   = pathname === '/login'
   const isIpoRoute     = pathname.startsWith('/dashboard/ipo')
   const isAcademyRoute = pathname.startsWith('/dashboard/academy')
@@ -46,7 +51,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
-    const role       = user.app_metadata?.role as string | undefined
+    const role        = user.app_metadata?.role as string | undefined
     const isDashboard = isIpoRoute || isAcademyRoute
 
     // Login page or root while authenticated → send to correct dashboard
