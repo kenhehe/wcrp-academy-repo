@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -27,9 +27,9 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isLoginRoute    = pathname === '/login'
-  const isIpoRoute      = pathname.startsWith('/dashboard/ipo')
-  const isAcademyRoute  = pathname.startsWith('/dashboard/academy')
+  const isLoginRoute   = pathname === '/login'
+  const isIpoRoute     = pathname.startsWith('/dashboard/ipo')
+  const isAcademyRoute = pathname.startsWith('/dashboard/academy')
 
   // No session → force login (/ is the public summary board — allow through)
   if (!user && !isLoginRoute && pathname !== '/') {
@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
-    const role  = user.app_metadata?.role as string | undefined
+    const role       = user.app_metadata?.role as string | undefined
     const isDashboard = isIpoRoute || isAcademyRoute
 
     // Login page or root while authenticated → send to correct dashboard
@@ -56,8 +56,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Prevent academy_admin from accidentally landing on IPO routes
-    // (they have global access so allow it — no redirect needed)
     void isDashboard
   }
 
