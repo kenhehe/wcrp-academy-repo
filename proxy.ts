@@ -24,7 +24,14 @@ export async function proxy(request: NextRequest) {
   )
 
   // Refresh session — must not run any logic between createServerClient and getUser
-  const { data: { user } } = await supabase.auth.getUser()
+  // Wrapped in try/catch: if Supabase is unreachable the proxy must not 500
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase unreachable — treat as unauthenticated, let pages handle it
+  }
 
   const { pathname } = request.nextUrl
   const isLoginRoute   = pathname === '/login'
