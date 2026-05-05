@@ -1,64 +1,50 @@
 import { createClient } from '@/lib/supabase/server'
 import { cache } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import StatusDonut from '@/components/charts/StatusDonut'
+import ChartBar from '@/components/charts/ChartBar'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 type IPORow   = { id: string; name: string; color_hex: string | null }
-type EventAgg = { ipo_id: string; status: string }
-type EventRow = { id: string; title: string; start_date: string; country: string | null; ipo_id: string }
+type EventAgg = { ipo_id: string; status: string; year: number | null }
 
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
-  const [
-    { data: ipos },
-    { data: agg },
-    { data: upcoming },
-    { data: recentPast },
-  ] = await Promise.all([
+  const [{ data: ipos }, { data: agg }] = await Promise.all([
     supabase.from('ipos').select('id, name, color_hex').order('name'),
-    supabase.from('events').select('ipo_id, status'),
-    supabase
-      .from('events')
-      .select('id, title, start_date, country, ipo_id')
-      .eq('status', 'Upcoming')
-      .order('start_date', { ascending: true })
-      .limit(10),
-    supabase
-      .from('events')
-      .select('id, title, start_date, country, ipo_id')
-      .eq('status', 'Past')
-      .order('start_date', { ascending: false })
-      .limit(8),
+    supabase.from('events').select('ipo_id, status, year'),
   ])
 
   return {
-    ipos:       (ipos       ?? []) as IPORow[],
-    agg:        (agg        ?? []) as EventAgg[],
-    upcoming:   (upcoming   ?? []) as EventRow[],
-    recentPast: (recentPast ?? []) as EventRow[],
+    ipos: (ipos ?? []) as IPORow[],
+    agg:  (agg  ?? []) as EventAgg[],
   }
 })
 
-const STATUS_COLORS: Record<string, string> = {
-  Upcoming: 'default',
-  Ongoing:  'secondary',
-  Past:     'outline',
-}
-
 export default async function HomePage() {
-  const { ipos, agg, upcoming, recentPast } = await fetchSummary()
+  const { ipos, agg } = await fetchSummary()
 
-  const ipoMap = Object.fromEntries(ipos.map(i => [i.id, i]))
-
-  const total    = agg.length
-  const upCount  = agg.filter(e => e.status === 'Upcoming').length
-  const onCount  = agg.filter(e => e.status === 'Ongoing').length
+  const total     = agg.length
+  const upCount   = agg.filter(e => e.status === 'Upcoming').length
+  const onCount   = agg.filter(e => e.status === 'Ongoing').length
   const pastCount = agg.filter(e => e.status === 'Past').length
 
+  // Events by year (all IPOs combined)
+  const yearMap = new Map<string, number>()
+  for (const e of agg) {
+    if (e.year != null) {
+      const k = String(e.year)
+      yearMap.set(k, (yearMap.get(k) ?? 0) + 1)
+    }
+  }
+  const yearData = [...yearMap.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  // Per-IPO stats
   const ipoStats = ipos.map(ipo => {
     const rows = agg.filter(e => e.ipo_id === ipo.id)
     return {
@@ -69,6 +55,12 @@ export default async function HomePage() {
       past:     rows.filter(e => e.status === 'Past').length,
     }
   })
+
+  // IPO comparison bar data (sorted highest first)
+  const ipoBarData = ipoStats
+    .filter(i => i.total > 0)
+    .map(i => ({ name: i.name, value: i.total }))
+    .sort((a, b) => b.value - a.value)
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +99,38 @@ export default async function HomePage() {
           ))}
         </div>
 
-        {/* Per-IPO cards */}
+        {/* Status donut + Events by year */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card style={{ overflow: 'visible' }}>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Status breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StatusDonut upcoming={upCount} ongoing={onCount} past={pastCount} />
+            </CardContent>
+          </Card>
+
+          <Card style={{ overflow: 'visible' }}>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Events by year</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartBar data={yearData} height={220} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Events per IPO */}
+        <Card style={{ overflow: 'visible' }}>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Events per IPO</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartBar data={ipoBarData} height={220} />
+          </CardContent>
+        </Card>
+
+        {/* Per-IPO detail cards */}
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-4">By IPO</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -146,92 +169,6 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Events lists */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-
-          {/* Upcoming */}
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-4">
-              Upcoming Events
-            </h2>
-            <Card>
-              <CardContent className="px-0 pb-0">
-                {upcoming.length === 0 ? (
-                  <p className="px-6 py-4 text-sm text-muted-foreground">No upcoming events</p>
-                ) : (
-                  <div className="divide-y">
-                    {upcoming.map(event => (
-                      <div key={event.id} className="flex items-start justify-between gap-3 px-6 py-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {event.start_date}
-                            {event.country && ` · ${event.country}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {ipoMap[event.ipo_id] && (
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: ipoMap[event.ipo_id].color_hex ?? 'hsl(var(--primary))' }}
-                            />
-                          )}
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {ipoMap[event.ipo_id]?.name ?? event.ipo_id}
-                          </span>
-                          <Badge variant={STATUS_COLORS['Upcoming'] as 'default'} className="text-xs">
-                            Upcoming
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Recent past */}
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-4">
-              Recent Past Events
-            </h2>
-            <Card>
-              <CardContent className="px-0 pb-0">
-                {recentPast.length === 0 ? (
-                  <p className="px-6 py-4 text-sm text-muted-foreground">No past events</p>
-                ) : (
-                  <div className="divide-y">
-                    {recentPast.map(event => (
-                      <div key={event.id} className="flex items-start justify-between gap-3 px-6 py-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {event.start_date}
-                            {event.country && ` · ${event.country}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {ipoMap[event.ipo_id] && (
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: ipoMap[event.ipo_id].color_hex ?? 'hsl(var(--primary))' }}
-                            />
-                          )}
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {ipoMap[event.ipo_id]?.name ?? event.ipo_id}
-                          </span>
-                          <Badge variant="outline" className="text-xs">Past</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-        </div>
       </main>
     </div>
   )

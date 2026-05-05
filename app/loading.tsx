@@ -25,7 +25,23 @@ export default function HomeLoading() {
           ))}
         </div>
 
-        {/* By-IPO section */}
+        {/* Status + Year charts */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
+              <CardContent><Skeleton className="h-56 w-full" /></CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* IPO comparison chart */}
+        <Card>
+          <CardHeader><Skeleton className="h-4 w-28" /></CardHeader>
+          <CardContent><Skeleton className="h-56 w-full" /></CardContent>
+        </Card>
+
+        {/* IPO detail cards */}
         <section className="space-y-4">
           <Skeleton className="h-3 w-12" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -52,32 +68,6 @@ export default function HomeLoading() {
             ))}
           </div>
         </section>
-
-        {/* Events lists */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {['Upcoming Events', 'Recent Past Events'].map(label => (
-            <section key={label} className="space-y-4">
-              <Skeleton className="h-3 w-32" />
-              <Card>
-                <CardContent className="px-0 pb-0">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3 px-6 py-3 border-b last:border-0">
-                      <div className="space-y-1.5 min-w-0">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Skeleton className="h-2 w-2 rounded-full" />
-                        <Skeleton className="h-3 w-14" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </section>
-          ))}
-        </div>
 
       </main>
     </div>
