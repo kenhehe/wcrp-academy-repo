@@ -3,6 +3,7 @@ import { cache } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
+import CalendarView, { type CalendarEvent } from '@/components/calendar/CalendarView'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -13,19 +14,21 @@ type EventAgg = { ipo_id: string; status: string; year: number | null }
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
-  const [{ data: ipos }, { data: agg }] = await Promise.all([
+  const [{ data: ipos }, { data: agg }, { data: calEvents }] = await Promise.all([
     supabase.from('ipos').select('id, name, color_hex').order('name'),
     supabase.from('events').select('ipo_id, status, year'),
+    supabase.from('events').select('id, ipo_id, title, start_date, end_date, status, location, country, url').order('start_date'),
   ])
 
   return {
-    ipos: (ipos ?? []) as IPORow[],
-    agg:  (agg  ?? []) as EventAgg[],
+    ipos:      (ipos      ?? []) as IPORow[],
+    agg:       (agg       ?? []) as EventAgg[],
+    calEvents: (calEvents ?? []) as CalendarEvent[],
   }
 })
 
 export default async function HomePage() {
-  const { ipos, agg } = await fetchSummary()
+  const { ipos, agg, calEvents } = await fetchSummary()
 
   const total     = agg.length
   const upCount   = agg.filter(e => e.status === 'Upcoming').length
@@ -129,6 +132,9 @@ export default async function HomePage() {
             <ChartBar data={ipoBarData} height={220} />
           </CardContent>
         </Card>
+
+        {/* Calendar */}
+        <CalendarView events={calEvents} ipos={ipos} />
 
         {/* Per-IPO detail cards */}
         <section>
