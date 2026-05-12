@@ -102,6 +102,9 @@ export default async function HomePage() {
           ))}
         </div>
 
+        {/* Calendar */}
+        <CalendarView events={calEvents} ipos={ipos} />
+
         {/* Status donut + Events by year */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card style={{ overflow: 'visible' }}>
@@ -132,9 +135,6 @@ export default async function HomePage() {
             <ChartBar data={ipoBarData} height={220} />
           </CardContent>
         </Card>
-
-        {/* Calendar */}
-        <CalendarView events={calEvents} ipos={ipos} />
 
         {/* Per-IPO detail cards */}
         <section>

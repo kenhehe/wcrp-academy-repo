@@ -6,6 +6,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { ExternalLinkIcon, MapPinIcon, CalendarIcon } from 'lucide-react'
+import { ExternalLinkIcon, MapPinIcon, CalendarIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 
 export interface CalendarEvent {
   id: string
@@ -61,16 +62,35 @@ function formatDate(d: string) {
 
 export default function CalendarView({ events, ipos }: Props) {
   const [selectedIpo, setSelectedIpo] = useState<string>('all')
-  const [selected, setSelected] = useState<CalendarEvent | null>(null)
+  const [selected, setSelected]       = useState<CalendarEvent | null>(null)
+  const [showPast, setShowPast]       = useState(false)
 
   const ipoMap = useMemo(
     () => new Map(ipos.map(i => [i.id, i])),
     [ipos],
   )
 
+  // Events that pass the past toggle
+  const visibleByStatus = useMemo(
+    () => showPast ? events : events.filter(e => e.status !== 'Past'),
+    [events, showPast],
+  )
+
+  // Per-IPO counts based on the toggle (for dropdown labels)
+  const ipoCounts = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const e of visibleByStatus) {
+      map.set(e.ipo_id, (map.get(e.ipo_id) ?? 0) + 1)
+    }
+    return map
+  }, [visibleByStatus])
+
+  // Final filtered list (status toggle + IPO filter)
   const filtered = useMemo(
-    () => selectedIpo === 'all' ? events : events.filter(e => e.ipo_id === selectedIpo),
-    [events, selectedIpo],
+    () => selectedIpo === 'all'
+      ? visibleByStatus
+      : visibleByStatus.filter(e => e.ipo_id === selectedIpo),
+    [visibleByStatus, selectedIpo],
   )
 
   const calEvents = useMemo(() =>
@@ -87,32 +107,65 @@ export default function CalendarView({ events, ipos }: Props) {
   const selectedIpo_ = selected ? ipoMap.get(selected.ipo_id) : null
 
   return (
-    <Card style={{ overflow: 'visible' }}>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-medium">Event Calendar</CardTitle>
-        <Select value={selectedIpo} onValueChange={v => setSelectedIpo(v ?? 'all')}>
-          <SelectTrigger size="sm" className="w-44">
-            <SelectValue placeholder="All IPOs" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All IPOs</SelectItem>
-            {ipos.map(ipo => (
-              <SelectItem key={ipo.id} value={ipo.id}>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: ipo.color_hex ?? '#94a3b8' }}
-                  />
-                  {ipo.name}
+    <Card className="overflow-visible">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+        <div className="flex items-center gap-3">
+          <CardTitle className="text-sm font-medium">Event Calendar</CardTitle>
+          <Badge variant="secondary" className="tabular-nums text-xs">
+            {filtered.length}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showPast ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => setShowPast(p => !p)}
+          >
+            {showPast
+              ? <><EyeOffIcon className="h-3 w-3" /> Hide past</>
+              : <><EyeIcon    className="h-3 w-3" /> Show past</>
+            }
+          </Button>
+
+          <Select value={selectedIpo} onValueChange={v => setSelectedIpo(v ?? 'all')}>
+            <SelectTrigger size="sm" className="w-48">
+              <SelectValue placeholder="All IPOs" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <span className="flex items-center justify-between w-full gap-3">
+                  <span>All IPOs</span>
+                  <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+                    {visibleByStatus.length}
+                  </span>
                 </span>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {ipos.map(ipo => {
+                const count = ipoCounts.get(ipo.id) ?? 0
+                return (
+                  <SelectItem key={ipo.id} value={ipo.id}>
+                    <span className="flex items-center gap-1.5 w-full">
+                      <span
+                        className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: ipo.color_hex ?? '#94a3b8' }}
+                      />
+                      <span className="flex-1">{ipo.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums ml-2">
+                        {count}
+                      </span>
+                    </span>
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="rbc-wrapper h-[600px]">
+      <CardContent className="pt-0">
+        <div className="rbc-wrapper h-[580px] rounded-lg border border-border/30 bg-muted/10 p-3">
           <Calendar
             localizer={localizer}
             events={calEvents}
@@ -120,19 +173,33 @@ export default function CalendarView({ events, ipos }: Props) {
             views={['month']}
             onSelectEvent={e => setSelected(e.resource as CalendarEvent)}
             eventPropGetter={e => {
-              const ev = e.resource as CalendarEvent
+              const ev  = e.resource as CalendarEvent
               const ipo = ipoMap.get(ev.ipo_id)
               const bg  = ipo?.color_hex ?? STATUS_COLOR[ev.status] ?? '#2563eb'
+              const isPast = ev.status === 'Past'
               return {
                 style: {
                   backgroundColor: bg,
                   borderColor: bg,
                   color: '#fff',
-                  borderRadius: '4px',
+                  borderRadius: '5px',
                   fontSize: '11px',
-                  padding: '1px 4px',
+                  fontWeight: 500,
+                  padding: '2px 5px',
+                  opacity: isPast ? 0.55 : 1,
+                  cursor: 'pointer',
                 },
               }
+            }}
+            dayPropGetter={date => {
+              const today = new Date()
+              const isToday =
+                date.getFullYear() === today.getFullYear() &&
+                date.getMonth()    === today.getMonth()    &&
+                date.getDate()     === today.getDate()
+              return isToday
+                ? { style: { backgroundColor: 'hsl(var(--accent) / 0.12)' } }
+                : {}
             }}
           />
         </div>
@@ -161,8 +228,8 @@ export default function CalendarView({ events, ipos }: Props) {
                 variant="secondary"
                 style={{
                   backgroundColor: (STATUS_COLOR[selected.status] ?? '#94a3b8') + '22',
-                  color: STATUS_COLOR[selected.status] ?? '#94a3b8',
-                  borderColor: (STATUS_COLOR[selected.status] ?? '#94a3b8') + '44',
+                  color:            STATUS_COLOR[selected.status] ?? '#94a3b8',
+                  borderColor:     (STATUS_COLOR[selected.status] ?? '#94a3b8') + '44',
                 }}
                 className="border"
               >
