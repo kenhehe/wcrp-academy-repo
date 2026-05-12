@@ -6,7 +6,7 @@ import { PlusIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events'
+import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events.types'
 
 interface ExtraField { key: string; value: string }
 
