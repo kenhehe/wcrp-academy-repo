@@ -37,7 +37,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   // Build missing events query
   let gapsQuery = supabase
     .from('events')
-    .select('id,title,start_date,status,url,ipo_id,location,country', { count: 'exact' })
+    .select('id,title,start_date,status,url,ipo_id', { count: 'exact' })
     .eq('in_academy', false)
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
@@ -218,31 +218,29 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                       ) : (
                         <p className="truncate font-medium">{row.title}</p>
                       )}
-                      {(row.location || row.country) && (
-                        <p className="truncate text-xs text-muted-foreground mt-0.5">
-                          {[row.location, row.country].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {match && (
-                        <p className="truncate text-xs text-amber-600 mt-0.5">
-                          ≈{' '}
-                          {match.permalink ? (
-                            <a
-                              href={match.permalink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline"
-                            >
-                              {match.academy_title}
-                            </a>
-                          ) : (
-                            match.academy_title
-                          )}
-                          <span className={`ml-1 font-medium ${match.score >= 0.6 ? 'text-green-600' : match.score >= 0.35 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                            ({Math.round(match.score * 100)}%)
-                          </span>
-                        </p>
-                      )}
+                      {match && (() => {
+                        const scoreColor = match.score >= 0.6 ? 'text-green-600' : match.score >= 0.35 ? 'text-amber-600' : 'text-muted-foreground'
+                        return (
+                          <p className={`truncate text-xs mt-0.5 ${scoreColor}`}>
+                            ≈{' '}
+                            {match.permalink ? (
+                              <a
+                                href={match.permalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                              >
+                                {match.academy_title}
+                              </a>
+                            ) : (
+                              match.academy_title
+                            )}
+                            <span className="ml-1 font-medium">
+                              ({Math.round(match.score * 100)}%)
+                            </span>
+                          </p>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                       {ipoNameMap.get(row.ipo_id) ?? row.ipo_id}
@@ -256,29 +254,24 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="destructive" className="text-xs font-normal">
-                            Not in Academy
-                          </Badge>
-                          <form action={markInAcademy}>
-                            <input type="hidden" name="id" value={row.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                            >
-                              <CheckIcon className="h-3 w-3" />
-                              Already in Academy
-                            </button>
-                          </form>
-                        </div>
+                      <div className="flex flex-col gap-2">
+                        <form action={markInAcademy}>
+                          <input type="hidden" name="id" value={row.id} />
+                          <button
+                            type="submit"
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary active:bg-primary/10"
+                          >
+                            <CheckIcon className="h-3 w-3" />
+                            Already in Academy
+                          </button>
+                        </form>
                         {match && (
                           <form action={confirmMatch}>
                             <input type="hidden" name="event_id"        value={row.id} />
                             <input type="hidden" name="academy_event_id" value={match.academy_event_id} />
                             <button
                               type="submit"
-                              className="inline-flex items-center gap-1 rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-600 transition-colors hover:border-amber-500 hover:bg-amber-50"
+                              className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50/50 px-2.5 py-1 text-xs font-medium text-amber-700 shadow-sm transition-colors hover:border-amber-500 hover:bg-amber-100 active:bg-amber-200"
                             >
                               <LinkIcon className="h-3 w-3" />
                               Yes, same event
