@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { buttonVariants } from '@/components/ui/button'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
-import { ChevronLeft, ChevronRight, ExternalLink, CheckIcon, LinkIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckIcon, LinkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { markInAcademy, confirmMatch } from './actions'
 
@@ -76,7 +76,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
     ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds })
     : { data: [] }
 
-  type FuzzyMatch = { event_id: string; academy_event_id: string; academy_title: string; score: number }
+  type FuzzyMatch = { event_id: string; academy_event_id: string; academy_title: string; score: number; official_link: string | null }
   const matchMap = new Map<string, FuzzyMatch>(
     (fuzzyRaw ?? []).map((m: FuzzyMatch) => [m.event_id, m])
   )
@@ -159,13 +159,12 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                 <th className="px-4 py-3 text-left font-medium">Start</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-left font-medium">Coverage</th>
-                <th className="px-4 py-3 text-left font-medium w-10" />
               </tr>
             </thead>
             <tbody>
               {(gaps ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     No gaps found
                     {(ipoFilter || statusFilter) && ' for the selected filters'}
                   </td>
@@ -176,10 +175,33 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                   return (
                   <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 max-w-sm">
-                      <p className="truncate font-medium">{row.title}</p>
+                      {row.url ? (
+                        <a
+                          href={row.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate font-medium hover:underline hover:text-primary transition-colors block"
+                        >
+                          {row.title}
+                        </a>
+                      ) : (
+                        <p className="truncate font-medium">{row.title}</p>
+                      )}
                       {match && (
                         <p className="truncate text-xs text-amber-600 mt-0.5">
-                          ≈ {match.academy_title}
+                          ≈{' '}
+                          {match.official_link ? (
+                            <a
+                              href={match.official_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              {match.academy_title}
+                            </a>
+                          ) : (
+                            match.academy_title
+                          )}
                           <span className="ml-1 opacity-70">({Math.round(match.score * 100)}% match)</span>
                         </p>
                       )}
@@ -226,18 +248,6 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                           </form>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.url && (
-                        <Link
-                          href={row.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
-                      )}
                     </td>
                   </tr>
                   )
