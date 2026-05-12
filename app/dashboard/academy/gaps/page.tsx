@@ -155,20 +155,20 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                 </PopoverHeader>
                 <PopoverDescription className="space-y-2 text-xs leading-relaxed">
                   <p>
-                    This table shows events from IPO websites that have not been found in the WCRP Academy catalogue yet.
+                    These are IPO events that our system could not find in the WCRP Academy catalogue. Your job is to check each one and decide what to do.
                   </p>
                   <p>
-                    Some events may already be in the catalogue under a slightly different name. When that happens, you will see a suggested match below the event title with a percentage showing how similar the names are:
+                    Sometimes the system finds a possible match in the catalogue — it will show the suggested title below the event name with a colour-coded confidence score:
                   </p>
                   <ul className="space-y-1 pl-3">
                     <li><span className="font-medium text-green-600">Green (60%+)</span> — Very likely the same event</li>
-                    <li><span className="font-medium text-amber-600">Amber (35–59%)</span> — Possibly the same event, worth checking</li>
-                    <li><span className="font-medium">Gray (below 35%)</span> — Low similarity, probably different events</li>
+                    <li><span className="font-medium text-amber-600">Amber (35–59%)</span> — Might be the same, worth a look</li>
+                    <li><span className="font-medium">Gray (below 35%)</span> — Probably not the same event</li>
                   </ul>
-                  <p>Click the suggested academy title to open it in the catalogue and verify. Then:</p>
+                  <p>Click the suggested title to open the Academy catalogue page and check. Then choose:</p>
                   <ul className="space-y-1 pl-3">
-                    <li><span className="font-medium">Confirm match</span> — Links the event to the Academy entry and marks it as covered</li>
-                    <li><span className="font-medium">Mark covered</span> — Marks it as covered without linking to a specific Academy entry</li>
+                    <li><span className="font-medium text-amber-600">Yes, same event</span> — Use this when the suggestion is correct. It properly links the two records together.</li>
+                    <li><span className="font-medium">Already in Academy</span> — Use this when you know the event is in the catalogue but the suggestion is wrong or missing. It marks it as covered without creating a link.</li>
                   </ul>
                 </PopoverDescription>
               </PopoverContent>
@@ -268,7 +268,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                             >
                               <CheckIcon className="h-3 w-3" />
-                              Mark covered
+                              Already in Academy
                             </button>
                           </form>
                         </div>
@@ -281,7 +281,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                               className="inline-flex items-center gap-1 rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-600 transition-colors hover:border-amber-500 hover:bg-amber-50"
                             >
                               <LinkIcon className="h-3 w-3" />
-                              Confirm match
+                              Yes, same event
                             </button>
                           </form>
                         )}

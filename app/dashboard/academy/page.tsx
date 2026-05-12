@@ -25,8 +25,8 @@ export default async function AcademyOverviewPage() {
     { data: ipos },
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
-    // Lightweight fetch for month/year distribution
-    supabase.from('events').select('month,year,status,in_academy'),
+    // Lightweight fetch for month/year/quality distribution
+    supabase.from('events').select('month,year,status,in_academy,academy_event_id,ipo_id'),
     // Next 5 upcoming events not in academy
     supabase
       .from('events')
@@ -53,6 +53,20 @@ export default async function AcademyOverviewPage() {
   const missingUpcoming   = all.filter(e => !e.in_academy && e.status === 'Upcoming').length
   const missingOngoing    = all.filter(e => !e.in_academy && e.status === 'Ongoing').length
   const missingPast       = all.filter(e => !e.in_academy && e.status === 'Past').length
+
+  // Coverage quality
+  const confirmed  = all.filter(e => e.in_academy && e.academy_event_id).length
+  const markedOnly = all.filter(e => e.in_academy && !e.academy_event_id).length
+  const linkQualityPct = inAcademy > 0 ? Math.round(confirmed / inAcademy * 100) : 0
+
+  // Per-IPO confirmation breakdown
+  const ipoConfirmedMap = new Map<string, { confirmed: number; markedOnly: number }>()
+  for (const e of all.filter(e => e.in_academy)) {
+    if (!ipoConfirmedMap.has(e.ipo_id)) ipoConfirmedMap.set(e.ipo_id, { confirmed: 0, markedOnly: 0 })
+    const b = ipoConfirmedMap.get(e.ipo_id)!
+    if (e.academy_event_id) b.confirmed++
+    else b.markedOnly++
+  }
 
   // Month distribution (1=Jan … 12=Dec)
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -121,6 +135,63 @@ export default async function AcademyOverviewPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Coverage quality */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Coverage quality</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-2xl font-semibold tabular-nums text-green-600">{confirmed}</p>
+                <p className="text-xs font-medium text-muted-foreground">Confirmed & linked</p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">Matched to a specific Academy entry</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold tabular-nums text-amber-500">{markedOnly}</p>
+                <p className="text-xs font-medium text-muted-foreground">Marked only</p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">Covered but not linked to an entry</p>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Link quality</span>
+                <span>{linkQualityPct}% properly linked</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${linkQualityPct}%` }} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Confirmation quality per IPO</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(coverage ?? []).map(row => {
+              const q = ipoConfirmedMap.get(row.ipo_id) ?? { confirmed: 0, markedOnly: 0 }
+              const total = q.confirmed + q.markedOnly
+              const pct   = total > 0 ? Math.round(q.confirmed / total * 100) : 0
+              return (
+                <div key={row.ipo_id}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm">{row.name}</span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      <span className="text-green-600 font-medium">{q.confirmed}</span> linked
+                      {q.markedOnly > 0 && <span className="text-amber-500 ml-1">· {q.markedOnly} unlinked</span>}
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-1.5" />
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Per-IPO coverage + month chart */}
