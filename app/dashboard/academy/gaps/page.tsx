@@ -4,8 +4,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { buttonVariants } from '@/components/ui/button'
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
-import { ChevronLeft, ChevronRight, CheckIcon, LinkIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckIcon, LinkIcon, InfoIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { markInAcademy, confirmMatch } from './actions'
 
@@ -36,7 +37,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   // Build missing events query
   let gapsQuery = supabase
     .from('events')
-    .select('id,title,start_date,status,url,ipo_id', { count: 'exact' })
+    .select('id,title,start_date,status,url,ipo_id,location,country', { count: 'exact' })
     .eq('in_academy', false)
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
@@ -135,14 +136,44 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
       {/* Missing events table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">
-            Missing events
-            {count !== null && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({count} total)
-              </span>
-            )}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold">
+              Missing events
+              {count !== null && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({count} total)
+                </span>
+              )}
+            </h2>
+            <Popover>
+              <PopoverTrigger className="text-muted-foreground hover:text-foreground transition-colors">
+                <InfoIcon className="h-4 w-4" />
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" className="w-80">
+                <PopoverHeader>
+                  <PopoverTitle>How this works</PopoverTitle>
+                </PopoverHeader>
+                <PopoverDescription className="space-y-2 text-xs leading-relaxed">
+                  <p>
+                    This table shows events from IPO websites that have not been found in the WCRP Academy catalogue yet.
+                  </p>
+                  <p>
+                    Some events may already be in the catalogue under a slightly different name. When that happens, you will see a suggested match below the event title with a percentage showing how similar the names are:
+                  </p>
+                  <ul className="space-y-1 pl-3">
+                    <li><span className="font-medium text-green-600">Green (60%+)</span> — Very likely the same event</li>
+                    <li><span className="font-medium text-amber-600">Amber (35–59%)</span> — Possibly the same event, worth checking</li>
+                    <li><span className="font-medium">Gray (below 35%)</span> — Low similarity, probably different events</li>
+                  </ul>
+                  <p>Click the suggested academy title to open it in the catalogue and verify. Then:</p>
+                  <ul className="space-y-1 pl-3">
+                    <li><span className="font-medium">Confirm match</span> — Links the event to the Academy entry and marks it as covered</li>
+                    <li><span className="font-medium">Mark covered</span> — Marks it as covered without linking to a specific Academy entry</li>
+                  </ul>
+                </PopoverDescription>
+              </PopoverContent>
+            </Popover>
+          </div>
           <GapFiltersBar
             ipos={ipos ?? []}
             activeIpo={ipoFilter}
@@ -186,6 +217,11 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                         </a>
                       ) : (
                         <p className="truncate font-medium">{row.title}</p>
+                      )}
+                      {(row.location || row.country) && (
+                        <p className="truncate text-xs text-muted-foreground mt-0.5">
+                          {[row.location, row.country].filter(Boolean).join(', ')}
+                        </p>
                       )}
                       {match && (
                         <p className="truncate text-xs text-amber-600 mt-0.5">
