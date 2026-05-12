@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, Database, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,8 @@ import type { AcademySidebarProps } from './types'
 
 const NAV = [
   { href: '/dashboard/academy',           label: 'Overview',        icon: LayoutDashboard },
-  { href: '/dashboard/academy/events',    label: 'Coverage',        icon: BookOpen },
+  { href: '/dashboard/academy/events',     label: 'Coverage',        icon: BookOpen },
+  { href: '/dashboard/academy/catalogue', label: 'Catalogue',       icon: Database },
   { href: '/dashboard/academy/import',    label: 'Import / Export', icon: Upload },
   { href: '/dashboard/academy/gaps',      label: 'Gap Analysis',    icon: SearchX },
   { href: '/dashboard/academy/health',    label: 'System Health',   icon: Activity },
@@ -69,7 +70,7 @@ export default function AcademySidebar({ userEmail }: AcademySidebarProps) {
             className={cn(
               'flex items-center rounded-md py-2 text-sm transition-colors',
               collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-              pathname === href
+              (pathname === href || (href !== '/dashboard/academy' && pathname.startsWith(href)))
                 ? 'bg-accent text-accent-foreground font-medium'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             )}
