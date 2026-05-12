@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { buttonVariants } from '@/components/ui/button'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
-import { ChevronLeft, ChevronRight, ExternalLink, CheckIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, CheckIcon, LinkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { markInAcademy } from './actions'
+import { markInAcademy, confirmMatch } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +69,17 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
     else if (e.status === 'Ongoing')  b.Ongoing++
     else if (e.status === 'Past')     b.Past++
   }
+
+  // Fuzzy match current page of gaps against academy_events
+  const gapIds = (gaps ?? []).map(g => g.id)
+  const { data: fuzzyRaw } = gapIds.length > 0
+    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds })
+    : { data: [] }
+
+  type FuzzyMatch = { event_id: string; academy_event_id: string; academy_title: string; score: number }
+  const matchMap = new Map<string, FuzzyMatch>(
+    (fuzzyRaw ?? []).map((m: FuzzyMatch) => [m.event_id, m])
+  )
 
   const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
@@ -160,10 +171,18 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                   </td>
                 </tr>
               ) : (
-                (gaps ?? []).map(row => (
+                (gaps ?? []).map(row => {
+                  const match = matchMap.get(row.id)
+                  return (
                   <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 max-w-sm">
                       <p className="truncate font-medium">{row.title}</p>
+                      {match && (
+                        <p className="truncate text-xs text-amber-600 mt-0.5">
+                          ≈ {match.academy_title}
+                          <span className="ml-1 opacity-70">({Math.round(match.score * 100)}% match)</span>
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                       {ipoNameMap.get(row.ipo_id) ?? row.ipo_id}
@@ -177,20 +196,35 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive" className="text-xs font-normal">
-                          Not in Academy
-                        </Badge>
-                        <form action={markInAcademy}>
-                          <input type="hidden" name="id" value={row.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                          >
-                            <CheckIcon className="h-3 w-3" />
-                            Mark covered
-                          </button>
-                        </form>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="text-xs font-normal">
+                            Not in Academy
+                          </Badge>
+                          <form action={markInAcademy}>
+                            <input type="hidden" name="id" value={row.id} />
+                            <button
+                              type="submit"
+                              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                            >
+                              <CheckIcon className="h-3 w-3" />
+                              Mark covered
+                            </button>
+                          </form>
+                        </div>
+                        {match && (
+                          <form action={confirmMatch}>
+                            <input type="hidden" name="event_id"        value={row.id} />
+                            <input type="hidden" name="academy_event_id" value={match.academy_event_id} />
+                            <button
+                              type="submit"
+                              className="inline-flex items-center gap-1 rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-600 transition-colors hover:border-amber-500 hover:bg-amber-50"
+                            >
+                              <LinkIcon className="h-3 w-3" />
+                              Confirm match
+                            </button>
+                          </form>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -206,7 +240,8 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                       )}
                     </td>
                   </tr>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>
