@@ -53,6 +53,7 @@ const FIELD_ALIASES: Record<AcademyField, string[]> = {
   permalink:         ['permalink', 'page url', 'page link', 'catalogue url'],
   contact_email:     ['contact email', 'contact_email', 'email', 'official contact email'],
   catalogue_tags:    ['catalogue tags', 'catalog tags', 'tags', 'catalogue_tags'],
+  extra_field:       [],
   skip:              [],
 }
 
