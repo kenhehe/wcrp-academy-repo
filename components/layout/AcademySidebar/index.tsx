@@ -12,7 +12,7 @@ import type { AcademySidebarProps } from './types'
 
 const NAV = [
   { href: '/dashboard/academy',           label: 'Overview',      icon: LayoutDashboard },
-  { href: '/dashboard/academy/events',    label: 'Events',        icon: BookOpen },
+  { href: '/dashboard/academy/events',    label: 'Coverage',      icon: BookOpen },
   { href: '/dashboard/academy/import',    label: 'Import / Export', icon: Upload },
   { href: '/dashboard/academy/gaps',      label: 'Gap Analysis',  icon: SearchX },
   { href: '/dashboard/academy/health',    label: 'System Health', icon: Activity },

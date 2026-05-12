@@ -5,12 +5,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import type { AcademyEventsFiltersProps } from './types'
 
+const MATCH_OPTIONS = [
+  { value: 'matched',      label: 'Matched' },
+  { value: 'needs_review', label: 'Needs review' },
+  { value: 'external',     label: 'Not IPO events' },
+]
+
 export default function AcademyEventsFilters({
-  statusOptions,
-  typeOptions,
   yearOptions,
-  activeStatus,
-  activeType,
+  activeMatch,
   activeYear,
 }: AcademyEventsFiltersProps) {
   const router       = useRouter()
@@ -22,51 +25,32 @@ export default function AcademyEventsFilters({
     params.delete('page')
     if (value) params.set(key, value)
     else        params.delete(key)
-    router.replace(`${pathname}?${params.toString()}`)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
-  const hasFilters = !!(activeStatus || activeType || activeYear)
+  const hasFilters = !!(activeMatch || activeYear)
 
   return (
     <div className="flex items-center gap-3">
-      {statusOptions.length > 0 && (
-        <Select
-          value={activeStatus ?? 'all'}
-          onValueChange={v => { if (v != null) push('status', v === 'all' ? undefined : v) }}
-        >
-          <SelectTrigger className="h-8 w-36 text-xs">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {statusOptions.map(s => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      {typeOptions.length > 0 && (
-        <Select
-          value={activeType ?? 'all'}
-          onValueChange={v => { if (v != null) push('type', v === 'all' ? undefined : v) }}
-        >
-          <SelectTrigger className="h-8 w-44 text-xs">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {typeOptions.map(t => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      <Select
+        value={activeMatch ?? 'all'}
+        onValueChange={v => push('match', v === 'all' ? undefined : v)}
+      >
+        <SelectTrigger className="h-8 w-40 text-xs">
+          <SelectValue placeholder="All events" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All events</SelectItem>
+          {MATCH_OPTIONS.map(o => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {yearOptions.length > 0 && (
         <Select
           value={activeYear ?? 'all'}
-          onValueChange={v => { if (v != null) push('year', v === 'all' ? undefined : v) }}
+          onValueChange={v => push('year', v === 'all' ? undefined : v)}
         >
           <SelectTrigger className="h-8 w-28 text-xs">
             <SelectValue placeholder="All years" />
@@ -82,10 +66,10 @@ export default function AcademyEventsFilters({
 
       {hasFilters && (
         <Button
-          variant="ghost"
+          variant="destructive"
           size="sm"
-          className="h-8 text-xs text-muted-foreground"
-          onClick={() => router.replace(pathname)}
+          className="h-8 text-xs"
+          onClick={() => router.replace(pathname, { scroll: false })}
         >
           Clear
         </Button>
