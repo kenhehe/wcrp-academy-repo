@@ -25,7 +25,7 @@ export default function GapFiltersBar({ ipos, activeIpo, activeStatus }: GapFilt
     params.delete('page')
     if (value) params.set(key, value)
     else        params.delete(key)
-    router.replace(`${pathname}?${params.toString()}`)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
   const hasFilters = !!(activeIpo || activeStatus)
@@ -69,7 +69,7 @@ export default function GapFiltersBar({ ipos, activeIpo, activeStatus }: GapFilt
           variant="ghost"
           size="sm"
           className="h-8 text-xs text-muted-foreground"
-          onClick={() => router.replace(pathname)}
+          onClick={() => router.replace(pathname, { scroll: false })}
         >
           Clear
         </Button>

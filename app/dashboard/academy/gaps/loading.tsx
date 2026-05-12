@@ -43,6 +43,7 @@ export default function GapAnalysisLoading() {
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-7 w-36 rounded-md" />
             </div>
           ))}
         </div>
