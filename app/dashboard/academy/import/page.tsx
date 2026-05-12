@@ -43,7 +43,7 @@ export default async function AcademyImportPage() {
         </TabsList>
 
         <TabsContent value="import" className="mt-6">
-          <Card className="max-w-2xl">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium">Import academy events</CardTitle>
             </CardHeader>
@@ -54,7 +54,7 @@ export default async function AcademyImportPage() {
         </TabsContent>
 
         <TabsContent value="export" className="mt-6">
-          <Card className="max-w-2xl">
+          <Card className="max-w-xl">
             <CardHeader>
               <CardTitle className="text-base font-medium">Export academy events</CardTitle>
             </CardHeader>
