@@ -25,6 +25,7 @@ export interface AcademyMappedRow {
   permalink?:         string
   contact_email?:     string
   catalogue_tags?:    string
+  extra_fields?:      Record<string, string>
 }
 
 export interface AcademyImportResult {
@@ -76,6 +77,7 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
           permalink:         r.permalink ?? null,
           contact_email:     r.contact_email ?? null,
           catalogue_tags:    r.catalogue_tags ?? null,
+          extra_fields:      r.extra_fields ?? {},
           updated_at:        new Date().toISOString(),
         })),
         { onConflict: 'academy_id', count: 'exact' }
@@ -127,6 +129,7 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
             permalink:         r.permalink ?? null,
             contact_email:     r.contact_email ?? null,
             catalogue_tags:    r.catalogue_tags ?? null,
+            extra_fields:      r.extra_fields ?? {},
           })),
           { count: 'exact' }
         )
@@ -156,6 +159,7 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
           permalink:         row.permalink ?? null,
           contact_email:     row.contact_email ?? null,
           catalogue_tags:    row.catalogue_tags ?? null,
+          extra_fields:      row.extra_fields ?? {},
           updated_at:        new Date().toISOString(),
         })
         .eq('id', row.id)

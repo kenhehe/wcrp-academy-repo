@@ -25,6 +25,7 @@ export type AcademyField =
   | 'permalink'
   | 'contact_email'
   | 'catalogue_tags'
+  | 'extra_field'
   | 'skip'
 
 export const ACADEMY_FIELD_LABELS: Record<AcademyField, string> = {
@@ -48,7 +49,8 @@ export const ACADEMY_FIELD_LABELS: Record<AcademyField, string> = {
   permalink:         'Permalink',
   contact_email:     'Contact Email',
   catalogue_tags:    'Catalogue Tags',
-  skip:              'Skip (ignore)',
+  extra_field:       'Extra field (keep as-is)',
+  skip:              'Skip (discard)',
 }
 
 export interface ParsedRow {

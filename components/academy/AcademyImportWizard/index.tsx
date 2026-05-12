@@ -79,6 +79,7 @@ const FIELD_SORT_ORDER: Record<AcademyField, number> = {
   permalink:         17,
   contact_email:     18,
   catalogue_tags:    19,
+  extra_field:       98,
   skip:              99,
 }
 
@@ -103,6 +104,7 @@ const FIELD_TIER: Record<AcademyField, 'required' | 'recommended' | 'other'> = {
   permalink:         'other',
   contact_email:     'other',
   catalogue_tags:    'other',
+  extra_field:       'other',
   skip:              'other',
 }
 
@@ -110,7 +112,7 @@ function autoDetect(headers: string[]): Record<string, AcademyField> {
   const map: Record<string, AcademyField> = {}
   for (const h of headers) {
     const lower = h.toLowerCase().trim()
-    let matched: AcademyField = 'skip'
+    let matched: AcademyField = 'extra_field'
     for (const [field, aliases] of Object.entries(FIELD_ALIASES) as [AcademyField, string[]][]) {
       if (field === 'skip') continue
       if (aliases.includes(lower)) { matched = field; break }
@@ -234,14 +236,20 @@ function buildMappedRows(rawRows: ParsedRow[], columnMap: Record<string, Academy
   return rawRows
     .map(row => {
       const mapped: Partial<AcademyMappedRow> = {}
+      const extra: Record<string, string> = {}
       for (const [header, field] of Object.entries(columnMap)) {
         if (field === 'skip') continue
         const val = row[header]?.trim() ?? ''
         if (!val) continue
-        ;(mapped as Record<string, string>)[field] = DATE_FIELDS.has(field)
-          ? normalizeDate(val)
-          : val
+        if (field === 'extra_field') {
+          extra[header] = val
+        } else {
+          ;(mapped as Record<string, string>)[field] = DATE_FIELDS.has(field)
+            ? normalizeDate(val)
+            : val
+        }
       }
+      if (Object.keys(extra).length > 0) mapped.extra_fields = extra
       return mapped as AcademyMappedRow
     })
     .filter(r => !!r.title)
@@ -630,7 +638,11 @@ export default function AcademyImportWizard() {
 
               <div className="space-y-1">
                 <p className="font-medium">Unknown columns</p>
-                <p className="text-muted-foreground">Any column not recognised above is set to <span className="font-medium">Skip</span> by default. You can change this in the Map Columns step.</p>
+                <p className="text-muted-foreground">
+                  Any column not recognised above is set to <span className="font-medium">Extra field (keep as-is)</span> by default —
+                  its value is stored as-is and will be available in the CMS.
+                  Change it to <span className="font-medium">Skip (discard)</span> in the Map Columns step if you don&apos;t need it.
+                </p>
               </div>
 
             </div>
