@@ -73,7 +73,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   // Fuzzy match current page of gaps against academy_events
   const gapIds = (gaps ?? []).map(g => g.id)
   const { data: fuzzyRaw } = gapIds.length > 0
-    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds })
+    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds, threshold: 0.15 })
     : { data: [] }
 
   type FuzzyMatch = { event_id: string; academy_event_id: string; academy_title: string; score: number; permalink: string | null }
@@ -202,7 +202,9 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                           ) : (
                             match.academy_title
                           )}
-                          <span className="ml-1 opacity-70">({Math.round(match.score * 100)}% match)</span>
+                          <span className={`ml-1 font-medium ${match.score >= 0.6 ? 'text-green-600' : match.score >= 0.35 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            ({Math.round(match.score * 100)}%)
+                          </span>
                         </p>
                       )}
                     </td>
