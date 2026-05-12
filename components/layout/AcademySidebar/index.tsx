@@ -40,14 +40,21 @@ export default function AcademySidebar({ userEmail }: AcademySidebarProps) {
       'flex h-screen flex-col border-r bg-background transition-all duration-200',
       collapsed ? 'w-14' : 'w-60'
     )}>
-      {/* Brand */}
-      <div className={cn('flex items-center py-5 overflow-hidden', collapsed ? 'justify-center px-0' : 'px-5')}>
+      {/* Brand + toggle */}
+      <div className={cn('flex items-center py-4 overflow-hidden', collapsed ? 'justify-center px-2' : 'px-4')}>
         {!collapsed && (
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold whitespace-nowrap">WCRP Academy</p>
             <p className="text-xs text-muted-foreground">Internal Dashboard</p>
           </div>
         )}
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
 
       <Separator />
@@ -72,20 +79,6 @@ export default function AcademySidebar({ userEmail }: AcademySidebarProps) {
           </Link>
         ))}
       </nav>
-
-      <Separator />
-
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(c => !c)}
-        className="flex items-center justify-center py-3 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed
-          ? <ChevronRight className="h-4 w-4" />
-          : <ChevronLeft className="h-4 w-4" />
-        }
-      </button>
 
       <Separator />
 
