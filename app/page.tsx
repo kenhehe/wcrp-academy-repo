@@ -30,10 +30,11 @@ const fetchSummary = cache(async () => {
 export default async function HomePage() {
   const { ipos, agg, calEvents } = await fetchSummary()
 
-  const total     = agg.length
-  const upCount   = agg.filter(e => e.status === 'Upcoming').length
-  const onCount   = agg.filter(e => e.status === 'Ongoing').length
-  const pastCount = agg.filter(e => e.status === 'Past').length
+  const total      = agg.length
+  const upCount    = agg.filter(e => e.status === 'Upcoming').length
+  const onCount    = agg.filter(e => e.status === 'Ongoing').length
+  const pastCount  = agg.filter(e => e.status === 'Past').length
+  const otherCount = agg.filter(e => !['Upcoming', 'Ongoing', 'Past'].includes(e.status)).length
 
   // Events by year (all IPOs combined)
   const yearMap = new Map<string, number>()
@@ -84,19 +85,22 @@ export default async function HomePage() {
       <main className="px-8 py-10 space-y-10 max-w-7xl mx-auto">
 
         {/* Global stat row */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            { label: 'Total Events', value: total },
-            { label: 'Upcoming',     value: upCount },
-            { label: 'Ongoing',      value: onCount },
-            { label: 'Past',         value: pastCount },
-          ].map(({ label, value }) => (
+            { label: 'Total Events', value: total,      accent: false },
+            { label: 'Upcoming',     value: upCount,    accent: false },
+            { label: 'Ongoing',      value: onCount,    accent: false },
+            { label: 'Past',         value: pastCount,  accent: false },
+            { label: 'Other',        value: otherCount, accent: otherCount > 0 },
+          ].map(({ label, value, accent }) => (
             <Card key={label}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-semibold tabular-nums">{value}</p>
+                <p className={`text-2xl font-semibold tabular-nums ${accent ? 'text-amber-500' : ''}`}>
+                  {value}
+                </p>
               </CardContent>
             </Card>
           ))}
