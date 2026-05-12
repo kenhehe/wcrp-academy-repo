@@ -50,7 +50,7 @@ export default function AcademyEventsFilters({
       {yearOptions.length > 0 && (
         <Select
           value={activeYear ?? 'all'}
-          onValueChange={v => push('year', v === 'all' ? undefined : v)}
+          onValueChange={v => push('year', v === 'all' ? undefined : v ?? undefined)}
         >
           <SelectTrigger className="h-8 w-28 text-xs">
             <SelectValue placeholder="All years" />
