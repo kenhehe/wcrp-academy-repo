@@ -59,6 +59,8 @@ export default function GapFiltersBar({ ipos, activeIpo, activeStatus }: GapFilt
           <SelectItem value="Upcoming">Upcoming</SelectItem>
           <SelectItem value="Ongoing">Ongoing</SelectItem>
           <SelectItem value="Past">Past</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+          <SelectItem value="Postponed">Postponed</SelectItem>
         </SelectContent>
       </Select>
 

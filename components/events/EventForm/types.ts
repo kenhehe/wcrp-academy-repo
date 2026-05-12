@@ -18,4 +18,4 @@ export interface EventRow {
   extra_fields: Record<string, string> | null
 }
 
-export const STATUS_OPTIONS = ['Upcoming', 'Ongoing', 'Past'] as const
+export const STATUS_OPTIONS = ['Upcoming', 'Ongoing', 'Past', 'Cancelled', 'Postponed'] as const

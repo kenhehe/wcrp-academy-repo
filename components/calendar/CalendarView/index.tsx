@@ -49,10 +49,14 @@ const localizer = dateFnsLocalizer({
 })
 
 const STATUS_COLOR: Record<string, string> = {
-  Upcoming: '#2563eb',
-  Ongoing:  '#16a34a',
-  Past:     '#94a3b8',
+  Upcoming:  '#2563eb',
+  Ongoing:   '#16a34a',
+  Past:      '#94a3b8',
+  Cancelled: '#ef4444',
+  Postponed: '#f97316',
 }
+
+const INACTIVE_STATUSES = new Set(['Past', 'Cancelled', 'Postponed'])
 
 function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
@@ -72,7 +76,7 @@ export default function CalendarView({ events, ipos }: Props) {
 
   // Events that pass the past toggle
   const visibleByStatus = useMemo(
-    () => showPast ? events : events.filter(e => e.status !== 'Past'),
+    () => showPast ? events : events.filter(e => !INACTIVE_STATUSES.has(e.status)),
     [events, showPast],
   )
 
@@ -124,8 +128,8 @@ export default function CalendarView({ events, ipos }: Props) {
             onClick={() => setShowPast(p => !p)}
           >
             {showPast
-              ? <><EyeOffIcon className="h-3 w-3" /> Hide past</>
-              : <><EyeIcon    className="h-3 w-3" /> Show past</>
+              ? <><EyeOffIcon className="h-3 w-3" /> Hide inactive</>
+              : <><EyeIcon    className="h-3 w-3" /> Show inactive</>
             }
           </Button>
 
@@ -176,7 +180,7 @@ export default function CalendarView({ events, ipos }: Props) {
               const ev  = e.resource as CalendarEvent
               const ipo = ipoMap.get(ev.ipo_id)
               const bg  = ipo?.color_hex ?? STATUS_COLOR[ev.status] ?? '#2563eb'
-              const isPast = ev.status === 'Past'
+              const isPast = INACTIVE_STATUSES.has(ev.status)
               return {
                 style: {
                   backgroundColor: bg,

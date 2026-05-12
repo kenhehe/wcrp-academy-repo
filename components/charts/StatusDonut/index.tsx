@@ -5,16 +5,20 @@ import type { StatusDonutProps } from './types'
 
 // Chart-only color constants — not UI colors
 const COLORS = {
-  Upcoming: '#2563eb',
-  Ongoing:  '#16a34a',
-  Past:     '#94a3b8',
+  Upcoming:  '#2563eb',
+  Ongoing:   '#16a34a',
+  Past:      '#94a3b8',
+  Cancelled: '#ef4444',
+  Postponed: '#f97316',
 }
 
-export default function StatusDonut({ upcoming, ongoing, past }: StatusDonutProps) {
+export default function StatusDonut({ upcoming, ongoing, past, cancelled, postponed }: StatusDonutProps) {
   const data = [
-    { name: 'Upcoming', value: upcoming },
-    { name: 'Ongoing',  value: ongoing },
-    { name: 'Past',     value: past },
+    { name: 'Upcoming',  value: upcoming },
+    { name: 'Ongoing',   value: ongoing },
+    { name: 'Past',      value: past },
+    { name: 'Cancelled', value: cancelled },
+    { name: 'Postponed', value: postponed },
   ].filter(d => d.value > 0)
 
   if (data.length === 0) {

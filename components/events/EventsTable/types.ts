@@ -24,5 +24,5 @@ export interface ActiveFilters {
   [key: string]: string | undefined
 }
 
-export const STATUS_OPTIONS = ['Upcoming', 'Ongoing', 'Past'] as const
+export const STATUS_OPTIONS = ['Upcoming', 'Ongoing', 'Past', 'Cancelled', 'Postponed'] as const
 export const PAGE_SIZE = 25

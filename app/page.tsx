@@ -30,11 +30,12 @@ const fetchSummary = cache(async () => {
 export default async function HomePage() {
   const { ipos, agg, calEvents } = await fetchSummary()
 
-  const total      = agg.length
-  const upCount    = agg.filter(e => e.status === 'Upcoming').length
-  const onCount    = agg.filter(e => e.status === 'Ongoing').length
-  const pastCount  = agg.filter(e => e.status === 'Past').length
-  const otherCount = agg.filter(e => !['Upcoming', 'Ongoing', 'Past'].includes(e.status)).length
+  const total          = agg.length
+  const upCount        = agg.filter(e => e.status === 'Upcoming').length
+  const onCount        = agg.filter(e => e.status === 'Ongoing').length
+  const pastCount      = agg.filter(e => e.status === 'Past').length
+  const cancelledCount = agg.filter(e => e.status === 'Cancelled').length
+  const postponedCount = agg.filter(e => e.status === 'Postponed').length
 
   // Events by year (all IPOs combined)
   const yearMap = new Map<string, number>()
@@ -85,22 +86,21 @@ export default async function HomePage() {
       <main className="px-8 py-10 space-y-10 max-w-7xl mx-auto">
 
         {/* Global stat row */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { label: 'Total Events', value: total,      accent: false },
-            { label: 'Upcoming',     value: upCount,    accent: false },
-            { label: 'Ongoing',      value: onCount,    accent: false },
-            { label: 'Past',         value: pastCount,  accent: false },
-            { label: 'Other',        value: otherCount, accent: otherCount > 0 },
-          ].map(({ label, value, accent }) => (
+            { label: 'Total Events', value: total,          color: '' },
+            { label: 'Upcoming',     value: upCount,        color: '' },
+            { label: 'Ongoing',      value: onCount,        color: '' },
+            { label: 'Past',         value: pastCount,      color: '' },
+            { label: 'Cancelled',    value: cancelledCount, color: 'text-red-500' },
+            { label: 'Postponed',    value: postponedCount, color: 'text-orange-500' },
+          ].map(({ label, value, color }) => (
             <Card key={label}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className={`text-2xl font-semibold tabular-nums ${accent ? 'text-amber-500' : ''}`}>
-                  {value}
-                </p>
+                <p className={`text-2xl font-semibold tabular-nums ${color}`}>{value}</p>
               </CardContent>
             </Card>
           ))}
@@ -116,7 +116,7 @@ export default async function HomePage() {
               <CardTitle className="text-sm font-medium">Status breakdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <StatusDonut upcoming={upCount} ongoing={onCount} past={pastCount} />
+              <StatusDonut upcoming={upCount} ongoing={onCount} past={pastCount} cancelled={cancelledCount} postponed={postponedCount} />
             </CardContent>
           </Card>
 

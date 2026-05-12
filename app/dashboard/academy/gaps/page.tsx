@@ -12,10 +12,12 @@ export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 25
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  Upcoming: 'default',
-  Ongoing:  'secondary',
-  Past:     'outline',
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  Upcoming:  'default',
+  Ongoing:   'secondary',
+  Past:      'outline',
+  Cancelled: 'destructive',
+  Postponed: 'outline',
 }
 
 interface PageProps {

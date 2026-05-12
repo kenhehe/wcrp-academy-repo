@@ -61,6 +61,8 @@ export default async function IPOOverviewPage() {
   const upcoming   = all.filter(e => e.status === 'Upcoming').length
   const ongoing    = all.filter(e => e.status === 'Ongoing').length
   const past       = all.filter(e => e.status === 'Past').length
+  const cancelled  = all.filter(e => e.status === 'Cancelled').length
+  const postponed  = all.filter(e => e.status === 'Postponed').length
 
   const durations = all.map(e => e.duration_days).filter((d): d is number => d != null)
   const avgDuration = durations.length > 0
@@ -108,7 +110,7 @@ export default async function IPOOverviewPage() {
             <CardTitle className="text-sm font-medium">Status breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusDonut upcoming={upcoming} ongoing={ongoing} past={past} />
+            <StatusDonut upcoming={upcoming} ongoing={ongoing} past={past} cancelled={cancelled} postponed={postponed} />
           </CardContent>
         </Card>
 

@@ -15,10 +15,12 @@ import EventForm from '@/components/events/EventForm'
 import type { EventRow, RegistryField, ActiveFilters } from './types'
 import { STATUS_OPTIONS, PAGE_SIZE } from './types'
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  Upcoming: 'default',
-  Ongoing:  'secondary',
-  Past:     'outline',
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  Upcoming:  'default',
+  Ongoing:   'secondary',
+  Past:      'outline',
+  Cancelled: 'destructive',
+  Postponed: 'outline',
 }
 
 type Modal =
