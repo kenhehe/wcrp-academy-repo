@@ -34,7 +34,7 @@ export default function AcademyEventsFilters({
     <div className="flex items-center gap-3">
       <Select
         value={activeMatch ?? 'all'}
-        onValueChange={v => push('match', v === 'all' ? undefined : v)}
+        onValueChange={v => push('match', v === 'all' ? undefined : v ?? undefined)}
       >
         <SelectTrigger className="h-8 w-40 text-xs">
           <SelectValue placeholder="All events" />
