@@ -66,9 +66,9 @@ export default function GapFiltersBar({ ipos, activeIpo, activeStatus }: GapFilt
 
       {hasFilters && (
         <Button
-          variant="ghost"
+          variant="destructive"
           size="sm"
-          className="h-8 text-xs text-muted-foreground"
+          className="h-8 text-xs"
           onClick={() => router.replace(pathname, { scroll: false })}
         >
           Clear
