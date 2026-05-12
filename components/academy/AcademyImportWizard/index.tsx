@@ -562,11 +562,11 @@ export default function AcademyImportWizard() {
             <Info className="h-3.5 w-3.5" />
             How to import
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Import guide</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-sm overflow-y-auto flex-1 pr-1">
 
               <div className="space-y-1">
                 <p className="font-medium">Supported formats</p>
