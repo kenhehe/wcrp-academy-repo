@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { buttonVariants } from '@/components/ui/button'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, CheckIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { markInAcademy } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -146,7 +147,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                 <th className="px-4 py-3 text-left font-medium">IPO</th>
                 <th className="px-4 py-3 text-left font-medium">Start</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Coverage</th>
+                <th className="px-4 py-3 text-left font-medium">Action</th>
                 <th className="px-4 py-3 text-left font-medium w-10" />
               </tr>
             </thead>
@@ -176,9 +177,16 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="destructive" className="text-xs font-normal">
-                        Not in Academy
-                      </Badge>
+                      <form action={markInAcademy}>
+                        <input type="hidden" name="id" value={row.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                        >
+                          <CheckIcon className="h-3 w-3" />
+                          Mark covered
+                        </button>
+                      </form>
                     </td>
                     <td className="px-4 py-3">
                       {row.url && (

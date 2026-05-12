@@ -25,8 +25,8 @@ export default async function AcademyOverviewPage() {
     { data: ipos },
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
-    // Lightweight fetch for month distribution
-    supabase.from('events').select('month,status,in_academy'),
+    // Lightweight fetch for month/year distribution
+    supabase.from('events').select('month,year,status,in_academy'),
     // Next 5 upcoming events not in academy
     supabase
       .from('events')
@@ -61,6 +61,18 @@ export default async function AcademyOverviewPage() {
     if (e.month && e.month >= 1 && e.month <= 12) monthCounts[e.month - 1]++
   }
   const monthData = MONTHS.map((name, i) => ({ name, value: monthCounts[i] }))
+
+  // Year distribution
+  const yearMap = new Map<string, number>()
+  for (const e of all) {
+    if (e.year != null) {
+      const k = String(e.year)
+      yearMap.set(k, (yearMap.get(k) ?? 0) + 1)
+    }
+  }
+  const yearData = [...yearMap.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
 
@@ -142,6 +154,16 @@ export default async function AcademyOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Events by year */}
+      <Card style={{ overflow: 'visible' }}>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Events by year</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartBar data={yearData} color="hsl(var(--primary) / 0.7)" height={220} />
+        </CardContent>
+      </Card>
 
       {/* Action row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
