@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
 import CalendarView, { type CalendarEvent } from '@/components/calendar/CalendarView'
+import { classifyCountry, COUNTRY_NORMALIZE } from '@/lib/geo'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,22 @@ export default async function HomePage() {
       past:     rows.filter(e => e.status === 'Past').length,
     }
   })
+
+  // Geographic breakdown
+  const geoCount = { North: 0, South: 0, Other: 0 }
+  const countryMap = new Map<string, number>()
+  for (const e of calEvents) {
+    const cat = classifyCountry(e.country)
+    geoCount[cat]++
+    if (cat !== 'Other' && e.country) {
+      const name = COUNTRY_NORMALIZE[e.country] ?? e.country
+      countryMap.set(name, (countryMap.get(name) ?? 0) + 1)
+    }
+  }
+  const topCountriesData = [...countryMap.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 12)
 
   // IPO comparison bar data (sorted highest first)
   const ipoBarData = ipoStats
@@ -139,6 +156,66 @@ export default async function HomePage() {
             <ChartBar data={ipoBarData} height={220} />
           </CardContent>
         </Card>
+
+        {/* Geographic breakdown */}
+        <section>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-4">Geographic Breakdown</h2>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Global North vs South</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  {[
+                    { label: 'Global North', value: geoCount.North,  color: '#2563eb' },
+                    { label: 'Global South', value: geoCount.South,  color: '#16a34a' },
+                    { label: 'Virtual / Unknown', value: geoCount.Other, color: '#94a3b8' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label}>
+                      <p className="text-2xl font-semibold tabular-nums" style={{ color }}>{value}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Global North', value: geoCount.North, color: '#2563eb' },
+                    { label: 'Global South', value: geoCount.South, color: '#16a34a' },
+                  ].map(({ label, value, color }) => {
+                    const classified = geoCount.North + geoCount.South
+                    const pct = classified > 0 ? Math.round(value / classified * 100) : 0
+                    return (
+                      <div key={label}>
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>{label}</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${pct}%`, backgroundColor: color }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card style={{ overflow: 'visible' }}>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Top countries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBar data={topCountriesData} height={260} />
+              </CardContent>
+            </Card>
+
+          </div>
+        </section>
 
         {/* Per-IPO detail cards */}
         <section>
