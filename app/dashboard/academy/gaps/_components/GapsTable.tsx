@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, CheckIcon, LinkIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LinkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { markInAcademy, confirmMatch } from '../actions'
+import MarkInAcademyButton from './MarkInAcademyButton'
 
 const PAGE_SIZE = 25
 
@@ -128,16 +129,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-2">
-                        <form action={markInAcademy}>
-                          <input type="hidden" name="id" value={row.id} />
-                          <button
-                            type="submit"
-                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary active:bg-primary/10"
-                          >
-                            <CheckIcon className="h-3 w-3" />
-                            Already in Academy
-                          </button>
-                        </form>
+                        <MarkInAcademyButton action={markInAcademy} eventId={row.id} />
                         {match && (
                           <form action={confirmMatch}>
                             <input type="hidden" name="event_id"         value={row.id} />
