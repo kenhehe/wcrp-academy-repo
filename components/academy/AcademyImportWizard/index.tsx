@@ -29,13 +29,13 @@ import { INITIAL_STATE, ACADEMY_FIELD_LABELS } from './types'
 const FIELD_ALIASES: Record<AcademyField, string[]> = {
   academy_id:        ['id', 'academy_id', 'course id', 'event id', 'identifier', 'code'],
   title:             ['title', 'event title', 'event name', 'name', 'course title', 'course name'],
+  description:       ['description', 'content', 'overview', 'about', 'summary'],
   start_date:        ['start date', 'start_date', 'date', 'begin date', 'from', 'start',
                       'event start date'],
   end_date:          ['end date', 'end_date', 'to', 'finish date', 'end', 'until',
                       'event end date'],
   status:            ['status', 'state'],
-  training_type:     ['training type', 'training_type', 'type', 'event type',
-                      'type of training'],
+  training_type:     ['training type', 'training_type', 'type', 'event type', 'type of training'],
   lead_organizer:    ['lead organizer', 'lead organiser', 'organizer', 'organiser', 'host',
                       'corresponding/lead organizer', 'corresponding organizer'],
   partner_organizer: ['partner organizer', 'partner organiser', 'partner', 'co-organizer'],
@@ -48,9 +48,12 @@ const FIELD_ALIASES: Record<AcademyField, string[]> = {
   target_audience:   ['target audience', 'target_audience', 'audience', 'target'],
   level:             ['level', 'difficulty', 'grade'],
   cost:              ['cost', 'fee', 'price', 'registration fee', 'cost / fee', 'cost/fee'],
+  funding_support:   ['funding support', 'funding_support', 'funding', 'scholarship'],
   certificate:       ['certificate', 'certification', 'cert', 'certificate of completion'],
+  term_of_use:       ['term of use', 'terms of use', 'term_of_use', 'terms'],
+  contact_person:    ['contact person', 'contact_person', 'official contact person', 'contact name'],
   official_link:     ['official link', 'official_link', 'url', 'link', 'website', 'href', 'web'],
-  permalink:         ['permalink', 'page url', 'page link', 'catalogue url'],
+  permalink:         ['permalink', 'application link', 'page url', 'page link', 'catalogue url'],
   contact_email:     ['contact email', 'contact_email', 'email', 'official contact email'],
   catalogue_tags:    ['catalogue tags', 'catalog tags', 'tags', 'catalogue_tags'],
   extra_field:       [],
@@ -60,26 +63,30 @@ const FIELD_ALIASES: Record<AcademyField, string[]> = {
 // Required → Key field → Other mapped → Skip
 // Lower number = shown first
 const FIELD_SORT_ORDER: Record<AcademyField, number> = {
-  title:             0,   // required
-  academy_id:        1,   // key — drives deduplication
-  start_date:        2,   // key
-  end_date:          3,   // key
-  official_link:     4,   // key — needed for event page links
+  title:             0,
+  academy_id:        1,
+  start_date:        2,
+  end_date:          3,
+  official_link:     4,
   status:            5,
-  training_type:     6,
-  lead_organizer:    7,
-  partner_organizer: 8,
-  categories:        9,
+  lead_organizer:    6,
+  partner_organizer: 7,
+  categories:        8,
+  training_type:     9,
   delivery_mode:     10,
   location:          11,
   languages:         12,
   target_audience:   13,
   level:             14,
   cost:              15,
-  certificate:       16,
-  permalink:         17,
-  contact_email:     18,
-  catalogue_tags:    19,
+  funding_support:   16,
+  certificate:       17,
+  term_of_use:       18,
+  contact_person:    19,
+  permalink:         20,
+  contact_email:     21,
+  catalogue_tags:    22,
+  description:       23,
   extra_field:       98,
   skip:              99,
 }
@@ -91,6 +98,7 @@ const FIELD_TIER: Record<AcademyField, 'required' | 'recommended' | 'other'> = {
   end_date:          'recommended',
   official_link:     'recommended',
   status:            'other',
+  description:       'other',
   training_type:     'other',
   lead_organizer:    'other',
   partner_organizer: 'other',
@@ -101,7 +109,10 @@ const FIELD_TIER: Record<AcademyField, 'required' | 'recommended' | 'other'> = {
   target_audience:   'other',
   level:             'other',
   cost:              'other',
+  funding_support:   'other',
   certificate:       'other',
+  term_of_use:       'other',
+  contact_person:    'other',
   permalink:         'other',
   contact_email:     'other',
   catalogue_tags:    'other',
@@ -230,7 +241,17 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: ParsedR
   })
 }
 
-const DATE_FIELDS = new Set<AcademyField>(['start_date', 'end_date'])
+const DATE_FIELDS    = new Set<AcademyField>(['start_date', 'end_date'])
+const BOOL_FIELDS    = new Set<AcademyField>(['cost', 'funding_support', 'certificate', 'term_of_use'])
+const BOOL_TRUE_PAT  = /^(yes|true|1|y|agreed|paid)$/i
+const BOOL_FALSE_PAT = /^(no|false|0|n|none|free|gratis|no cost|no fee)$/i
+
+function parseBoolVal(raw: string): boolean | null {
+  const s = raw.trim()
+  if (BOOL_TRUE_PAT.test(s))  return true
+  if (BOOL_FALSE_PAT.test(s)) return false
+  return null
+}
 
 // ── Build mapped rows ─────────────────────────────────────────────────────────
 function buildMappedRows(rawRows: ParsedRow[], columnMap: Record<string, AcademyField>): AcademyMappedRow[] {
@@ -244,6 +265,9 @@ function buildMappedRows(rawRows: ParsedRow[], columnMap: Record<string, Academy
         if (!val) continue
         if (field === 'extra_field') {
           extra[header] = val
+        } else if (BOOL_FIELDS.has(field)) {
+          const b = parseBoolVal(val)
+          if (b !== null) (mapped as Record<string, unknown>)[field] = b
         } else {
           ;(mapped as Record<string, string>)[field] = DATE_FIELDS.has(field)
             ? normalizeDate(val)

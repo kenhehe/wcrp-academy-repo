@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 export interface AcademyMappedRow {
   academy_id?:        string
   title:              string
+  description?:       string
   start_date?:        string
   end_date?:          string
   status?:            string
@@ -19,8 +20,11 @@ export interface AcademyMappedRow {
   languages?:         string
   target_audience?:   string
   level?:             string
-  cost?:              string
-  certificate?:       string
+  cost?:              boolean
+  funding_support?:   boolean
+  certificate?:       boolean
+  term_of_use?:       boolean
+  contact_person?:    string
   official_link?:     string
   permalink?:         string
   contact_email?:     string
@@ -59,25 +63,29 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
         withId.map(r => ({
           academy_id:        r.academy_id,
           title:             r.title,
-          start_date:        r.start_date ?? null,
-          end_date:          r.end_date ?? null,
-          status:            r.status ?? null,
-          training_type:     r.training_type ?? null,
-          lead_organizer:    r.lead_organizer ?? null,
-          partner_organizer: r.partner_organizer ?? null,
-          categories:        r.categories ?? null,
-          delivery_mode:     r.delivery_mode ?? null,
-          location:          r.location ?? null,
-          languages:         r.languages ?? null,
-          target_audience:   r.target_audience ?? null,
-          level:             r.level ?? null,
-          cost:              r.cost ?? null,
-          certificate:       r.certificate ?? null,
-          official_link:     r.official_link ?? null,
-          permalink:         r.permalink ?? null,
-          contact_email:     r.contact_email ?? null,
-          catalogue_tags:    r.catalogue_tags ?? null,
-          extra_fields:      r.extra_fields ?? {},
+          description:       r.description       ?? null,
+          start_date:        r.start_date         ?? null,
+          end_date:          r.end_date           ?? null,
+          status:            r.status             ?? null,
+          training_type:     r.training_type      ?? null,
+          lead_organizer:    r.lead_organizer     ?? null,
+          partner_organizer: r.partner_organizer  ?? null,
+          categories:        r.categories         ?? null,
+          delivery_mode:     r.delivery_mode      ?? null,
+          location:          r.location           ?? null,
+          languages:         r.languages          ?? null,
+          target_audience:   r.target_audience    ?? null,
+          level:             r.level              ?? null,
+          cost:              r.cost               ?? null,
+          funding_support:   r.funding_support    ?? null,
+          certificate:       r.certificate        ?? null,
+          term_of_use:       r.term_of_use        ?? null,
+          contact_person:    r.contact_person     ?? null,
+          official_link:     r.official_link      ?? null,
+          permalink:         r.permalink          ?? null,
+          contact_email:     r.contact_email      ?? null,
+          catalogue_tags:    r.catalogue_tags     ?? null,
+          extra_fields:      r.extra_fields       ?? {},
           updated_at:        new Date().toISOString(),
         })),
         { onConflict: 'academy_id', count: 'exact' }
@@ -111,25 +119,29 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
         .insert(
           toInsert.map(r => ({
             title:             r.title,
-            start_date:        r.start_date ?? null,
-            end_date:          r.end_date ?? null,
-            status:            r.status ?? null,
-            training_type:     r.training_type ?? null,
-            lead_organizer:    r.lead_organizer ?? null,
+            description:       r.description      ?? null,
+            start_date:        r.start_date        ?? null,
+            end_date:          r.end_date          ?? null,
+            status:            r.status            ?? null,
+            training_type:     r.training_type     ?? null,
+            lead_organizer:    r.lead_organizer    ?? null,
             partner_organizer: r.partner_organizer ?? null,
-            categories:        r.categories ?? null,
-            delivery_mode:     r.delivery_mode ?? null,
-            location:          r.location ?? null,
-            languages:         r.languages ?? null,
-            target_audience:   r.target_audience ?? null,
-            level:             r.level ?? null,
-            cost:              r.cost ?? null,
-            certificate:       r.certificate ?? null,
-            official_link:     r.official_link ?? null,
-            permalink:         r.permalink ?? null,
-            contact_email:     r.contact_email ?? null,
-            catalogue_tags:    r.catalogue_tags ?? null,
-            extra_fields:      r.extra_fields ?? {},
+            categories:        r.categories        ?? null,
+            delivery_mode:     r.delivery_mode     ?? null,
+            location:          r.location          ?? null,
+            languages:         r.languages         ?? null,
+            target_audience:   r.target_audience   ?? null,
+            level:             r.level             ?? null,
+            cost:              r.cost              ?? null,
+            funding_support:   r.funding_support   ?? null,
+            certificate:       r.certificate       ?? null,
+            term_of_use:       r.term_of_use       ?? null,
+            contact_person:    r.contact_person    ?? null,
+            official_link:     r.official_link     ?? null,
+            permalink:         r.permalink         ?? null,
+            contact_email:     r.contact_email     ?? null,
+            catalogue_tags:    r.catalogue_tags    ?? null,
+            extra_fields:      r.extra_fields      ?? {},
           })),
           { count: 'exact' }
         )
@@ -141,25 +153,29 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
       const { error } = await supabase
         .from('academy_events')
         .update({
-          start_date:        row.start_date ?? null,
-          end_date:          row.end_date ?? null,
-          status:            row.status ?? null,
-          training_type:     row.training_type ?? null,
-          lead_organizer:    row.lead_organizer ?? null,
+          description:       row.description      ?? null,
+          start_date:        row.start_date        ?? null,
+          end_date:          row.end_date          ?? null,
+          status:            row.status            ?? null,
+          training_type:     row.training_type     ?? null,
+          lead_organizer:    row.lead_organizer    ?? null,
           partner_organizer: row.partner_organizer ?? null,
-          categories:        row.categories ?? null,
-          delivery_mode:     row.delivery_mode ?? null,
-          location:          row.location ?? null,
-          languages:         row.languages ?? null,
-          target_audience:   row.target_audience ?? null,
-          level:             row.level ?? null,
-          cost:              row.cost ?? null,
-          certificate:       row.certificate ?? null,
-          official_link:     row.official_link ?? null,
-          permalink:         row.permalink ?? null,
-          contact_email:     row.contact_email ?? null,
-          catalogue_tags:    row.catalogue_tags ?? null,
-          extra_fields:      row.extra_fields ?? {},
+          categories:        row.categories        ?? null,
+          delivery_mode:     row.delivery_mode     ?? null,
+          location:          row.location          ?? null,
+          languages:         row.languages         ?? null,
+          target_audience:   row.target_audience   ?? null,
+          level:             row.level             ?? null,
+          cost:              row.cost              ?? null,
+          funding_support:   row.funding_support   ?? null,
+          certificate:       row.certificate       ?? null,
+          term_of_use:       row.term_of_use       ?? null,
+          contact_person:    row.contact_person    ?? null,
+          official_link:     row.official_link     ?? null,
+          permalink:         row.permalink         ?? null,
+          contact_email:     row.contact_email     ?? null,
+          catalogue_tags:    row.catalogue_tags    ?? null,
+          extra_fields:      row.extra_fields      ?? {},
           updated_at:        new Date().toISOString(),
         })
         .eq('id', row.id)

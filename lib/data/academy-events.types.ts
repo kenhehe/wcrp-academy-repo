@@ -11,6 +11,7 @@ export interface AcademyEventRow {
   id:                string
   academy_id:        string | null
   title:             string
+  description:       string | null
   start_date:        string | null
   end_date:          string | null
   publish_date:      string | null
@@ -24,8 +25,11 @@ export interface AcademyEventRow {
   languages:         string | null
   target_audience:   string | null
   level:             string | null
-  cost:              string | null
-  certificate:       string | null
+  cost:              boolean | null
+  funding_support:   boolean | null
+  certificate:       boolean | null
+  term_of_use:       boolean | null
+  contact_person:    string | null
   official_link:     string | null
   permalink:         string | null
   contact_email:     string | null

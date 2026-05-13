@@ -7,6 +7,7 @@ export type WizardStep = 'upload' | 'map' | 'preview' | 'importing' | 'done'
 export type AcademyField =
   | 'academy_id'
   | 'title'
+  | 'description'
   | 'start_date'
   | 'end_date'
   | 'status'
@@ -20,7 +21,10 @@ export type AcademyField =
   | 'target_audience'
   | 'level'
   | 'cost'
+  | 'funding_support'
   | 'certificate'
+  | 'term_of_use'
+  | 'contact_person'
   | 'official_link'
   | 'permalink'
   | 'contact_email'
@@ -31,6 +35,7 @@ export type AcademyField =
 export const ACADEMY_FIELD_LABELS: Record<AcademyField, string> = {
   academy_id:        'Academy ID',
   title:             'Title',
+  description:       'Description / Content',
   start_date:        'Start Date',
   end_date:          'End Date',
   status:            'Status',
@@ -39,14 +44,17 @@ export const ACADEMY_FIELD_LABELS: Record<AcademyField, string> = {
   partner_organizer: 'Partner Organizer',
   categories:        'Categories',
   delivery_mode:     'Delivery Mode',
-  location:          'Location',
+  location:          'Location / Platform',
   languages:         'Languages',
   target_audience:   'Target Audience',
   level:             'Level',
-  cost:              'Cost',
-  certificate:       'Certificate',
+  cost:              'Cost (boolean: yes = has fee)',
+  funding_support:   'Funding Support (boolean)',
+  certificate:       'Certificate (boolean)',
+  term_of_use:       'Term of Use (boolean)',
+  contact_person:    'Contact Person',
   official_link:     'Official Link',
-  permalink:         'Permalink',
+  permalink:         'Application Link',
   contact_email:     'Contact Email',
   catalogue_tags:    'Catalogue Tags',
   extra_field:       'Extra field (keep as-is)',

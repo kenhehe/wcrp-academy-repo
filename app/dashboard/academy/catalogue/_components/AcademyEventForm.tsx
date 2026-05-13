@@ -9,9 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events.types'
 
-// Keys from extra_fields that get their own dedicated form field
-const PROMOTED_EXTRA_KEYS = ['Content', 'Official contact person', 'Funding support']
-
 interface ExtraField { key: string; value: string }
 
 interface Props {
@@ -43,18 +40,37 @@ function field(
   )
 }
 
+function boolSelect(
+  label: string,
+  value: boolean | null,
+  onChange: (v: boolean | null) => void,
+  opts?: { trueLabel?: string; falseLabel?: string }
+) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
+      <select
+        value={value === null ? '' : value ? 'true' : 'false'}
+        onChange={e => {
+          const v = e.target.value
+          onChange(v === '' ? null : v === 'true')
+        }}
+        className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+      >
+        <option value="">— Not set —</option>
+        <option value="true">{opts?.trueLabel  ?? 'Yes'}</option>
+        <option value="false">{opts?.falseLabel ?? 'No'}</option>
+      </select>
+    </div>
+  )
+}
+
 export default function AcademyEventForm({ initialData, action, submitLabel }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const toStr = (v: string | null | undefined) => v ?? ''
-  const ef = initialData?.extra_fields ?? {}
-
-  // Generic extra fields — exclude promoted keys
-  const rawExtra = Object.entries(ef)
-    .filter(([k]) => !PROMOTED_EXTRA_KEYS.includes(k))
-    .map(([key, value]) => ({ key, value }))
 
   // Core
   const [title,            setTitle]           = useState(toStr(initialData?.title))
@@ -80,19 +96,20 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [targetAudience,   setTargetAudience]   = useState(toStr(initialData?.target_audience))
   const [level,            setLevel]            = useState(toStr(initialData?.level))
 
-  // Cost & certification
-  const [cost,             setCost]             = useState(toStr(initialData?.cost))
-  const [fundingSupport,   setFundingSupport]   = useState(toStr(ef['Funding support']))
-  const [certificate,      setCertificate]      = useState(toStr(initialData?.certificate))
+  // Cost & certification (booleans)
+  const [cost,             setCost]             = useState<boolean | null>(initialData?.cost           ?? null)
+  const [fundingSupport,   setFundingSupport]   = useState<boolean | null>(initialData?.funding_support ?? null)
+  const [certificate,      setCertificate]      = useState<boolean | null>(initialData?.certificate     ?? null)
+  const [termOfUse,        setTermOfUse]        = useState<boolean | null>(initialData?.term_of_use     ?? null)
 
   // Links & contact
   const [officialLink,     setOfficialLink]     = useState(toStr(initialData?.official_link))
   const [permalink,        setPermalink]        = useState(toStr(initialData?.permalink))
-  const [contactPerson,    setContactPerson]    = useState(toStr(ef['Official contact person']))
+  const [contactPerson,    setContactPerson]    = useState(toStr(initialData?.contact_person))
   const [contactEmail,     setContactEmail]     = useState(toStr(initialData?.contact_email))
 
   // Description
-  const [content,          setContent]          = useState(toStr(ef['Content']))
+  const [description,      setDescription]      = useState(toStr(initialData?.description))
 
   // Internal metadata
   const [academyId,        setAcademyId]        = useState(toStr(initialData?.academy_id))
@@ -100,64 +117,57 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [isExternal,       setIsExternal]       = useState(initialData?.is_external ?? false)
 
   // Generic extra fields
-  const [extraFields,      setExtraFields]      = useState<ExtraField[]>(rawExtra)
+  const [extraFields, setExtraFields] = useState<ExtraField[]>(
+    Object.entries(initialData?.extra_fields ?? {}).map(([key, value]) => ({ key, value }))
+  )
 
   const isOnDemand = status === 'On Demand'
 
-  function addExtraField() {
-    setExtraFields(f => [...f, { key: '', value: '' }])
-  }
+  function addExtraField()  { setExtraFields(f => [...f, { key: '', value: '' }]) }
   function updateExtraField(i: number, part: Partial<ExtraField>) {
     setExtraFields(f => f.map((row, idx) => idx === i ? { ...row, ...part } : row))
   }
-  function removeExtraField(i: number) {
-    setExtraFields(f => f.filter((_, idx) => idx !== i))
-  }
+  function removeExtraField(i: number) { setExtraFields(f => f.filter((_, idx) => idx !== i)) }
 
   function handleSubmit() {
     if (!title.trim()) { setError('Title is required.'); return }
     setError(null)
 
-    // Merge promoted keys back into extra_fields alongside user-added ones
-    const extra: Record<string, string> = {}
-    if (content.trim())       extra['Content']                  = content.trim()
-    if (contactPerson.trim()) extra['Official contact person']  = contactPerson.trim()
-    if (fundingSupport)       extra['Funding support']          = fundingSupport
-    for (const f of extraFields) {
-      if (f.key.trim()) extra[f.key.trim()] = f.value
-    }
-
     const data: Partial<AcademyEventInput> = {
       title:             title.trim(),
-      status:            status       || null,
-      lead_organizer:    leadOrganizer    || null,
-      partner_organizer: partnerOrganizer || null,
+      status:            status            || null,
+      lead_organizer:    leadOrganizer     || null,
+      partner_organizer: partnerOrganizer  || null,
       start_date:        isOnDemand ? null : (startDate  || null),
       end_date:          isOnDemand ? null : (endDate    || null),
-      publish_date:      publishDate || null,
-      categories:        categories  || null,
-      training_type:     trainingType || null,
-      delivery_mode:     deliveryMode || null,
-      location:          location    || null,
-      languages:         languages   || null,
-      target_audience:   targetAudience || null,
-      level:             level       || null,
-      cost:              cost        || null,
-      certificate:       certificate || null,
-      official_link:     officialLink || null,
-      permalink:         permalink   || null,
-      contact_email:     contactEmail || null,
-      academy_id:        academyId   || null,
-      catalogue_tags:    catalogueTags || null,
+      publish_date:      publishDate       || null,
+      categories:        categories        || null,
+      training_type:     trainingType      || null,
+      delivery_mode:     deliveryMode      || null,
+      location:          location          || null,
+      languages:         languages         || null,
+      target_audience:   targetAudience    || null,
+      level:             level             || null,
+      cost,
+      funding_support:   fundingSupport,
+      certificate,
+      term_of_use:       termOfUse,
+      contact_person:    contactPerson     || null,
+      official_link:     officialLink      || null,
+      permalink:         permalink         || null,
+      contact_email:     contactEmail      || null,
+      description:       description       || null,
+      academy_id:        academyId         || null,
+      catalogue_tags:    catalogueTags     || null,
       is_external:       isExternal,
-      extra_fields:      extra,
+      extra_fields:      Object.fromEntries(
+        extraFields.filter(f => f.key.trim()).map(f => [f.key.trim(), f.value])
+      ),
     }
 
     startTransition(async () => {
       const result = await action(data)
-      if (result && 'error' in result && result.error) {
-        setError(result.error)
-      }
+      if (result && 'error' in result && result.error) setError(result.error)
     })
   }
 
@@ -191,7 +201,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       <section className="space-y-4">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Organizers</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Lead Organizer', leadOrganizer, setLeadOrganizer, { placeholder: 'Primary organizing body' })}
+          {field('Lead Organizer',    leadOrganizer,    setLeadOrganizer,    { placeholder: 'Primary organizing body' })}
           {field('Partner Organizer', partnerOrganizer, setPartnerOrganizer, { placeholder: 'Co-organizers' })}
         </div>
       </section>
@@ -240,20 +250,10 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       <section className="space-y-4">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cost & Certification</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Cost / Fee', cost, setCost, { placeholder: 'e.g. Free, 500 USD' })}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Funding Support</Label>
-            <select
-              value={fundingSupport}
-              onChange={e => setFundingSupport(e.target.value)}
-              className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">— Select —</option>
-              <option value="none">None</option>
-              <option value="yes">Yes</option>
-            </select>
-          </div>
-          {field('Certificate of Completion', certificate, setCertificate, { placeholder: 'e.g. Yes, No' })}
+          {boolSelect('Has Cost / Fee',           cost,          setCost,          { trueLabel: 'Yes — has a fee', falseLabel: 'Free' })}
+          {boolSelect('Funding Support Available', fundingSupport, setFundingSupport)}
+          {boolSelect('Certificate of Completion', certificate,   setCertificate)}
+          {boolSelect('Term of Use Agreed',        termOfUse,     setTermOfUse)}
         </div>
       </section>
 
@@ -261,10 +261,10 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       <section className="space-y-4">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Links & Contact</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Official Link',     officialLink,  setOfficialLink,  { type: 'url',   placeholder: 'https://' })}
-          {field('Application Link',  permalink,     setPermalink,     { type: 'url',   placeholder: 'https://' })}
-          {field('Contact Person',    contactPerson, setContactPerson, { placeholder: 'Full name or organization' })}
-          {field('Contact Email',     contactEmail,  setContactEmail,  { type: 'email', placeholder: 'contact@example.com' })}
+          {field('Official Link',    officialLink,  setOfficialLink,  { type: 'url',   placeholder: 'https://' })}
+          {field('Application Link', permalink,     setPermalink,     { type: 'url',   placeholder: 'https://' })}
+          {field('Contact Person',   contactPerson, setContactPerson, { placeholder: 'Full name or organization' })}
+          {field('Contact Email',    contactEmail,  setContactEmail,  { type: 'email', placeholder: 'contact@example.com' })}
         </div>
       </section>
 
@@ -274,8 +274,8 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Content</Label>
           <Textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
             placeholder="Short overview of the event (200–400 words recommended). Include learning objectives and any details prospective participants should know."
             rows={6}
             className="text-sm resize-y"
