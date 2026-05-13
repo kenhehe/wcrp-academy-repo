@@ -6,7 +6,11 @@ import { PlusIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events.types'
+
+// Keys from extra_fields that get their own dedicated form field
+const PROMOTED_EXTRA_KEYS = ['Content', 'Official contact person', 'Funding support']
 
 interface ExtraField { key: string; value: string }
 
@@ -45,42 +49,67 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [error, setError] = useState<string | null>(null)
 
   const toStr = (v: string | null | undefined) => v ?? ''
-  const extra = Object.entries(initialData?.extra_fields ?? {}).map(([key, value]) => ({ key, value }))
+  const ef = initialData?.extra_fields ?? {}
 
-  const [title,             setTitle]           = useState(toStr(initialData?.title))
-  const [academyId,         setAcademyId]        = useState(toStr(initialData?.academy_id))
-  const [status,            setStatus]           = useState(toStr(initialData?.status))
-  const [trainingType,      setTrainingType]      = useState(toStr(initialData?.training_type))
-  const [deliveryMode,      setDeliveryMode]      = useState(toStr(initialData?.delivery_mode))
-  const [startDate,         setStartDate]         = useState(toStr(initialData?.start_date))
-  const [endDate,           setEndDate]           = useState(toStr(initialData?.end_date))
-  const [publishDate,       setPublishDate]       = useState(toStr(initialData?.publish_date))
-  const [leadOrganizer,     setLeadOrganizer]     = useState(toStr(initialData?.lead_organizer))
-  const [partnerOrganizer,  setPartnerOrganizer]  = useState(toStr(initialData?.partner_organizer))
-  const [location,          setLocation]          = useState(toStr(initialData?.location))
-  const [languages,         setLanguages]         = useState(toStr(initialData?.languages))
-  const [targetAudience,    setTargetAudience]    = useState(toStr(initialData?.target_audience))
-  const [level,             setLevel]             = useState(toStr(initialData?.level))
-  const [cost,              setCost]              = useState(toStr(initialData?.cost))
-  const [certificate,       setCertificate]       = useState(toStr(initialData?.certificate))
-  const [officialLink,      setOfficialLink]      = useState(toStr(initialData?.official_link))
-  const [permalink,         setPermalink]         = useState(toStr(initialData?.permalink))
-  const [contactEmail,      setContactEmail]      = useState(toStr(initialData?.contact_email))
-  const [categories,        setCategories]        = useState(toStr(initialData?.categories))
-  const [catalogueTags,     setCatalogueTags]     = useState(toStr(initialData?.catalogue_tags))
-  const [isExternal,        setIsExternal]        = useState(initialData?.is_external ?? false)
-  const [extraFields,       setExtraFields]       = useState<ExtraField[]>(extra)
+  // Generic extra fields — exclude promoted keys
+  const rawExtra = Object.entries(ef)
+    .filter(([k]) => !PROMOTED_EXTRA_KEYS.includes(k))
+    .map(([key, value]) => ({ key, value }))
+
+  // Core
+  const [title,            setTitle]           = useState(toStr(initialData?.title))
+  const [status,           setStatus]           = useState(toStr(initialData?.status))
+
+  // Organizers
+  const [leadOrganizer,    setLeadOrganizer]    = useState(toStr(initialData?.lead_organizer))
+  const [partnerOrganizer, setPartnerOrganizer] = useState(toStr(initialData?.partner_organizer))
+
+  // Dates
+  const [startDate,        setStartDate]        = useState(toStr(initialData?.start_date))
+  const [endDate,          setEndDate]          = useState(toStr(initialData?.end_date))
+  const [publishDate,      setPublishDate]      = useState(toStr(initialData?.publish_date))
+
+  // Classification
+  const [categories,       setCategories]       = useState(toStr(initialData?.categories))
+  const [trainingType,     setTrainingType]     = useState(toStr(initialData?.training_type))
+  const [deliveryMode,     setDeliveryMode]     = useState(toStr(initialData?.delivery_mode))
+
+  // Location & audience
+  const [location,         setLocation]         = useState(toStr(initialData?.location))
+  const [languages,        setLanguages]        = useState(toStr(initialData?.languages))
+  const [targetAudience,   setTargetAudience]   = useState(toStr(initialData?.target_audience))
+  const [level,            setLevel]            = useState(toStr(initialData?.level))
+
+  // Cost & certification
+  const [cost,             setCost]             = useState(toStr(initialData?.cost))
+  const [fundingSupport,   setFundingSupport]   = useState(toStr(ef['Funding support']))
+  const [certificate,      setCertificate]      = useState(toStr(initialData?.certificate))
+
+  // Links & contact
+  const [officialLink,     setOfficialLink]     = useState(toStr(initialData?.official_link))
+  const [permalink,        setPermalink]        = useState(toStr(initialData?.permalink))
+  const [contactPerson,    setContactPerson]    = useState(toStr(ef['Official contact person']))
+  const [contactEmail,     setContactEmail]     = useState(toStr(initialData?.contact_email))
+
+  // Description
+  const [content,          setContent]          = useState(toStr(ef['Content']))
+
+  // Internal metadata
+  const [academyId,        setAcademyId]        = useState(toStr(initialData?.academy_id))
+  const [catalogueTags,    setCatalogueTags]    = useState(toStr(initialData?.catalogue_tags))
+  const [isExternal,       setIsExternal]       = useState(initialData?.is_external ?? false)
+
+  // Generic extra fields
+  const [extraFields,      setExtraFields]      = useState<ExtraField[]>(rawExtra)
 
   const isOnDemand = status === 'On Demand'
 
   function addExtraField() {
     setExtraFields(f => [...f, { key: '', value: '' }])
   }
-
   function updateExtraField(i: number, part: Partial<ExtraField>) {
     setExtraFields(f => f.map((row, idx) => idx === i ? { ...row, ...part } : row))
   }
-
   function removeExtraField(i: number) {
     setExtraFields(f => f.filter((_, idx) => idx !== i))
   }
@@ -89,32 +118,39 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
     if (!title.trim()) { setError('Title is required.'); return }
     setError(null)
 
+    // Merge promoted keys back into extra_fields alongside user-added ones
+    const extra: Record<string, string> = {}
+    if (content.trim())       extra['Content']                  = content.trim()
+    if (contactPerson.trim()) extra['Official contact person']  = contactPerson.trim()
+    if (fundingSupport)       extra['Funding support']          = fundingSupport
+    for (const f of extraFields) {
+      if (f.key.trim()) extra[f.key.trim()] = f.value
+    }
+
     const data: Partial<AcademyEventInput> = {
-      academy_id:        academyId   || null,
       title:             title.trim(),
       status:            status       || null,
-      training_type:     trainingType || null,
-      delivery_mode:     deliveryMode || null,
-      start_date:        isOnDemand ? null : (startDate  || null),
-      end_date:          isOnDemand ? null : (endDate    || null),
-      publish_date:      isOnDemand ? (publishDate || null) : (publishDate || null),
       lead_organizer:    leadOrganizer    || null,
       partner_organizer: partnerOrganizer || null,
-      location:          location         || null,
-      languages:         languages        || null,
-      target_audience:   targetAudience   || null,
-      level:             level            || null,
-      cost:              cost             || null,
-      certificate:       certificate      || null,
-      official_link:     officialLink     || null,
-      permalink:         permalink        || null,
-      contact_email:     contactEmail     || null,
-      categories:        categories       || null,
-      catalogue_tags:    catalogueTags    || null,
+      start_date:        isOnDemand ? null : (startDate  || null),
+      end_date:          isOnDemand ? null : (endDate    || null),
+      publish_date:      publishDate || null,
+      categories:        categories  || null,
+      training_type:     trainingType || null,
+      delivery_mode:     deliveryMode || null,
+      location:          location    || null,
+      languages:         languages   || null,
+      target_audience:   targetAudience || null,
+      level:             level       || null,
+      cost:              cost        || null,
+      certificate:       certificate || null,
+      official_link:     officialLink || null,
+      permalink:         permalink   || null,
+      contact_email:     contactEmail || null,
+      academy_id:        academyId   || null,
+      catalogue_tags:    catalogueTags || null,
       is_external:       isExternal,
-      extra_fields:      Object.fromEntries(
-        extraFields.filter(f => f.key.trim()).map(f => [f.key.trim(), f.value])
-      ),
+      extra_fields:      extra,
     }
 
     startTransition(async () => {
@@ -128,9 +164,9 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   return (
     <div className="space-y-8 max-w-4xl">
 
-      {/* Core */}
+      {/* 1 · Core */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Core</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Core</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             {field('Title', title, setTitle, { required: true, placeholder: 'Event title' })}
@@ -148,14 +184,21 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
               ))}
             </select>
           </div>
-          {field('Training Type', trainingType, setTrainingType, { placeholder: 'e.g. workshop, webinar' })}
-          {field('Delivery Mode', deliveryMode, setDeliveryMode, { placeholder: 'e.g. in-person, online' })}
         </div>
       </section>
 
-      {/* Dates */}
+      {/* 2 · Organizers */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dates</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Organizers</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {field('Lead Organizer', leadOrganizer, setLeadOrganizer, { placeholder: 'Primary organizing body' })}
+          {field('Partner Organizer', partnerOrganizer, setPartnerOrganizer, { placeholder: 'Co-organizers' })}
+        </div>
+      </section>
+
+      {/* 3 · Dates */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dates</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {isOnDemand ? (
             field('Publish Date', publishDate, setPublishDate, { type: 'date' })
@@ -168,50 +211,84 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
           )}
         </div>
         {isOnDemand && (
-          <p className="text-xs text-muted-foreground">
-            On Demand events use Publish Date instead of start/end dates.
-          </p>
+          <p className="text-xs text-muted-foreground">On Demand events use Publish Date instead of start/end dates.</p>
         )}
       </section>
 
-      {/* Organizers */}
+      {/* 4 · Classification */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Organizers</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Classification</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Lead Organizer',    leadOrganizer,    setLeadOrganizer)}
-          {field('Partner Organizer', partnerOrganizer, setPartnerOrganizer)}
+          {field('Categories',    categories,  setCategories,  { placeholder: 'e.g. Physical Science, Mitigation' })}
+          {field('Training Type', trainingType, setTrainingType, { placeholder: 'e.g. Workshop, Webinar, MOOC' })}
+          {field('Delivery Mode', deliveryMode, setDeliveryMode, { placeholder: 'e.g. In person, Online, Hybrid' })}
         </div>
       </section>
 
-      {/* Details */}
+      {/* 5 · Location & Audience */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Details</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Location & Audience</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Location',        location,       setLocation)}
-          {field('Languages',       languages,      setLanguages,    { placeholder: 'e.g. English, French' })}
-          {field('Target Audience', targetAudience, setTargetAudience)}
-          {field('Level',           level,          setLevel,        { placeholder: 'e.g. Beginner, Advanced' })}
-          {field('Cost',            cost,           setCost,         { placeholder: 'e.g. Free, 500 USD' })}
-          {field('Certificate',     certificate,    setCertificate)}
+          {field('Location / Platform', location,       setLocation,       { placeholder: 'City, country or platform name' })}
+          {field('Languages',           languages,      setLanguages,      { placeholder: 'e.g. English, French' })}
+          {field('Target Audience',     targetAudience, setTargetAudience, { placeholder: 'e.g. Early-career researchers' })}
+          {field('Level',               level,          setLevel,          { placeholder: 'e.g. Basic, Intermediate, Advanced' })}
         </div>
       </section>
 
-      {/* Links */}
+      {/* 6 · Cost & Certification */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Links</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cost & Certification</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Official Link',   officialLink,  setOfficialLink,  { type: 'url', placeholder: 'https://' })}
-          {field('Permalink',       permalink,     setPermalink,     { type: 'url', placeholder: 'https://' })}
-          {field('Contact Email',   contactEmail,  setContactEmail,  { type: 'email' })}
+          {field('Cost / Fee', cost, setCost, { placeholder: 'e.g. Free, 500 USD' })}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Funding Support</Label>
+            <select
+              value={fundingSupport}
+              onChange={e => setFundingSupport(e.target.value)}
+              className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="">— Select —</option>
+              <option value="none">None</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          {field('Certificate of Completion', certificate, setCertificate, { placeholder: 'e.g. Yes, No' })}
         </div>
       </section>
 
-      {/* Metadata */}
+      {/* 7 · Links & Contact */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Metadata</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Links & Contact</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {field('Official Link',     officialLink,  setOfficialLink,  { type: 'url',   placeholder: 'https://' })}
+          {field('Application Link',  permalink,     setPermalink,     { type: 'url',   placeholder: 'https://' })}
+          {field('Contact Person',    contactPerson, setContactPerson, { placeholder: 'Full name or organization' })}
+          {field('Contact Email',     contactEmail,  setContactEmail,  { type: 'email', placeholder: 'contact@example.com' })}
+        </div>
+      </section>
+
+      {/* 8 · Description */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</h2>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Content</Label>
+          <Textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Short overview of the event (200–400 words recommended). Include learning objectives and any details prospective participants should know."
+            rows={6}
+            className="text-sm resize-y"
+          />
+          <p className="text-xs text-muted-foreground">HTML is preserved if present.</p>
+        </div>
+      </section>
+
+      {/* 9 · Internal Metadata */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Internal Metadata</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {field('Academy ID',     academyId,     setAcademyId,     { placeholder: 'Unique ID from Academy catalogue' })}
-          {field('Categories',     categories,    setCategories)}
           {field('Catalogue Tags', catalogueTags, setCatalogueTags)}
           <div className="flex items-center gap-2 pt-5">
             <input
@@ -228,10 +305,10 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
         </div>
       </section>
 
-      {/* Extra Fields */}
+      {/* 10 · Extra Fields */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Extra Fields</h2>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Extra Fields</h2>
           <Button type="button" variant="outline" size="sm" onClick={addExtraField} className="h-7 text-xs gap-1">
             <PlusIcon className="h-3 w-3" /> Add field
           </Button>
