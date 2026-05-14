@@ -76,8 +76,9 @@ function field(
 
 function normalizeToOption(value: string | null | undefined, options: string[]): string {
   if (!value) return ''
-  const cleaned = value.replace(/[_-]/g, ' ').toLowerCase().trim()
-  return options.find(o => o.toLowerCase() === cleaned) ?? value
+  const clean = (s: string) => s.replace(/[_-]/g, ' ').toLowerCase().trim()
+  const cleaned = clean(value)
+  return options.find(o => clean(o) === cleaned) ?? value
 }
 
 function selectField(
