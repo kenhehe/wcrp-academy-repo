@@ -43,6 +43,21 @@ const TARGET_AUDIENCE_OPTIONS = [
   'Marginalized groups (e.g. women, indigenous peoples)',
 ]
 
+const AUDIENCE_SLUG_MAP: Record<string, string> = {
+  'undergraduate_students':                  'Undergraduate students',
+  'masters_students':                        "Master's students",
+  'master_s_students':                       "Master's students",
+  'phd_students':                            'PhD students',
+  'early_and_mid_career_researchers':        'Early and mid-career researchers',
+  'early_mid_career_researchers':            'Early and mid-career researchers',
+  'senior_researchers':                      'Senior researchers',
+  'government':                              'Government',
+  'civil_society_organization_and_media':    'Civil society organizations and media',
+  'civil_society_organizations_and_media':   'Civil society organizations and media',
+  'business_sector':                         'Business sector',
+  'marginalized_groups':                     'Marginalized groups (e.g. women, indigenous peoples)',
+}
+
 interface ExtraField { key: string; value: string }
 
 interface Props {
@@ -158,8 +173,13 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [languages,        setLanguages]        = useState(toStr(initialData?.languages))
   const [targetAudience, setTargetAudience] = useState<string[]>(
     (initialData?.target_audience ?? '')
-      .split(',')
-      .map(s => normalizeToOption(s.trim(), TARGET_AUDIENCE_OPTIONS) || s.trim())
+      .split(/[|,]/)
+      .map(s => {
+        const trimmed = s.trim()
+        return AUDIENCE_SLUG_MAP[trimmed.toLowerCase()]
+          ?? normalizeToOption(trimmed, TARGET_AUDIENCE_OPTIONS)
+          || trimmed
+      })
       .filter(Boolean)
   )
 
