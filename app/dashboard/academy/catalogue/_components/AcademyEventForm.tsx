@@ -176,9 +176,9 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       .split(/[|,]/)
       .map(s => {
         const trimmed = s.trim()
-        return AUDIENCE_SLUG_MAP[trimmed.toLowerCase()]
-          ?? normalizeToOption(trimmed, TARGET_AUDIENCE_OPTIONS)
-          || trimmed
+        const fromSlug = AUDIENCE_SLUG_MAP[trimmed.toLowerCase()]
+        if (fromSlug) return fromSlug
+        return normalizeToOption(trimmed, TARGET_AUDIENCE_OPTIONS) || trimmed
       })
       .filter(Boolean)
   )
