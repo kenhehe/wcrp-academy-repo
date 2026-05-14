@@ -310,7 +310,6 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
             <>
               {field('Start Date', startDate, setStartDate, { type: 'date' })}
               {field('End Date',   endDate,   setEndDate,   { type: 'date' })}
-              {field('Publish Date (optional)', publishDate, setPublishDate, { type: 'date' })}
             </>
           )}
         </div>
