@@ -64,7 +64,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   const addLink = () => {
     const url = window.prompt('URL')
     if (!url) return
-    editor.chain().focus().extendMarkToLink({ href: url }).setLink({ href: url }).run()
+    editor.chain().focus().setLink({ href: url }).run()
   }
 
   return (
