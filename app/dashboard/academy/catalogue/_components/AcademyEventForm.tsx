@@ -9,6 +9,28 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events.types'
 
+const CATEGORY_OPTIONS = [
+  'Physical Science Basis of Climate Change',
+  'Climate Change Impacts, Adaptation, and Vulnerability',
+  'Mitigation of Climate Change',
+]
+
+const TRAINING_TYPE_OPTIONS = [
+  'Conference',
+  'MOOC',
+  'Science meetings',
+  'Seasonal school',
+  'Short course',
+  'Webinar',
+  'Workshop',
+]
+
+const DELIVERY_MODE_OPTIONS = [
+  'In person',
+  'Online',
+  'Hybrid',
+]
+
 interface ExtraField { key: string; value: string }
 
 interface Props {
@@ -36,6 +58,28 @@ function field(
         required={opts?.required}
         className="h-8 text-sm"
       />
+    </div>
+  )
+}
+
+function selectField(
+  label: string,
+  value: string,
+  onChange: (v: string) => void,
+  options: string[],
+  opts?: { placeholder?: string }
+) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+      >
+        <option value="">{opts?.placeholder ?? `— Select ${label.toLowerCase()} —`}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   )
 }
@@ -229,9 +273,9 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       <section className="space-y-4">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Classification</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {field('Categories',    categories,  setCategories,  { placeholder: 'e.g. Physical Science, Mitigation' })}
-          {field('Training Type', trainingType, setTrainingType, { placeholder: 'e.g. Workshop, Webinar, MOOC' })}
-          {field('Delivery Mode', deliveryMode, setDeliveryMode, { placeholder: 'e.g. In person, Online, Hybrid' })}
+          {selectField('Categories',    categories,   setCategories,   CATEGORY_OPTIONS)}
+          {selectField('Training Type', trainingType, setTrainingType, TRAINING_TYPE_OPTIONS)}
+          {selectField('Delivery Mode', deliveryMode, setDeliveryMode, DELIVERY_MODE_OPTIONS)}
         </div>
       </section>
 
