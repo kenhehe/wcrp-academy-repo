@@ -158,7 +158,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [targetAudience, setTargetAudience] = useState<string[]>(
     (initialData?.target_audience ?? '')
       .split(',')
-      .map(s => s.trim())
+      .map(s => normalizeToOption(s.trim(), TARGET_AUDIENCE_OPTIONS) || s.trim())
       .filter(Boolean)
   )
 
