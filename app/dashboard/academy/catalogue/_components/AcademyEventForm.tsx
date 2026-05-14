@@ -62,6 +62,12 @@ function field(
   )
 }
 
+function normalizeToOption(value: string | null | undefined, options: string[]): string {
+  if (!value) return ''
+  const cleaned = value.replace(/[_-]/g, ' ').toLowerCase().trim()
+  return options.find(o => o.toLowerCase() === cleaned) ?? value
+}
+
 function selectField(
   label: string,
   value: string,
@@ -69,8 +75,6 @@ function selectField(
   options: string[],
   opts?: { placeholder?: string }
 ) {
-  const hasMatch = !value || options.some(o => o.toLowerCase() === value.toLowerCase())
-  const allOptions = hasMatch ? options : [...options, value]
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
@@ -80,7 +84,7 @@ function selectField(
         className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="">{opts?.placeholder ?? `— Select ${label.toLowerCase()} —`}</option>
-        {allOptions.map(o => <option key={o} value={o}>{o}</option>)}
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
   )
@@ -132,9 +136,9 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   const [publishDate,      setPublishDate]      = useState(toStr(initialData?.publish_date))
 
   // Classification
-  const [categories,       setCategories]       = useState(toStr(initialData?.categories))
-  const [trainingType,     setTrainingType]     = useState(toStr(initialData?.training_type))
-  const [deliveryMode,     setDeliveryMode]     = useState(toStr(initialData?.delivery_mode))
+  const [categories,       setCategories]       = useState(normalizeToOption(initialData?.categories,    CATEGORY_OPTIONS))
+  const [trainingType,     setTrainingType]     = useState(normalizeToOption(initialData?.training_type, TRAINING_TYPE_OPTIONS))
+  const [deliveryMode,     setDeliveryMode]     = useState(normalizeToOption(initialData?.delivery_mode, DELIVERY_MODE_OPTIONS))
 
   // Location & audience
   const [location,         setLocation]         = useState(toStr(initialData?.location))
