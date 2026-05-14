@@ -6,7 +6,7 @@ import { PlusIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import RichTextEditor from '@/components/ui/rich-text-editor'
 import { type AcademyEventRow, type AcademyEventInput, ACADEMY_STATUS_OPTIONS } from '@/lib/data/academy-events.types'
 
 const CATEGORY_OPTIONS = [
@@ -29,6 +29,18 @@ const DELIVERY_MODE_OPTIONS = [
   'In person',
   'Online',
   'Hybrid',
+]
+
+const TARGET_AUDIENCE_OPTIONS = [
+  'Undergraduate students',
+  'Master\'s students',
+  'PhD students',
+  'Early and mid-career researchers',
+  'Senior researchers',
+  'Government',
+  'Civil society organizations and media',
+  'Business sector',
+  'Marginalized groups (e.g. women, indigenous peoples)',
 ]
 
 interface ExtraField { key: string; value: string }
@@ -143,7 +155,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   // Location & audience
   const [location,         setLocation]         = useState(toStr(initialData?.location))
   const [languages,        setLanguages]        = useState(toStr(initialData?.languages))
-  const [targetAudience,   setTargetAudience]   = useState(toStr(initialData?.target_audience))
+  const [targetAudience,   setTargetAudience]   = useState(normalizeToOption(initialData?.target_audience, TARGET_AUDIENCE_OPTIONS))
   const [level,            setLevel]            = useState(toStr(initialData?.level))
 
   // Cost & certification (booleans)
@@ -291,7 +303,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {field('Location / Platform', location,       setLocation,       { placeholder: 'City, country or platform name' })}
           {field('Languages',           languages,      setLanguages,      { placeholder: 'e.g. English, French' })}
-          {field('Target Audience',     targetAudience, setTargetAudience, { placeholder: 'e.g. Early-career researchers' })}
+          {selectField('Target Audience', targetAudience, setTargetAudience, TARGET_AUDIENCE_OPTIONS)}
           {field('Level',               level,          setLevel,          { placeholder: 'e.g. Basic, Intermediate, Advanced' })}
         </div>
       </section>
@@ -323,14 +335,11 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</h2>
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Content</Label>
-          <Textarea
+          <RichTextEditor
             value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Short overview of the event (200–400 words recommended). Include learning objectives and any details prospective participants should know."
-            rows={6}
-            className="text-sm resize-y"
+            onChange={setDescription}
+            placeholder="Short overview of the event (200–400 words recommended)."
           />
-          <p className="text-xs text-muted-foreground">HTML is preserved if present.</p>
         </div>
       </section>
 
