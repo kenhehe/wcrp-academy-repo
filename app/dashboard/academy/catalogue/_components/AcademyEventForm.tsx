@@ -69,6 +69,8 @@ function selectField(
   options: string[],
   opts?: { placeholder?: string }
 ) {
+  const hasMatch = !value || options.some(o => o.toLowerCase() === value.toLowerCase())
+  const allOptions = hasMatch ? options : [...options, value]
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
@@ -78,7 +80,7 @@ function selectField(
         className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="">{opts?.placeholder ?? `— Select ${label.toLowerCase()} —`}</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        {allOptions.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
   )
