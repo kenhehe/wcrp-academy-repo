@@ -155,7 +155,18 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
   // Location & audience
   const [location,         setLocation]         = useState(toStr(initialData?.location))
   const [languages,        setLanguages]        = useState(toStr(initialData?.languages))
-  const [targetAudience,   setTargetAudience]   = useState(normalizeToOption(initialData?.target_audience, TARGET_AUDIENCE_OPTIONS))
+  const [targetAudience, setTargetAudience] = useState<string[]>(
+    (initialData?.target_audience ?? '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+  )
+
+  function toggleAudience(opt: string) {
+    setTargetAudience(prev =>
+      prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]
+    )
+  }
   const [level,            setLevel]            = useState(toStr(initialData?.level))
 
   // Cost & certification (booleans)
@@ -208,7 +219,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
       delivery_mode:     deliveryMode      || null,
       location:          location          || null,
       languages:         languages         || null,
-      target_audience:   targetAudience    || null,
+      target_audience:   targetAudience.length ? targetAudience.join(', ') : null,
       level:             level             || null,
       cost,
       funding_support:   fundingSupport,
@@ -303,7 +314,22 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {field('Location / Platform', location,       setLocation,       { placeholder: 'City, country or platform name' })}
           {field('Languages',           languages,      setLanguages,      { placeholder: 'e.g. English, French' })}
-          {selectField('Target Audience', targetAudience, setTargetAudience, TARGET_AUDIENCE_OPTIONS)}
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label className="text-xs font-medium">Target Audience</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+              {TARGET_AUDIENCE_OPTIONS.map(opt => (
+                <label key={opt} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={targetAudience.includes(opt)}
+                    onChange={() => toggleAudience(opt)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          </div>
           {field('Level',               level,          setLevel,          { placeholder: 'e.g. Basic, Intermediate, Advanced' })}
         </div>
       </section>
