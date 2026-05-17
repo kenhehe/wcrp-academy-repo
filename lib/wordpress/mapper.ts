@@ -3,6 +3,7 @@ import type { WpCatalogueItem } from './client'
 const STATUS_MAP: Record<string, string> = {
   upcoming_training:  'Upcoming training',
   ongoing_training:   'Ongoing training',
+  on_going_training:  'Ongoing training',
   past_training:      'Past training',
   on_demand_training: 'On Demand',
   on_demand:          'On Demand',
