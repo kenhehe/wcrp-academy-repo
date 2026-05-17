@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, ExternalLinkIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fetchWpCatalogues, type WpCatalogueItem } from '@/lib/wordpress/client'
 import { mapWpItem } from '@/lib/wordpress/mapper'
@@ -84,7 +84,6 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
                 <th className="px-4 py-3 text-left font-medium">Dates</th>
                 <th className="px-4 py-3 text-left font-medium">Type</th>
                 <th className="px-4 py-3 text-left font-medium">Lead Organizer</th>
-                <th className="px-4 py-3 text-left font-medium w-16">Link</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +99,18 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
                   return (
                     <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="truncate font-medium">{row.title}</p>
+                        {row.official_link ? (
+                          <a
+                            href={row.official_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate font-medium hover:underline underline-offset-2 block"
+                          >
+                            {row.title}
+                          </a>
+                        ) : (
+                          <p className="truncate font-medium">{row.title}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">WP #{row.id}</p>
                       </td>
                       <td className="px-4 py-3">
@@ -121,18 +131,6 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground max-w-[140px]">
                         <p className="truncate">{row.lead_organizer ?? '—'}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.official_link && (
-                          <a
-                            href={row.official_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <ExternalLinkIcon className="h-3.5 w-3.5" />
-                          </a>
-                        )}
                       </td>
                     </tr>
                   )
