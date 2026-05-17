@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, ExternalLinkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { fetchWpCatalogues } from '@/lib/wordpress/client'
+import { fetchWpCatalogues, type WpCatalogueItem } from '@/lib/wordpress/client'
 import { mapWpItem } from '@/lib/wordpress/mapper'
 import CatalogueFilters from './_components/CatalogueFilters'
 
@@ -31,10 +31,10 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
   const page   = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
   let error: string | null = null
-  let allItems = []
+  let allItems: WpCatalogueItem[] = []
 
   try {
-    const { items, totalPages: wpTotalPages } = await fetchWpCatalogues(page, PAGE_SIZE)
+    const { items } = await fetchWpCatalogues(page, PAGE_SIZE)
     allItems = items
   } catch (e) {
     error = String(e)
