@@ -56,6 +56,13 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
           <p className="text-sm text-muted-foreground mt-1">
             Live from WordPress · {mapped.length} events
           </p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-lg">
+            Data is fetched directly from{' '}
+            <a href="https://wcrp-academy.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              wcrp-academy.org
+            </a>{' '}
+            via the WordPress REST API. Any changes made on the Academy website will reflect here automatically. This view is read-only — to edit an event, update it directly on the Academy site.
+          </p>
         </div>
       </div>
 
