@@ -128,7 +128,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-row gap-2 flex-wrap">
                         <MarkInAcademyButton action={markInAcademy} eventId={row.id} />
                         {match && (
                           <form action={confirmMatch}>
