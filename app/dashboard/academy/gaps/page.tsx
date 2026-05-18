@@ -1,12 +1,13 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
 import { InfoIcon } from 'lucide-react'
 import GapsTable from './_components/GapsTable'
 import GapsTableSkeleton from './_components/GapsTableSkeleton'
+import IPOCoverageChart from './_components/IPOCoverageChart'
+import type { IPOChartRow } from './_components/IPOCoverageChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,36 +54,34 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {/* Per-IPO coverage bars */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {(coverage ?? []).map(row => {
-          const b = missingBreakdown.get(row.ipo_id) ?? { Upcoming: 0, Ongoing: 0, Past: 0 }
-          return (
-            <Card key={row.ipo_id}>
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{row.name}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {row.in_academy ?? 0} / {row.total_events ?? 0}
-                  </span>
-                </div>
-                <Progress value={row.coverage_pct ?? 0} className="h-2" />
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-muted-foreground">{row.coverage_pct ?? 0}% covered</p>
-                  {(row.missing_from_academy ?? 0) > 0 && (
-                    <div className="flex items-center gap-2 text-xs tabular-nums">
-                      <span className="text-muted-foreground">Missing:</span>
-                      {b.Upcoming > 0 && <span className="text-primary font-medium">{b.Upcoming} upcoming</span>}
-                      {b.Ongoing  > 0 && <span className="text-foreground">{b.Ongoing} ongoing</span>}
-                      {b.Past     > 0 && <span className="text-muted-foreground">{b.Past} past</span>}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+      {/* Per-IPO coverage chart */}
+      {(() => {
+        const chartData: IPOChartRow[] = (coverage ?? [])
+          .sort((a, b) => (b.missing_from_academy ?? 0) - (a.missing_from_academy ?? 0))
+          .map(row => {
+            const bd = missingBreakdown.get(row.ipo_id) ?? { Upcoming: 0, Ongoing: 0, Past: 0 }
+            return {
+              name:            row.name,
+              inAcademy:       row.in_academy       ?? 0,
+              missingUpcoming: bd.Upcoming,
+              missingOngoing:  bd.Ongoing,
+              missingPast:     bd.Past,
+            }
+          })
+        return (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Academy coverage by IPO</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Sorted by most events still missing · amber = upcoming (primary focus)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <IPOCoverageChart data={chartData} />
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Missing events table */}
       <div className="space-y-4">
