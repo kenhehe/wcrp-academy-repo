@@ -5,7 +5,10 @@ import {
   computeStatus,
   fetchWithRetry,
   finishRun,
+  isFreshScrape,
   parseDate,
+  peekFirstTitle,
+  recordSkippedRun,
   startRun,
   upsertEvents,
 } from '../_shared/utils.ts'
@@ -145,6 +148,15 @@ Deno.serve(async (req) => {
   const startedAt = new Date().toISOString()
 
   try {
+    if (!body.force) {
+      const peekTitle = await peekFirstTitle(SOURCE_URL, (html) => parseEvents(html))
+      if (peekTitle && await isFreshScrape(supabase, IPO_ID, peekTitle)) {
+        console.log(`[${IPO_ID}] skipping — "${peekTitle}" already in DB`)
+        await recordSkippedRun(supabase, runId, startedAt)
+        return Response.json({ runId, skipped: true })
+      }
+    }
+
     const res  = await fetchWithRetry(SOURCE_URL)
     const html = await res.text()
     const allEvents = parseEvents(html)

@@ -189,7 +189,7 @@ export async function startRun(supabase: any, ipoId: string, runId?: string): Pr
 
 // deno-lint-ignore no-explicit-any
 export async function finishRun(supabase: any, runId: string, result: {
-  status: 'success' | 'failed' | 'partial'
+  status: 'success' | 'failed' | 'partial' | 'skipped'
   eventsFound: number
   eventsNew: number
   eventsUpdated: number
@@ -207,5 +207,53 @@ export async function finishRun(supabase: any, runId: string, result: {
     events_updated: result.eventsUpdated,
     errors:         result.errors.length > 0 ? result.errors : null,
     error_message:  result.errors[0] ?? null,
+  }).eq('id', runId)
+}
+
+// ---------------------------------------------------------------------------
+// Freshness pre-check — skip scrape if site hasn't changed
+// ---------------------------------------------------------------------------
+
+// Fetches page-1 of a listing URL, runs the parser, returns the first event title.
+// Returns null on any error so callers always proceed when uncertain.
+export async function peekFirstTitle(
+  url: string,
+  parser: (html: string, sourceUrl: string) => { title: string }[],
+): Promise<string | null> {
+  try {
+    const res    = await fetchWithRetry(url)
+    const html   = await res.text()
+    const events = parser(html, url)
+    return events[0]?.title?.trim() ?? null
+  } catch {
+    return null
+  }
+}
+
+// Returns true when peekTitle already exists in the events table — safe to skip.
+// deno-lint-ignore no-explicit-any
+export async function isFreshScrape(supabase: any, ipoId: string, peekTitle: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('events')
+    .select('id')
+    .eq('ipo_id', ipoId)
+    .ilike('title', peekTitle)
+    .limit(1)
+  return (data?.length ?? 0) > 0
+}
+
+// Closes a run record as 'skipped' without touching the events table.
+// deno-lint-ignore no-explicit-any
+export async function recordSkippedRun(supabase: any, runId: string, startedAt: string): Promise<void> {
+  const finishedAt = new Date().toISOString()
+  await supabase.from('scrape_runs').update({
+    status:         'skipped',
+    finished_at:    finishedAt,
+    duration_ms:    new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+    events_found:   0,
+    events_new:     0,
+    events_updated: 0,
+    error_message:  null,
+    errors:         null,
   }).eq('id', runId)
 }

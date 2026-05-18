@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { triggerScrape } from './actions'
+import TriggerButton from './_components/TriggerButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +20,12 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   running:  'secondary',
   queued:   'outline',
   failed:   'destructive',
+  skipped:  'outline',
+  partial:  'secondary',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  skipped: 'No change',
 }
 
 function fmt(iso: string | null) {
@@ -114,7 +119,6 @@ export default async function SystemHealthPage() {
             <tbody>
               {(ipos ?? []).map(ipo => {
                 const latest = latestPerIpo.get(ipo.id)
-                const boundAction = triggerScrape.bind(null, null as unknown as FormData, ipo.id)
                 return (
                   <tr key={ipo.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
@@ -135,24 +139,20 @@ export default async function SystemHealthPage() {
                           variant={STATUS_VARIANT[latest.status] ?? 'outline'}
                           className="text-xs capitalize"
                         >
-                          {latest.status}
+                          {STATUS_LABEL[latest.status] ?? latest.status}
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-xs">
-                      {latest?.events_found ?? '—'}
+                      {latest?.status === 'skipped' ? '—' : (latest?.events_found ?? '—')}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
                       {latest ? duration(latest.started_at, latest.finished_at) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <form action={boundAction}>
-                        <Button type="submit" variant="outline" size="sm" className="h-7 text-xs">
-                          Trigger
-                        </Button>
-                      </form>
+                      <TriggerButton ipoId={ipo.id} />
                     </td>
                   </tr>
                 )
@@ -197,7 +197,7 @@ export default async function SystemHealthPage() {
                           variant={STATUS_VARIANT[run.status] ?? 'outline'}
                           className="text-xs capitalize"
                         >
-                          {run.status}
+                          {STATUS_LABEL[run.status] ?? run.status}
                         </Badge>
                         {run.error_message && (
                           <p className="text-xs text-destructive mt-0.5 max-w-xs truncate">

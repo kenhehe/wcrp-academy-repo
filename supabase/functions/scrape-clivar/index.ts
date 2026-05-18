@@ -5,8 +5,11 @@ import {
   computeStatus,
   fetchWithRetry,
   finishRun,
+  isFreshScrape,
   parseDateRange,
   parseDate,
+  peekFirstTitle,
+  recordSkippedRun,
   sleep,
   startRun,
   upsertEvents,
@@ -156,6 +159,16 @@ Deno.serve(async (req) => {
   const startedAt = new Date().toISOString()
 
   try {
+    // CLIVAR has a 60s per-page delay — pre-check is especially valuable here
+    if (!body.force) {
+      const peekTitle = await peekFirstTitle(`${BASE}${LIST}`, parseEvents)
+      if (peekTitle && await isFreshScrape(supabase, IPO_ID, peekTitle)) {
+        console.log(`[${IPO_ID}] skipping — "${peekTitle}" already in DB`)
+        await recordSkippedRun(supabase, runId, startedAt)
+        return Response.json({ runId, skipped: true })
+      }
+    }
+
     const allEvents = await scrapeAll(runId, supabase)
     // Final upsert count — events were already flushed per-page above,
     // but we need accurate totals for the run record.
