@@ -1,6 +1,54 @@
 import type { ScrapedEvent } from './types.ts'
 
 // ---------------------------------------------------------------------------
+// Row validation
+// ---------------------------------------------------------------------------
+
+const DATE_RE        = /^\d{4}-\d{2}-\d{2}$/
+const VALID_STATUSES = new Set(['Upcoming', 'Ongoing', 'Past'])
+const URL_RE         = /^https?:\/\/.+/
+
+export interface ValidationResult {
+  valid:  boolean
+  errors: string[]
+}
+
+export function validateScrapedEvent(event: ScrapedEvent): ValidationResult {
+  const errors: string[] = []
+
+  if (!event.title?.trim())
+    errors.push('missing title')
+  else if (event.title.trim().length > 500)
+    errors.push(`title too long (${event.title.length} chars)`)
+
+  if (!event.ipo_id?.trim())
+    errors.push('missing ipo_id')
+
+  if (!event.start_date)
+    errors.push('missing start_date')
+  else if (!DATE_RE.test(event.start_date))
+    errors.push(`invalid start_date "${event.start_date}"`)
+
+  if (event.end_date && !DATE_RE.test(event.end_date))
+    errors.push(`invalid end_date "${event.end_date}"`)
+
+  if (
+    event.start_date && event.end_date &&
+    DATE_RE.test(event.start_date) && DATE_RE.test(event.end_date) &&
+    event.end_date < event.start_date
+  )
+    errors.push(`end_date (${event.end_date}) is before start_date (${event.start_date})`)
+
+  if (!VALID_STATUSES.has(event.status))
+    errors.push(`invalid status "${event.status}"`)
+
+  if (event.url && !URL_RE.test(event.url))
+    errors.push(`invalid url "${event.url}"`)
+
+  return { valid: errors.length === 0, errors }
+}
+
+// ---------------------------------------------------------------------------
 // Date helpers
 // ---------------------------------------------------------------------------
 
@@ -135,16 +183,33 @@ export async function fetchWithRetry(
 // ---------------------------------------------------------------------------
 
 // deno-lint-ignore no-explicit-any
-export async function upsertEvents(supabase: any, events: ScrapedEvent[]): Promise<{ inserted: number; updated: number; errors: string[] }> {
-  if (events.length === 0) return { inserted: 0, updated: 0, errors: [] }
+export async function upsertEvents(supabase: any, events: ScrapedEvent[]): Promise<{ inserted: number; updated: number; skippedInvalid: number; errors: string[] }> {
+  if (events.length === 0) return { inserted: 0, updated: 0, skippedInvalid: 0, errors: [] }
 
   const errors: string[] = []
-  let inserted = 0
-  let updated  = 0
+  let inserted      = 0
+  let updated       = 0
+  let skippedInvalid = 0
+
+  // Validate before touching the DB — reject bad rows, surface errors in the run log
+  const valid: ScrapedEvent[] = []
+  for (const event of events) {
+    const result = validateScrapedEvent(event)
+    if (result.valid) {
+      valid.push(event)
+    } else {
+      skippedInvalid++
+      const label = event.title ? `"${event.title.slice(0, 60)}"` : '(no title)'
+      errors.push(`INVALID ${label}: ${result.errors.join('; ')}`)
+      console.warn(`[validate] skipping ${label}:`, result.errors)
+    }
+  }
+
+  if (valid.length === 0) return { inserted: 0, updated: 0, skippedInvalid, errors }
 
   // Batch in chunks of 100
-  for (let i = 0; i < events.length; i += 100) {
-    const chunk = events.slice(i, i + 100)
+  for (let i = 0; i < valid.length; i += 100) {
+    const chunk = valid.slice(i, i + 100)
     const { data, error } = await supabase
       .from('events')
       .upsert(chunk, {
@@ -166,7 +231,7 @@ export async function upsertEvents(supabase: any, events: ScrapedEvent[]): Promi
     }
   }
 
-  return { inserted, updated, errors }
+  return { inserted, updated, skippedInvalid, errors }
 }
 
 // ---------------------------------------------------------------------------

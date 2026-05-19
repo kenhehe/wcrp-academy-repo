@@ -172,14 +172,14 @@ Deno.serve(async (req) => {
     const allEvents = await scrapeAll(runId, supabase)
     // Final upsert count — events were already flushed per-page above,
     // but we need accurate totals for the run record.
-    const { inserted, updated, errors } = await upsertEvents(supabase, allEvents)
+    const { inserted, updated, skippedInvalid, errors } = await upsertEvents(supabase, allEvents)
 
     await finishRun(supabase, runId, {
       status: errors.length > 0 ? 'partial' : 'success',
       eventsFound: allEvents.length, eventsNew: inserted,
       eventsUpdated: updated, errors, startedAt,
     })
-    return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, errors })
+    return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, skippedInvalid, errors })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     await finishRun(supabase, runId, {

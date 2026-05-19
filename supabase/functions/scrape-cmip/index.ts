@@ -161,13 +161,13 @@ Deno.serve(async (req) => {
     const html = await res.text()
     const allEvents = parseEvents(html)
 
-    const { inserted, updated, errors } = await upsertEvents(supabase, allEvents)
+    const { inserted, updated, skippedInvalid, errors } = await upsertEvents(supabase, allEvents)
     await finishRun(supabase, runId, {
       status: errors.length > 0 ? 'partial' : 'success',
       eventsFound: allEvents.length, eventsNew: inserted,
       eventsUpdated: updated, errors, startedAt,
     })
-    return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, errors })
+    return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, skippedInvalid, errors })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     await finishRun(supabase, runId, {

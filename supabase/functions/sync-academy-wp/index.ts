@@ -1,6 +1,44 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { parseDate } from '../_shared/utils.ts'
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const URL_RE  = /^https?:\/\/.+/
+
+type WpRow = ReturnType<typeof mapPost>
+
+function validateWpRow(row: WpRow): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  if (!row.academy_id?.trim())
+    errors.push('missing academy_id')
+
+  if (!row.title?.trim())
+    errors.push('missing title')
+  else if (row.title.length > 500)
+    errors.push(`title too long (${row.title.length} chars)`)
+
+  if (row.start_date && !DATE_RE.test(row.start_date))
+    errors.push(`invalid start_date "${row.start_date}"`)
+
+  if (row.end_date && !DATE_RE.test(row.end_date))
+    errors.push(`invalid end_date "${row.end_date}"`)
+
+  if (
+    row.start_date && row.end_date &&
+    DATE_RE.test(row.start_date) && DATE_RE.test(row.end_date) &&
+    row.end_date < row.start_date
+  )
+    errors.push(`end_date (${row.end_date}) before start_date (${row.start_date})`)
+
+  if (row.official_link && !URL_RE.test(row.official_link))
+    errors.push(`invalid official_link "${row.official_link}"`)
+
+  if (row.permalink && !URL_RE.test(row.permalink))
+    errors.push(`invalid permalink "${row.permalink}"`)
+
+  return { valid: errors.length === 0, errors }
+}
+
 const WP_BASE = 'https://wcrp-academy.org/wp-json/wp/v2/catalogues'
 const PER_PAGE = 100
 
@@ -136,18 +174,43 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'No posts fetched', synced: 0 })
     }
 
-    const rows = posts.map(mapPost).filter(r => r.title)
+    const mapped = posts.map(mapPost)
+
+    const validRows:   WpRow[]  = []
+    const invalidMsgs: string[] = []
+    for (const row of mapped) {
+      const { valid, errors } = validateWpRow(row)
+      if (valid) {
+        validRows.push(row)
+      } else {
+        const label = row.title ? `"${row.title.slice(0, 60)}"` : `academy_id=${row.academy_id}`
+        const msg   = `INVALID ${label}: ${errors.join('; ')}`
+        invalidMsgs.push(msg)
+        console.warn(`[sync-academy-wp] ${msg}`)
+      }
+    }
+
+    if (!validRows.length) {
+      return Response.json({
+        message: 'No valid rows after validation',
+        invalid: invalidMsgs.length,
+        errors:  invalidMsgs,
+      })
+    }
 
     const { error, count } = await supabase
       .from('academy_events')
-      .upsert(rows, { onConflict: 'academy_id', count: 'exact' })
+      .upsert(validRows, { onConflict: 'academy_id', count: 'exact' })
 
     if (error) throw error
 
     return Response.json({
-      message: 'Sync complete',
-      fetched: posts.length,
-      synced:  count ?? rows.length,
+      message:        'Sync complete',
+      fetched:        posts.length,
+      valid:          validRows.length,
+      invalid:        invalidMsgs.length,
+      synced:         count ?? validRows.length,
+      ...(invalidMsgs.length > 0 && { validationErrors: invalidMsgs }),
     })
   } catch (err) {
     console.error('sync-academy-wp error:', err)
