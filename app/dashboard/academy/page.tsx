@@ -12,6 +12,12 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   running: 'secondary',
   queued:  'outline',
   failed:  'destructive',
+  skipped: 'outline',
+  partial: 'secondary',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  skipped: 'No change',
 }
 
 export default async function AcademyOverviewPage() {
@@ -250,7 +256,7 @@ export default async function AcademyOverviewPage() {
                       variant={STATUS_VARIANT[run.status] ?? 'outline'}
                       className="text-xs capitalize flex-shrink-0"
                     >
-                      {run.status}
+                      {STATUS_LABEL[run.status] ?? run.status}
                     </Badge>
                   </div>
                 ))}
