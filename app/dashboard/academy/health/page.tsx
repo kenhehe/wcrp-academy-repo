@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import TriggerButton from './_components/TriggerButton'
+import RunAllButton from './_components/RunAllButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,11 +47,7 @@ function duration(start: string, end: string | null) {
 export default async function SystemHealthPage() {
   const supabase = await createClient()
 
-  const [
-    { data: ipos },
-    { data: rawRuns },
-    { count: totalEvents },
-  ] = await Promise.all([
+  const [iposResult, runsResult, countResult] = await Promise.all([
     supabase.from('ipos').select('id,name,color_hex').order('name'),
     supabase
       .from('scrape_runs')
@@ -60,12 +57,25 @@ export default async function SystemHealthPage() {
     supabase.from('scrape_runs').select('*', { count: 'exact', head: true }),
   ])
 
-  const runs = (rawRuns ?? []) as ScrapeRun[]
+  // If scrape_runs table doesn't exist yet, surface a clear message
+  if (runsResult.error && runsResult.error.code !== undefined) {
+    console.error('[SystemHealthPage] scrape_runs query error:', runsResult.error)
+  }
 
-  // Latest run per IPO
-  const latestPerIpo = new Map<string, ScrapeRun>()
+  const ipos       = iposResult.data ?? []
+  const rawRuns    = runsResult.data ?? []
+  const totalEvents = countResult.count
+
+  const runs = rawRuns as ScrapeRun[]
+
+  // Latest run per IPO, and latest successful run per IPO
+  const latestPerIpo   = new Map<string, ScrapeRun>()
+  const lastSuccessPerIpo = new Map<string, ScrapeRun>()
   for (const run of runs) {
     if (!latestPerIpo.has(run.ipo_id)) latestPerIpo.set(run.ipo_id, run)
+    if (!lastSuccessPerIpo.has(run.ipo_id) && (run.status === 'success' || run.status === 'partial')) {
+      lastSuccessPerIpo.set(run.ipo_id, run)
+    }
   }
 
   // Summary stats
@@ -77,14 +87,17 @@ export default async function SystemHealthPage() {
     { label: 'Total scrape runs',    value: totalEvents ?? 0 },
     { label: 'Last run',             value: lastRun ? fmt(lastRun.started_at) : 'Never' },
     { label: 'Failed (last 30)',     value: failedRecent },
-    { label: 'IPOs tracked',         value: ipos?.length ?? 0 },
+    { label: 'IPOs tracked',         value: ipos.length },
   ]
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">System Health</h1>
-        <p className="text-sm text-muted-foreground mt-1">Scraper status across all IPOs</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">System Health</h1>
+          <p className="text-sm text-muted-foreground mt-1">Scraper status across all IPOs</p>
+        </div>
+        <RunAllButton />
       </div>
 
       {/* Summary cards */}
@@ -109,7 +122,8 @@ export default async function SystemHealthPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium">IPO</th>
-                <th className="px-4 py-3 text-left font-medium">Last scrape</th>
+                <th className="px-4 py-3 text-left font-medium">Last run</th>
+                <th className="px-4 py-3 text-left font-medium">Last successful</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Events found</th>
                 <th className="px-4 py-3 text-right font-medium">Duration</th>
@@ -117,7 +131,7 @@ export default async function SystemHealthPage() {
               </tr>
             </thead>
             <tbody>
-              {(ipos ?? []).map(ipo => {
+              {(ipos).map(ipo => {
                 const latest = latestPerIpo.get(ipo.id)
                 return (
                   <tr key={ipo.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
@@ -132,6 +146,9 @@ export default async function SystemHealthPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {latest ? fmt(latest.started_at) : 'Never'}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {lastSuccessPerIpo.get(ipo.id) ? fmt(lastSuccessPerIpo.get(ipo.id)!.started_at) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {latest ? (
@@ -152,7 +169,7 @@ export default async function SystemHealthPage() {
                       {latest ? duration(latest.started_at, latest.finished_at) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <TriggerButton ipoId={ipo.id} />
+                      <TriggerButton ipoId={ipo.id} ipoName={ipo.name} />
                     </td>
                   </tr>
                 )
@@ -185,7 +202,7 @@ export default async function SystemHealthPage() {
                 </tr>
               ) : (
                 recentRuns.map(run => {
-                  const ipo = (ipos ?? []).find(i => i.id === run.ipo_id)
+                  const ipo = (ipos).find(i => i.id === run.ipo_id)
                   return (
                     <tr key={run.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{ipo?.name ?? run.ipo_id}</td>

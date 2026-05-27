@@ -1,34 +1,34 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
-import { triggerScrape } from '../actions'
+import ScrapePreviewDialog from './ScrapePreviewDialog'
 
 interface Props {
-  ipoId: string
-  force?: boolean
+  ipoId:   string
+  ipoName: string
 }
 
-export default function TriggerButton({ ipoId, force = false }: Props) {
-  const [isPending, startTransition] = useTransition()
-
-  function handleClick() {
-    startTransition(async () => {
-      await triggerScrape(ipoId, force)
-    })
-  }
+export default function TriggerButton({ ipoId, ipoName }: Props) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <Button
-      onClick={handleClick}
-      disabled={isPending}
-      variant="outline"
-      size="sm"
-      className="h-7 text-xs"
-    >
-      {isPending && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-      {isPending ? 'Queuing…' : force ? 'Force scrape' : 'Trigger'}
-    </Button>
+    <>
+      <Button
+        onClick={() => setOpen(true)}
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs"
+      >
+        Trigger
+      </Button>
+
+      <ScrapePreviewDialog
+        ipoId={ipoId}
+        ipoName={ipoName}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </>
   )
 }

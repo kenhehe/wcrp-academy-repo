@@ -98,26 +98,47 @@ export function parseDate(input: string | null | undefined): string | null {
 
 // Parse a date range string like "15-18 September 2024" or "15 Sep – 3 Oct 2024"
 export function parseDateRange(raw: string): { start: string | null; end: string | null } {
-  const s = raw.trim().replace(/–|—/g, '-') // em/en dash → hyphen
+  const s = raw.trim().replace(/[–—]/g, '-') // em/en dash → hyphen
 
-  // "15-18 September 2024"
-  const sameMonth = s.match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
-  if (sameMonth) {
-    const m = MONTHS[sameMonth[3].toLowerCase()]
+  // "15-18 September 2024" | "15-18 Sep 2024"
+  const sameMonthDmy = s.match(/^(\d{1,2})\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
+  if (sameMonthDmy) {
+    const m = MONTHS[sameMonthDmy[3].toLowerCase()]
     if (m) return {
-      start: `${sameMonth[4]}-${m}-${sameMonth[1].padStart(2, '0')}`,
-      end:   `${sameMonth[4]}-${m}-${sameMonth[2].padStart(2, '0')}`,
+      start: `${sameMonthDmy[4]}-${m}-${sameMonthDmy[1].padStart(2, '0')}`,
+      end:   `${sameMonthDmy[4]}-${m}-${sameMonthDmy[2].padStart(2, '0')}`,
     }
   }
 
-  // "15 Sep - 3 Oct 2024"
-  const crossMonth = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
+  // "September 15-18, 2024" | "Sep 15-18, 2024"
+  const sameMonthMdy = s.match(/^([A-Za-z]+)\s+(\d{1,2})\s*-\s*(\d{1,2}),?\s+(\d{4})/)
+  if (sameMonthMdy) {
+    const m = MONTHS[sameMonthMdy[1].toLowerCase()]
+    if (m) return {
+      start: `${sameMonthMdy[4]}-${m}-${sameMonthMdy[2].padStart(2, '0')}`,
+      end:   `${sameMonthMdy[4]}-${m}-${sameMonthMdy[3].padStart(2, '0')}`,
+    }
+  }
+
+  // "15 Sep - 3 Oct 2024" (cross-month, same year)
+  const crossMonth = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
   if (crossMonth) {
     const m1 = MONTHS[crossMonth[2].toLowerCase()]
     const m2 = MONTHS[crossMonth[4].toLowerCase()]
     if (m1 && m2) return {
       start: `${crossMonth[5]}-${m1}-${crossMonth[1].padStart(2, '0')}`,
       end:   `${crossMonth[5]}-${m2}-${crossMonth[3].padStart(2, '0')}`,
+    }
+  }
+
+  // "30 Nov 2024 - 3 Jan 2025" (cross-year)
+  const crossYear = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
+  if (crossYear) {
+    const m1 = MONTHS[crossYear[2].toLowerCase()]
+    const m2 = MONTHS[crossYear[5].toLowerCase()]
+    if (m1 && m2) return {
+      start: `${crossYear[3]}-${m1}-${crossYear[1].padStart(2, '0')}`,
+      end:   `${crossYear[6]}-${m2}-${crossYear[4].padStart(2, '0')}`,
     }
   }
 
@@ -273,6 +294,70 @@ export async function finishRun(supabase: any, runId: string, result: {
     errors:         result.errors.length > 0 ? result.errors : null,
     error_message:  result.errors[0] ?? null,
   }).eq('id', runId)
+}
+
+// ---------------------------------------------------------------------------
+// Dry-run diff — preview what would change without writing
+// ---------------------------------------------------------------------------
+
+// Fetches page 1 of a listing URL and returns all parsed events (no DB write).
+export async function scrapeOnePage(
+  url: string,
+  parser: (html: string, sourceUrl: string) => ScrapedEvent[],
+): Promise<ScrapedEvent[]> {
+  try {
+    const res  = await fetchWithRetry(url)
+    const html = await res.text()
+    return parser(html, url)
+  } catch {
+    return []
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+export async function dryRunEvents(
+  supabase: any,
+  ipoId: string,
+  events: ScrapedEvent[],
+): Promise<{
+  toInsert:  ScrapedEvent[]
+  toUpdate:  ScrapedEvent[]
+  invalid:   { title: string; errors: string[] }[]
+}> {
+  const valid:   ScrapedEvent[]                        = []
+  const invalid: { title: string; errors: string[] }[] = []
+
+  for (const event of events) {
+    const result = validateScrapedEvent(event)
+    if (result.valid) {
+      valid.push(event)
+    } else {
+      invalid.push({ title: event.title ?? '(no title)', errors: result.errors })
+    }
+  }
+
+  if (!valid.length) return { toInsert: [], toUpdate: [], invalid }
+
+  // Fetch existing title+date pairs for this IPO to determine new vs update
+  const { data: existing } = await supabase
+    .from('events')
+    .select('title, start_date')
+    .eq('ipo_id', ipoId)
+
+  const existingKeys = new Set(
+    // deno-lint-ignore no-explicit-any
+    (existing ?? []).map((e: any) =>
+      `${String(e.title).toLowerCase().trim()}|${e.start_date}`,
+    ),
+  )
+
+  const key = (e: ScrapedEvent) => `${e.title.toLowerCase().trim()}|${e.start_date}`
+
+  return {
+    toInsert: valid.filter(e => !existingKeys.has(key(e))),
+    toUpdate: valid.filter(e =>  existingKeys.has(key(e))),
+    invalid,
+  }
 }
 
 // ---------------------------------------------------------------------------

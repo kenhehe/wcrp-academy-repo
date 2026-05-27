@@ -3,6 +3,7 @@ import { parse } from 'npm:node-html-parser'
 import type { ScrapedEvent } from '../_shared/types.ts'
 import {
   computeStatus,
+  dryRunEvents,
   fetchWithRetry,
   finishRun,
   isFreshScrape,
@@ -143,7 +144,21 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const body      = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({}))
+
+  // Dry-run: CMIP is a single page so we parse it all
+  if (body.dry_run) {
+    try {
+      const res    = await fetchWithRetry(SOURCE_URL)
+      const html   = await res.text()
+      const events = parseEvents(html)
+      const preview = await dryRunEvents(supabase, IPO_ID, events)
+      return Response.json({ dry_run: true, ipo: IPO_ID, ...preview })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   const runId     = await startRun(supabase, IPO_ID, body.runId)
   const startedAt = new Date().toISOString()
 

@@ -47,3 +47,25 @@ export async function triggerScrape(ipoId: string, force = false): Promise<void>
 
   revalidatePath('/dashboard/academy/health')
 }
+
+export async function triggerAllScrapers(): Promise<{ fired: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) throw new Error('Missing Supabase env vars')
+
+  const scrapers = Object.values(FUNCTION_MAP)
+  for (const fnName of scrapers) {
+    fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+      body:    JSON.stringify({ source: 'manual-all' }),
+    }).catch(err => console.error(`[triggerAllScrapers] ${fnName} failed:`, err))
+  }
+
+  revalidatePath('/dashboard/academy/health')
+  return { fired: scrapers.length }
+}
