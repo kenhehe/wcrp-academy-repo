@@ -5,7 +5,17 @@
       "Bash(npx tsc *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git commit -m 'fix: coerce null to undefined in match filter onValueChange *)",
+      "Bash(git commit -m 'fix: coerce null to undefined in year filter onValueChange *)",
+      "Bash(git commit -m 'fix: add extra_field entry to FIELD_ALIASES to satisfy Record<AcademyField> type *)",
+      "Bash(git commit -m 'fix: move sidebar toggle button to top-right of header *)",
+      "Bash(git commit -m 'fix: make import guide dialog scrollable within viewport *)",
+      "Bash(mkdir -p \"c:/Users/ramir/OneDrive/Documents/GitHub/wcrp-academy-repo/app/api/academy/events/[id]\")",
+      "Bash(mkdir -p \"c:/Users/ramir/OneDrive/Documents/GitHub/wcrp-academy-repo/app/dashboard/academy/catalogue/[id]/edit\")",
+      "WebFetch(domain:wcrp-academy.org)"
     ]
   }
 }

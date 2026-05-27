@@ -11,7 +11,9 @@ create table if not exists public.scrape_runs (
   events_updated integer,
   error_message  text,
   errors         text[],
-  duration_ms    integer
+  duration_ms    integer,
+  source         text default 'cron'
+                   check (source in ('cron', 'manual', 'manual-all'))
 );
 
 -- Index for per-IPO lookups (health page, pre-check)

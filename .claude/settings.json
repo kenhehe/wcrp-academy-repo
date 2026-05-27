@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node -e \"require\\('@tiptap/react'\\)\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(supabase --version)",
+      "Bash(npx supabase *)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\ramir\\\\OneDrive\\\\Documents\\\\GitHub\\\\wcrp-academy-repo\\\\app\\\\api\\\\scrape\\\\preview\\\\[ipoId]\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('next:', p.dependencies?.next || p.devDependencies?.next\\); console.log\\('typescript:', p.dependencies?.typescript || p.devDependencies?.typescript\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
+      "Bash(npx next *)",
+      "Bash(node -e \"const p=require\\('./node_modules/@supabase/supabase-js/package.json'\\); console.log\\('supabase-js:', p.version\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/@supabase/ssr/package.json'\\); console.log\\('supabase/ssr:', p.version\\)\")",
+      "Bash(npx vercel *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('meta', {}\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
+      "PowerShell($tokenPath = \"$env:APPDATA\\\\supabase\\\\access-token\"; if \\(Test-Path $tokenPath\\) { Get-Content $tokenPath } else { \"no saved token\" })",
+      "Bash(Remove-Item \"supabase\\\\migrations\\\\20260527_add_source_to_scrape_runs.sql\" -Force)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\ramir\\OneDrive\\Documents\\GitHub\\wcrp-academy-repo\\app\\api\\scrape\\preview"
+    ]
+  }
+}
