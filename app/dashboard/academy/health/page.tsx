@@ -48,26 +48,31 @@ function duration(start: string, end: string | null) {
 export default async function SystemHealthPage() {
   const supabase = await createClient()
 
-  const [iposResult, runsResult, countResult] = await Promise.all([
-    supabase.from('ipos').select('id,name,color_hex').order('name'),
-    supabase
-      .from('scrape_runs')
-      .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source')
-      .order('started_at', { ascending: false })
-      .limit(100),
-    supabase.from('scrape_runs').select('*', { count: 'exact', head: true }),
-  ])
+  // Fetch all data; catch any individual query failures so the page never crashes
+  let ipos:        { id: string; name: string; color_hex: string | null }[] = []
+  let runs:        ScrapeRun[] = []
+  let totalEvents: number | null = null
 
-  // If scrape_runs table doesn't exist yet, surface a clear message
-  if (runsResult.error && runsResult.error.code !== undefined) {
-    console.error('[SystemHealthPage] scrape_runs query error:', runsResult.error)
+  try {
+    const [iposResult, runsResult, countResult] = await Promise.all([
+      supabase.from('ipos').select('id,name,color_hex').order('name'),
+      supabase
+        .from('scrape_runs')
+        .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source')
+        .order('started_at', { ascending: false })
+        .limit(100),
+      supabase.from('scrape_runs').select('*', { count: 'exact', head: true }),
+    ])
+
+    if (iposResult.error) console.error('[health] ipos query:', iposResult.error.message)
+    if (runsResult.error) console.error('[health] scrape_runs query:', runsResult.error.message)
+
+    ipos        = (iposResult.data ?? []) as typeof ipos
+    runs        = (runsResult.data  ?? []) as ScrapeRun[]
+    totalEvents = countResult.count
+  } catch (err) {
+    console.error('[health] data fetch failed:', err)
   }
-
-  const ipos       = iposResult.data ?? []
-  const rawRuns    = runsResult.data ?? []
-  const totalEvents = countResult.count
-
-  const runs = rawRuns as ScrapeRun[]
 
   // Latest run per IPO, and latest successful run per IPO
   const latestPerIpo   = new Map<string, ScrapeRun>()
