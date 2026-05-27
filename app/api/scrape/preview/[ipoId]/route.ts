@@ -43,8 +43,14 @@ export async function POST(
     })
 
     if (!res.ok) {
-      const text = await res.text()
-      return NextResponse.json({ error: `Scraper returned ${res.status}: ${text}` }, { status: 502 })
+      let errMsg: string
+      try {
+        const body = await res.json()
+        errMsg = body.error ?? `Scraper returned HTTP ${res.status}`
+      } catch {
+        errMsg = `Scraper returned HTTP ${res.status}`
+      }
+      return NextResponse.json({ error: errMsg }, { status: 502 })
     }
 
     const data = await res.json()

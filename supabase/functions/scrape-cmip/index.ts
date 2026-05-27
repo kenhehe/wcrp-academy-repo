@@ -155,7 +155,14 @@ Deno.serve(async (req) => {
       const preview = await dryRunEvents(supabase, IPO_ID, events)
       return Response.json({ dry_run: true, ipo: IPO_ID, ...preview })
     } catch (err) {
-      return Response.json({ error: String(err) }, { status: 500 })
+      const msg = String(err)
+      if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+        return Response.json(
+          { error: 'The CMIP website uses Cloudflare bot protection (HTTP 403). Automated scraping is blocked — add CMIP events manually through the Catalogue.' },
+          { status: 403 },
+        )
+      }
+      return Response.json({ error: msg }, { status: 500 })
     }
   }
 
@@ -184,7 +191,10 @@ Deno.serve(async (req) => {
     })
     return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, skippedInvalid, errors })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
+    const raw = err instanceof Error ? err.message : String(err)
+    const msg = (raw.includes('403') || raw.toLowerCase().includes('forbidden'))
+      ? 'Blocked by Cloudflare bot protection (HTTP 403). Add CMIP events manually.'
+      : raw
     await finishRun(supabase, runId, {
       status: 'failed', eventsFound: 0, eventsNew: 0,
       eventsUpdated: 0, errors: [msg], startedAt,
