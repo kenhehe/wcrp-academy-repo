@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 const FUNCTION_MAP: Record<string, string> = {
@@ -13,35 +14,39 @@ const FUNCTION_MAP: Record<string, string> = {
   clivar: 'scrape-clivar',
 }
 
-export async function triggerScrape(ipoId: string, force = false): Promise<void> {
+async function assertAuth() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
+  return user
+}
+
+export async function triggerScrape(ipoId: string, force = false): Promise<void> {
+  await assertAuth()
 
   const fnName = FUNCTION_MAP[ipoId]
   if (!fnName) throw new Error(`No scraper registered for IPO: ${ipoId}`)
 
-  const { data: run, error: insertErr } = await supabase
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) throw new Error('Missing Supabase env vars')
+
+  // Use admin client so the INSERT bypasses RLS (service_role policy)
+  const db = createAdminClient()
+  const { data: run, error: insertErr } = await db
     .from('scrape_runs')
-    .insert({ ipo_id: ipoId, status: 'queued', started_at: new Date().toISOString() })
+    .insert({ ipo_id: ipoId, status: 'queued', started_at: new Date().toISOString(), source: 'manual' })
     .select('id')
     .single()
 
   if (insertErr) throw new Error(insertErr.message)
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!supabaseUrl) throw new Error('NEXT_PUBLIC_SUPABASE_URL not set')
-
-  const edgeFnUrl  = `${supabaseUrl}/functions/v1/${fnName}`
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  fetch(edgeFnUrl, {
+  fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization:  `Bearer ${serviceKey}`,
     },
-    // force=true bypasses the pre-check — useful for manual full re-scrape
     body: JSON.stringify({ runId: run.id, source: 'manual', force }),
   }).catch(err => console.error(`[triggerScrape] invoke ${fnName} failed:`, err))
 
@@ -49,9 +54,7 @@ export async function triggerScrape(ipoId: string, force = false): Promise<void>
 }
 
 export async function triggerAllScrapers(): Promise<{ fired: number }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  await assertAuth()
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
