@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import TriggerButton from './_components/TriggerButton'
@@ -46,7 +46,9 @@ function duration(start: string, end: string | null) {
 }
 
 export default async function SystemHealthPage() {
-  const supabase = await createClient()
+  // Use the admin (service-role) client so we bypass the user session cookie
+  // that causes double-refresh 400s from @supabase/ssr in nested server components.
+  const supabase = createAdminClient()
 
   // Fetch all data; catch any individual query failures so the page never crashes
   let ipos:        { id: string; name: string; color_hex: string | null }[] = []
