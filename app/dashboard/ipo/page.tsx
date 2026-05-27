@@ -31,7 +31,6 @@ export default async function IPOOverviewPage() {
   const [
     { data: events },
     { data: upcomingList },
-    { data: lastScrape },
   ] = await Promise.all([
     // Lightweight fetch for all aggregations
     supabase
@@ -46,14 +45,6 @@ export default async function IPOOverviewPage() {
       .eq('status', 'Upcoming')
       .order('start_date', { ascending: true })
       .limit(5),
-    // Last scrape run
-    supabase
-      .from('scrape_runs')
-      .select('started_at,status')
-      .eq('ipo_id', orgId)
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .single(),
   ])
 
   const all        = events ?? []
@@ -201,19 +192,6 @@ export default async function IPOOverviewPage() {
 
       </div>
 
-      {/* Last sync footer */}
-      {lastScrape && (
-        <p className="text-xs text-muted-foreground">
-          Last sync{' '}
-          {new Date(lastScrape.started_at).toLocaleDateString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric',
-          })}
-          {' · '}
-          <span className={lastScrape.status === 'failed' ? 'text-destructive' : ''}>
-            {lastScrape.status}
-          </span>
-        </p>
-      )}
     </div>
   )
 }
