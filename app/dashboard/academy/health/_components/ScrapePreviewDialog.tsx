@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -44,7 +44,17 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
   const [confirmed, setConfirmed] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // Fetch dry-run preview when dialog opens
+  // Trigger preview fetch whenever the dialog opens
+  useEffect(() => {
+    if (open) loadPreview()
+    else {
+      setPreview(null)
+      setFetchErr(null)
+      setConfirmed(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   function loadPreview() {
     setLoading(true)
     setFetchErr(null)
@@ -62,13 +72,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
   }
 
   function handleOpenChange(o: boolean) {
-    if (o) loadPreview()
-    else {
-      setPreview(null)
-      setFetchErr(null)
-      setConfirmed(false)
-      onClose()
-    }
+    if (!o) onClose()
   }
 
   function handleConfirm() {
