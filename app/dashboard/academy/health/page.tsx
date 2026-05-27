@@ -14,6 +14,7 @@ interface ScrapeRun {
   status: string
   events_found: number | null
   error_message: string | null
+  source: string | null
 }
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -51,7 +52,7 @@ export default async function SystemHealthPage() {
     supabase.from('ipos').select('id,name,color_hex').order('name'),
     supabase
       .from('scrape_runs')
-      .select('id,ipo_id,started_at,finished_at,status,events_found,error_message')
+      .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source')
       .order('started_at', { ascending: false })
       .limit(100),
     supabase.from('scrape_runs').select('*', { count: 'exact', head: true }),
@@ -81,11 +82,15 @@ export default async function SystemHealthPage() {
   // Summary stats
   const recentRuns    = runs.slice(0, 30)
   const failedRecent  = recentRuns.filter(r => r.status === 'failed').length
+  const cronRecent    = recentRuns.filter(r => (r.source ?? 'cron') === 'cron').length
+  const lastCronRun   = runs.find(r => (r.source ?? 'cron') === 'cron') ?? null
   const lastRun       = runs[0] ?? null
 
   const summaryStats = [
     { label: 'Total scrape runs',    value: totalEvents ?? 0 },
     { label: 'Last run',             value: lastRun ? fmt(lastRun.started_at) : 'Never' },
+    { label: 'Last cron run',        value: lastCronRun ? fmt(lastCronRun.started_at) : 'Never' },
+    { label: 'Cron runs (last 30)',  value: `${cronRecent} / 30` },
     { label: 'Failed (last 30)',     value: failedRecent },
     { label: 'IPOs tracked',         value: ipos.length },
   ]
@@ -101,7 +106,7 @@ export default async function SystemHealthPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {summaryStats.map(({ label, value }) => (
           <Card key={label}>
             <CardHeader className="pb-2">
@@ -188,6 +193,7 @@ export default async function SystemHealthPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium">IPO</th>
                 <th className="px-4 py-3 text-left font-medium">Started</th>
+                <th className="px-4 py-3 text-left font-medium">Source</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Events</th>
                 <th className="px-4 py-3 text-right font-medium">Duration</th>
@@ -196,7 +202,7 @@ export default async function SystemHealthPage() {
             <tbody>
               {recentRuns.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     No scrape runs yet
                   </td>
                 </tr>
@@ -208,6 +214,15 @@ export default async function SystemHealthPage() {
                       <td className="px-4 py-3 font-medium">{ipo?.name ?? run.ipo_id}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {fmt(run.started_at)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+                          run.source === 'cron'
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {run.source ?? 'cron'}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <Badge

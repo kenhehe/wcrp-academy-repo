@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const runId     = await startRun(supabase, IPO_ID, body.runId)
+  const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
   const startedAt = new Date().toISOString()
 
   try {

@@ -260,14 +260,14 @@ export async function upsertEvents(supabase: any, events: ScrapedEvent[]): Promi
 // ---------------------------------------------------------------------------
 
 // deno-lint-ignore no-explicit-any
-export async function startRun(supabase: any, ipoId: string, runId?: string): Promise<string> {
+export async function startRun(supabase: any, ipoId: string, runId?: string, source?: string): Promise<string> {
   if (runId) {
     await supabase.from('scrape_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', runId)
     return runId
   }
   const { data } = await supabase
     .from('scrape_runs')
-    .insert({ ipo_id: ipoId, status: 'running', started_at: new Date().toISOString() })
+    .insert({ ipo_id: ipoId, status: 'running', started_at: new Date().toISOString(), source: source ?? 'cron' })
     .select('id')
     .single()
   return data.id as string
