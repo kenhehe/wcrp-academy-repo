@@ -258,6 +258,11 @@ export default async function SystemHealthPage() {
           </table>
         </div>
       </div>
+
+      {/* Deploy fingerprint — confirms which version is live */}
+      <p className="text-xs text-muted-foreground/50 text-right">
+        deploy: {process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local'}
+      </p>
     </div>
   )
 }
