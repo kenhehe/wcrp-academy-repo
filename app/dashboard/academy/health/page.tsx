@@ -1,10 +1,18 @@
+import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import TriggerButton from './_components/TriggerButton'
 import RunAllButton from './_components/RunAllButton'
+import ClearRunsButton from './_components/ClearRunsButton'
 
 export const dynamic = 'force-dynamic'
+
+const PAGE_SIZE = 10
+
+interface PageProps {
+  searchParams: Promise<{ page?: string }>
+}
 
 interface ScrapeRun {
   id: string
@@ -45,38 +53,54 @@ function duration(start: string, end: string | null) {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-export default async function SystemHealthPage() {
+export default async function SystemHealthPage({ searchParams }: PageProps) {
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10))
+
   let ipos:        { id: string; name: string; color_hex: string | null }[] = []
-  let runs:        ScrapeRun[] = []
-  let totalEvents: number | null = null
+  let allRuns:     ScrapeRun[] = []   // recent 100 — used for per-IPO latest computation
+  let pageRuns:    ScrapeRun[] = []   // current page slice — displayed in recent runs table
+  let totalRuns:   number = 0
 
   try {
-    // createAdminClient() must be inside try-catch — if env vars are missing or
-    // the supabase-js JWT parser throws, the error propagates as an RSC stream
-    // error that the client fails to deserialize, showing a misleading
-    // "Cannot read properties of undefined (reading 'length')" crash instead of
-    // the actual error boundary message.
-    const supabase = createAdminClient()
+    console.log('[health] page render start — page:', page)
 
-    const [iposResult, runsResult, countResult] = await Promise.all([
+    // createAdminClient() inside try-catch: if JWT parsing or env vars throw,
+    // the error is caught here instead of crashing the RSC stream.
+    const supabase = createAdminClient()
+    console.log('[health] admin client created OK')
+
+    const [iposResult, allRunsResult, pageRunsResult] = await Promise.all([
       supabase.from('ipos').select('id,name,color_hex').order('name'),
+      // Full recent batch for latest-per-IPO computation
       supabase
         .from('scrape_runs')
         .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source')
         .order('started_at', { ascending: false })
         .limit(100),
-      supabase.from('scrape_runs').select('*', { count: 'exact', head: true }),
+      // Paginated slice for the recent runs table
+      supabase
+        .from('scrape_runs')
+        .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source', { count: 'exact' })
+        .order('started_at', { ascending: false })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
     ])
 
-    if (iposResult.error) console.error('[health] ipos query:', iposResult.error.message)
-    if (runsResult.error) console.error('[health] scrape_runs query:', runsResult.error.message)
+    if (iposResult.error)    console.error('[health] ipos query error:',      iposResult.error.message)
+    if (allRunsResult.error) console.error('[health] all_runs query error:',  allRunsResult.error.message)
+    if (pageRunsResult.error) console.error('[health] page_runs query error:', pageRunsResult.error.message)
 
-    ipos        = (iposResult.data ?? []) as typeof ipos
-    runs        = (runsResult.data  ?? []) as ScrapeRun[]
-    totalEvents = countResult.count
+    ipos     = (iposResult.data    ?? []) as typeof ipos
+    allRuns  = (allRunsResult.data ?? []) as ScrapeRun[]
+    pageRuns = (pageRunsResult.data ?? []) as ScrapeRun[]
+    totalRuns = pageRunsResult.count ?? 0
+
+    console.log('[health] data OK — ipos:', ipos.length, 'allRuns:', allRuns.length, 'pageRuns:', pageRuns.length, 'total:', totalRuns)
   } catch (err) {
     console.error('[health] data fetch failed:', err)
   }
+
+  const runs = allRuns   // alias for summary stats below
 
   // Latest run per IPO — plus latest manual run separately
   const latestPerIpo      = new Map<string, ScrapeRun>()
@@ -93,14 +117,14 @@ export default async function SystemHealthPage() {
   }
 
   // Summary stats — only count explicitly-labelled cron runs, not legacy null-source rows
-  const recentRuns    = runs.slice(0, 30)
-  const failedRecent  = recentRuns.filter(r => r.status === 'failed').length
-  const cronRecent    = recentRuns.filter(r => r.source === 'cron').length
+  const recent30      = runs.slice(0, 30)
+  const failedRecent  = recent30.filter(r => r.status === 'failed').length
+  const cronRecent    = recent30.filter(r => r.source === 'cron').length
   const lastCronRun   = runs.find(r => r.source === 'cron') ?? null
   const lastRun       = runs[0] ?? null
 
   const summaryStats = [
-    { label: 'Total scrape runs',    value: totalEvents ?? 0 },
+    { label: 'Total scrape runs',    value: totalRuns },
     { label: 'Last run',             value: lastRun ? fmt(lastRun.started_at) : 'Never' },
     { label: 'Last cron run',        value: lastCronRun ? fmt(lastCronRun.started_at) : 'Never' },
     { label: 'Cron runs (last 30)',  value: `${cronRecent} / 30` },
@@ -218,7 +242,17 @@ export default async function SystemHealthPage() {
 
       {/* Recent runs log */}
       <div>
-        <h2 className="text-base font-semibold mb-4">Recent runs</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold">
+            Recent runs
+            {totalRuns > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({totalRuns} total)
+              </span>
+            )}
+          </h2>
+          <ClearRunsButton />
+        </div>
         <div className="rounded-md border bg-background overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -232,14 +266,14 @@ export default async function SystemHealthPage() {
               </tr>
             </thead>
             <tbody>
-              {recentRuns.length === 0 ? (
+              {pageRuns.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     No scrape runs yet
                   </td>
                 </tr>
               ) : (
-                recentRuns.map(run => {
+                pageRuns.map(run => {
                   const ipo = (ipos).find(i => i.id === run.ipo_id)
                   return (
                     <tr key={run.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
@@ -285,6 +319,33 @@ export default async function SystemHealthPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination for recent runs */}
+      {totalRuns > PAGE_SIZE && (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-muted-foreground text-xs">
+            Page {page} of {Math.ceil(totalRuns / PAGE_SIZE)}
+          </p>
+          <div className="flex items-center gap-2">
+            {page > 1 && (
+              <Link
+                href={`?page=${page - 1}`}
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+              >
+                ← Previous
+              </Link>
+            )}
+            {page < Math.ceil(totalRuns / PAGE_SIZE) && (
+              <Link
+                href={`?page=${page + 1}`}
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+              >
+                Next →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Deploy fingerprint — confirms which version is live */}
       <p className="text-xs text-muted-foreground/50 text-right">

@@ -31,7 +31,6 @@ export async function triggerScrape(ipoId: string, force = false): Promise<void>
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceKey) throw new Error('Missing Supabase env vars')
 
-  // Use admin client so the INSERT bypasses RLS (service_role policy)
   const db = createAdminClient()
   const { data: run, error: insertErr } = await db
     .from('scrape_runs')
@@ -43,10 +42,7 @@ export async function triggerScrape(ipoId: string, force = false): Promise<void>
 
   fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization:  `Bearer ${serviceKey}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
     body: JSON.stringify({ runId: run.id, source: 'manual', force }),
   }).catch(err => console.error(`[triggerScrape] invoke ${fnName} failed:`, err))
 
@@ -60,15 +56,25 @@ export async function triggerAllScrapers(): Promise<{ fired: number }> {
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceKey) throw new Error('Missing Supabase env vars')
 
+  // Each function gets source=manual so runs appear as 'manual' in the health table
   const scrapers = Object.values(FUNCTION_MAP)
   for (const fnName of scrapers) {
     fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
-      body:    JSON.stringify({ source: 'manual-all' }),
+      body:    JSON.stringify({ source: 'manual' }),
     }).catch(err => console.error(`[triggerAllScrapers] ${fnName} failed:`, err))
   }
 
   revalidatePath('/dashboard/academy/health')
   return { fired: scrapers.length }
+}
+
+export async function deleteAllRuns(): Promise<void> {
+  await assertAuth()
+  const db = createAdminClient()
+  // Delete every row — use a always-true filter since Supabase requires a filter
+  const { error } = await db.from('scrape_runs').delete().gte('started_at', '2000-01-01')
+  if (error) throw new Error(error.message)
+  revalidatePath('/dashboard/academy/health')
 }
