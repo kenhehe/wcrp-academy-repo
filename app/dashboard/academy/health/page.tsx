@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import TriggerButton from './_components/TriggerButton'
 import RunAllButton from './_components/RunAllButton'
 import ClearRunsButton from './_components/ClearRunsButton'
+import RealtimeHealthSync from './_components/RealtimeHealthSync'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,6 +135,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-8 space-y-8">
+      <RealtimeHealthSync />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">System Health</h1>
