@@ -11,10 +11,12 @@ interface ActiveBar {
 }
 
 export default function ChartBar({
-  data,
+  data:   dataProp,
   color  = 'hsl(var(--primary))',
   height = 180,
 }: ChartBarProps) {
+  const data = dataProp ?? []
+
   const [mounted,   setMounted]   = useState(false)
   const [mouse,     setMouse]     = useState({ x: 0, y: 0 })
   const [activeBar, setActiveBar] = useState<ActiveBar | null>(null)
