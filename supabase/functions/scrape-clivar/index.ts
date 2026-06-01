@@ -8,7 +8,6 @@ import {
   finishRun,
   isFreshScrape,
   parseDateRange,
-  parseDate,
   peekFirstTitle,
   recordSkippedRun,
   dryRunStream,
@@ -24,77 +23,35 @@ const LIST         = '/events'
 const PAGE_DELAY   = 60_000   // 60 s to respect rate limit
 const MAX_PAGES    = 30
 
-function splitLocation(raw: string): [string | null, string | null] {
-  const s = raw.trim()
-  if (!s) return [null, null]
-  const comma = s.lastIndexOf(',')
-  if (comma === -1) return [s, null]
-  return [s.slice(0, comma).trim(), s.slice(comma + 1).trim()]
-}
 
 function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
   const root   = parse(html)
   const events: ScrapedEvent[] = []
 
-  // Drupal Views event listing — common selectors
-  const items = root.querySelectorAll(
-    '.views-row, .view-content > article, .event-listing-item, .events-list-item, article.node--type-event',
-  )
-  for (const item of items) {
-    const titleEl = item.querySelector('h2 a, h3 a, h4 a, .views-field-title a, .node__title a')
-    const title   = titleEl?.text.trim()
+  // CLIVAR table: columns are Event Dates | City | Country | Event (link) | External URL
+  // No CSS classes — match any table row that has a link to /events/[slug]
+  for (const row of root.querySelectorAll('tr')) {
+    const cells = row.querySelectorAll('td')
+    if (cells.length < 4) continue
+
+    const link  = cells[3].querySelector('a[href*="/events/"]')
+    const title = (link?.text ?? cells[3].text).trim()
     if (!title) continue
 
-    const href     = titleEl?.getAttribute('href') ?? ''
-    const eventUrl = href.startsWith('http') ? href : `${BASE}${href}`
+    const href     = link?.getAttribute('href') ?? ''
+    const eventUrl = href.startsWith('http') ? href : href ? `${BASE}${href}` : null
 
-    // Drupal date fields
-    const startEl = item.querySelector(
-      '.date-display-single, time[datetime], .views-field-field-event-date time, .field--name-field-date time',
-    )
-    const dateTxt = startEl?.getAttribute('datetime') ?? startEl?.text ?? ''
-
-    const endEl = item.querySelector(
-      '.date-display-end, .views-field-field-event-end-date time',
-    )
-    const endTxt = endEl?.getAttribute('datetime') ?? endEl?.text ?? ''
-
-    // Try range string first, then individual start/end
-    const combined = [dateTxt, endTxt].filter(Boolean).join(' - ')
-    const { start, end } = parseDateRange(combined)
-    const startDate = start ?? parseDate(dateTxt)
-    if (!startDate) continue
-
-    const locEl  = item.querySelector('.views-field-field-event-location, .field--name-field-location, .event-location')
-    const locRaw = locEl?.text.trim() ?? ''
-    const [location, country] = splitLocation(locRaw)
-
-    events.push({
-      ipo_id: IPO_ID, title, start_date: startDate, end_date: end ?? undefined,
-      location, country, url: eventUrl, status: computeStatus(startDate, end ?? undefined),
-      source: 'clivar.org', source_url: sourceUrl,
-    })
-  }
-  if (events.length > 0) return events
-
-  // Fallback: generic article list
-  const articles = root.querySelectorAll('article, .node')
-  for (const art of articles) {
-    const titleEl = art.querySelector('h2 a, h3 a, .node-title a')
-    const title   = titleEl?.text.trim()
-    if (!title) continue
-
-    const href     = titleEl?.getAttribute('href') ?? ''
-    const eventUrl = href.startsWith('http') ? href : `${BASE}${href}`
-
-    const timeEl  = art.querySelector('time[datetime]')
-    const dateTxt = timeEl?.getAttribute('datetime') ?? timeEl?.text ?? ''
-    const start   = parseDate(dateTxt)
+    const dateTxt  = cells[0].text.trim()
+    const { start, end } = parseDateRange(dateTxt)
     if (!start) continue
 
+    const city    = cells[1].text.trim() || null
+    const country = cells[2].text.trim() || null
+
     events.push({
-      ipo_id: IPO_ID, title, start_date: start,
-      url: eventUrl, status: computeStatus(start),
+      ipo_id: IPO_ID, title, start_date: start, end_date: end,
+      location: city, country, url: eventUrl,
+      status: computeStatus(start, end ?? undefined),
       source: 'clivar.org', source_url: sourceUrl,
     })
   }

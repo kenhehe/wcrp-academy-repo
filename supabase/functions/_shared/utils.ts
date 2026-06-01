@@ -100,6 +100,10 @@ export function parseDate(input: string | null | undefined): string | null {
 export function parseDateRange(raw: string): { start: string | null; end: string | null } {
   const s = raw.trim().replace(/[–—]/g, '-').replace(/\bto\b/gi, ' - ') // normalise separators
 
+  // "2026-06-01 - 2026-06-03" (ISO date range)
+  const isoRange = s.match(/^(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/)
+  if (isoRange) return { start: isoRange[1], end: isoRange[2] }
+
   // "15-18 September 2024" | "15-18 Sep 2024"
   const sameMonthDmy = s.match(/^(\d{1,2})\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
   if (sameMonthDmy) {
