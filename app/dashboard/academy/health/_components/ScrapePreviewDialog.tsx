@@ -114,48 +114,50 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
 
-          {/* Loading */}
-          {loading && (
+          {/* Loading / stage list — shown while loading OR after a failure so the user sees where it broke */}
+          {(loading || fetchErr) && !confirmed && (
             <div className="py-8 px-2 space-y-3">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">
-                Running preview
+                {fetchErr ? 'Preview failed' : 'Running preview'}
               </p>
               {SCRAPE_STAGES.map((stage, i) => {
-                const isDone    = i < loadingStep
-                const isActive  = i === loadingStep
+                const isDone   = fetchErr ? i < loadingStep : i < loadingStep
+                const isActive = i === loadingStep
+                const isFailed = fetchErr && isActive
                 return (
                   <div key={stage.label} className="flex items-center gap-3">
                     <span className="w-4 h-4 flex items-center justify-center shrink-0">
-                      {isDone
-                        ? <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        : isActive
-                          ? <Loader2 className="h-4 w-4 animate-spin text-foreground" />
-                          : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
+                      {isFailed
+                        ? <AlertCircle className="h-4 w-4 text-destructive" />
+                        : isDone
+                          ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          : isActive
+                            ? <Loader2 className="h-4 w-4 animate-spin text-foreground" />
+                            : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
                       }
                     </span>
-                    <span className={`text-sm ${isDone ? 'text-muted-foreground line-through' : isActive ? 'text-foreground font-medium' : 'text-muted-foreground/40'}`}>
+                    <span className={`text-sm ${
+                      isFailed  ? 'text-destructive font-medium' :
+                      isDone    ? 'text-muted-foreground line-through' :
+                      isActive  ? 'text-foreground font-medium' :
+                                  'text-muted-foreground/40'
+                    }`}>
                       {stage.label}
                     </span>
                   </div>
                 )
               })}
-            </div>
-          )}
 
-          {/* Error */}
-          {fetchErr && !loading && (
-            <div className="space-y-3">
-              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium">Preview failed</p>
-                  <p className="text-xs mt-0.5 text-destructive/80">{fetchErr}</p>
+              {fetchErr && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs text-destructive/80 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
+                    {fetchErr}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can still trigger the scraper directly — the actual run may succeed even if the preview failed.
+                  </p>
                 </div>
-              </div>
-              <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Trigger anyway?</p>
-                <p>Skips the preview and queues the scraper directly. The run result (success or failure) will appear in System Health.</p>
-              </div>
+              )}
             </div>
           )}
 
