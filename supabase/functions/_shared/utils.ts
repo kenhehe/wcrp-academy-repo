@@ -142,6 +142,17 @@ export function parseDateRange(raw: string): { start: string | null; end: string
     }
   }
 
+  // "Jul 20, 2026 - Jul 24, 2026" or "Jul 20, 2026- Jul 24, 2026"
+  const mdy2mdy = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})\s*[-–]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/)
+  if (mdy2mdy) {
+    const m1 = MONTHS[mdy2mdy[1].toLowerCase()]
+    const m2 = MONTHS[mdy2mdy[4].toLowerCase()]
+    if (m1 && m2) return {
+      start: `${mdy2mdy[3]}-${m1}-${mdy2mdy[2].padStart(2, '0')}`,
+      end:   `${mdy2mdy[6]}-${m2}-${mdy2mdy[5].padStart(2, '0')}`,
+    }
+  }
+
   // Single date
   const single = parseDate(s)
   return { start: single, end: single }

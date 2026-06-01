@@ -60,24 +60,29 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
   }
   if (events.length > 0) return events
 
-  // Fallback: table rows (some pages use a simple table)
-  const rows = root.querySelectorAll('table tr')
-  for (const row of rows) {
-    const cells = row.querySelectorAll('td')
-    if (cells.length < 2) continue
-    const link    = cells[0].querySelector('a')
-    const title   = link?.text.trim() || cells[0].text.trim()
+  // /all-events/ style: <h2/h3/h4><a href="/meetings/...">Title</a></h2> + date in next sibling
+  const meetingLinks = root.querySelectorAll('h2 a[href*="/meetings/"], h3 a[href*="/meetings/"], h4 a[href*="/meetings/"]')
+  for (const link of meetingLinks) {
+    const title = link.text.trim()
     if (!title) continue
-    const href     = link?.getAttribute('href') ?? ''
-    const eventUrl = href.startsWith('http') ? href : href ? `${BASE}${href}` : null
-    const dateTxt  = cells[1].text.trim()
-    const locRaw   = cells[2]?.text.trim() ?? ''
-    const [location, country] = splitLocation(locRaw)
-    const { start, end } = parseDateRange(dateTxt)
+    const href     = link.getAttribute('href') ?? ''
+    const eventUrl = href.startsWith('http') ? href : `${BASE}${href}`
+
+    // Date lives in the element immediately after the heading
+    const heading = link.parentNode
+    let dateTxt = ''
+    let sib = heading?.nextElementSibling
+    for (let i = 0; i < 3 && sib; i++) {
+      const t = sib.text.trim()
+      if (t && /\d{4}/.test(t)) { dateTxt = t; break }
+      sib = sib.nextElementSibling
+    }
+
+    const { start, end } = parseDateRange(dateTxt.replace(/@.*/g, '').trim())
     if (!start) continue
     events.push({
       ipo_id: IPO_ID, title, start_date: start, end_date: end,
-      location, country, url: eventUrl, status: computeStatus(start, end),
+      url: eventUrl, status: computeStatus(start, end),
       source: 'gewexevents.org', source_url: sourceUrl,
     })
   }
