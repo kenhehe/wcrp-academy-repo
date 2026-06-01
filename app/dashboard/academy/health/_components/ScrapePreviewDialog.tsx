@@ -37,12 +37,11 @@ interface Props {
   onClose: () => void
 }
 
-const LOADING_STEPS = [
-  'Connecting to website…',
-  'Fetching events page…',
-  'Parsing results…',
-  'Comparing with database…',
-  'Almost done…',
+const SCRAPE_STAGES = [
+  { label: 'Connecting to website'  },
+  { label: 'Fetching events page'   },
+  { label: 'Parsing results'        },
+  { label: 'Comparing with database'},
 ]
 
 export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: Props) {
@@ -56,7 +55,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
   useEffect(() => {
     if (!loading) { setLoadingStep(0); return }
     const id = setInterval(() => {
-      setLoadingStep(s => Math.min(s + 1, LOADING_STEPS.length - 1))
+      setLoadingStep(s => Math.min(s + 1, SCRAPE_STAGES.length - 1))
     }, 2500)
     return () => clearInterval(id)
   }, [loading])
@@ -117,10 +116,29 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
 
           {/* Loading */}
           {loading && (
-            <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <p className="text-sm font-medium text-foreground">{ipoName}</p>
-              <p className="text-xs">{LOADING_STEPS[loadingStep]}</p>
+            <div className="py-8 px-2 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">
+                Running preview
+              </p>
+              {SCRAPE_STAGES.map((stage, i) => {
+                const isDone    = i < loadingStep
+                const isActive  = i === loadingStep
+                return (
+                  <div key={stage.label} className="flex items-center gap-3">
+                    <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                      {isDone
+                        ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        : isActive
+                          ? <Loader2 className="h-4 w-4 animate-spin text-foreground" />
+                          : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
+                      }
+                    </span>
+                    <span className={`text-sm ${isDone ? 'text-muted-foreground line-through' : isActive ? 'text-foreground font-medium' : 'text-muted-foreground/40'}`}>
+                      {stage.label}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
 
