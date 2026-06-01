@@ -212,7 +212,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
                 </Badge>
                 <Badge variant="secondary" className="text-xs gap-1">
                   <RefreshCw className="h-3 w-3" />
-                  {preview.toUpdate.length} updates
+                  {preview.toUpdate.length} already in database
                 </Badge>
                 {preview.invalid.length > 0 && (
                   <Badge variant="destructive" className="text-xs gap-1">
@@ -255,11 +255,11 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
                 </div>
               )}
 
-              {/* Updated events */}
+              {/* Already-in-DB events */}
               {preview.toUpdate.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Updates ({preview.toUpdate.length})
+                    Already in database ({preview.toUpdate.length})
                   </p>
                   <div className="rounded-md border divide-y">
                     {preview.toUpdate.map((e, i) => (
@@ -324,7 +324,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
             <Button size="sm" onClick={handleConfirm} disabled={isPending}>
               {isPending
                 ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Queuing…</>
-                : `Confirm & save ${preview.toInsert.length + preview.toUpdate.length} events`
+                : `Confirm & save ${preview.toInsert.length} new event${preview.toInsert.length !== 1 ? 's' : ''}`
               }
             </Button>
           )}
