@@ -9,7 +9,6 @@ import {
   finishRun,
   isFreshScrape,
   parseDateRange,
-  parseDate,
   peekFirstTitle,
   recordSkippedRun,
   startRun,
@@ -64,25 +63,51 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
   }
   if (events.length > 0) return events
 
-  // Fallback: look for .calendar-event or .event elements common in WordPress calendar plugins
-  const items = root.querySelectorAll('.calendar-event, .event-item, .wp-event, li.event')
-  for (const item of items) {
-    const titleEl = item.querySelector('a, h3, h4')
-    const title   = titleEl?.text.trim()
-    if (!title) continue
+  // Plone CMS fallback: event links are at /calendar/[slug]
+  // Dates stored as ISO 8601 in title/datetime attributes of abbr or time elements
+  const seen = new Set<string>()
+  for (const link of root.querySelectorAll('a[href*="/calendar/"]')) {
+    const href = link.getAttribute('href') ?? ''
+    if (!/\/calendar\/\w/.test(href)) continue   // skip the listing page itself
+    const title = link.text.trim()
+    if (!title || title.length < 3) continue
+    const url = href.startsWith('http') ? href : `${BASE}${href}`
+    if (seen.has(url)) continue
+    seen.add(url)
 
-    const href     = titleEl?.getAttribute('href') ?? titleEl?.closest('a')?.getAttribute('href') ?? ''
-    const eventUrl = href.startsWith('http') ? href : href ? `${BASE}${href}` : null
+    let startDate: string | null = null
+    let endDate:   string | null = null
 
-    const timeEl  = item.querySelector('time')
-    const dateTxt = timeEl?.getAttribute('datetime') ?? timeEl?.text ??
-      item.querySelector('.date, .event-date')?.text ?? ''
-    const start   = parseDate(dateTxt.split('–')[0].trim())
-    if (!start) continue
+    // Walk up the DOM tree looking for ISO datetime attributes
+    // deno-lint-ignore no-explicit-any
+    let node: any = link
+    for (let i = 0; i < 6; i++) {
+      node = node.parentNode
+      if (!node) break
+      const isoDates: string[] = []
+      for (const el of node.querySelectorAll('[title],[datetime]')) {
+        const val = (el.getAttribute('title') ?? el.getAttribute('datetime') ?? '').trim()
+        if (/^\d{4}-\d{2}-\d{2}T/.test(val)) isoDates.push(val.slice(0, 10))
+      }
+      if (isoDates.length > 0) {
+        startDate = isoDates[0]
+        endDate   = isoDates.length > 1 ? isoDates[isoDates.length - 1] : null
+        break
+      }
+    }
 
+    // Text fallback — handles "Jul 06, 2026 to Jul 09, 2026"
+    if (!startDate) {
+      const txt = (link.parentNode?.parentNode?.text ?? link.parentNode?.text ?? '').trim()
+      const { start, end } = parseDateRange(txt.replace(/\s+/g, ' ').slice(0, 120))
+      startDate = start; endDate = end
+    }
+
+    if (!startDate) continue
     events.push({
-      ipo_id: IPO_ID, title, start_date: start, url: eventUrl,
-      status: computeStatus(start), source: 'wcrp-esmo.org', source_url: sourceUrl,
+      ipo_id: IPO_ID, title, start_date: startDate, end_date: endDate,
+      url, status: computeStatus(startDate, endDate ?? undefined),
+      source: 'wcrp-esmo.org', source_url: sourceUrl,
     })
   }
   return events
@@ -142,7 +167,7 @@ Deno.serve(async (req) => {
       status: errors.length > 0 ? 'partial' : 'success',
       eventsFound: allEvents.length, eventsNew: inserted,
       eventsUpdated: updated, errors, startedAt,
-    })
+    }, IPO_ID)
     return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, skippedInvalid, errors })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

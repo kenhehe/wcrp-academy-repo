@@ -98,7 +98,7 @@ export function parseDate(input: string | null | undefined): string | null {
 
 // Parse a date range string like "15-18 September 2024" or "15 Sep – 3 Oct 2024"
 export function parseDateRange(raw: string): { start: string | null; end: string | null } {
-  const s = raw.trim().replace(/[–—]/g, '-') // em/en dash → hyphen
+  const s = raw.trim().replace(/[–—]/g, '-').replace(/\bto\b/gi, ' - ') // normalise separators
 
   // "15-18 September 2024" | "15-18 Sep 2024"
   const sameMonthDmy = s.match(/^(\d{1,2})\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
@@ -292,7 +292,24 @@ export async function finishRun(supabase: any, runId: string, result: {
   eventsUpdated: number
   errors: string[]
   startedAt: string
-}) {
+}, ipoId?: string) {
+  // Zero-events guard: if scraping appears to succeed but finds nothing, and the IPO
+  // already has events in the DB, the parser likely broke — flag it as failed.
+  if (ipoId && result.eventsFound === 0 && result.status === 'success') {
+    const { count } = await supabase
+      .from('events').select('id', { count: 'exact', head: true }).eq('ipo_id', ipoId)
+    if ((count ?? 0) > 0) {
+      result = {
+        ...result,
+        status: 'failed' as const,
+        errors: [
+          'Scraper returned 0 events but this IPO has existing events in the database — the website structure may have changed. Contact the software engineer.',
+          ...result.errors,
+        ],
+      }
+    }
+  }
+
   const finishedAt = new Date().toISOString()
   const durationMs = new Date(finishedAt).getTime() - new Date(result.startedAt).getTime()
   await supabase.from('scrape_runs').update({

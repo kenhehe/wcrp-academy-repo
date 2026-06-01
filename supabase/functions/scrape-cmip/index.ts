@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
       status: errors.length > 0 ? 'partial' : 'success',
       eventsFound: allEvents.length, eventsNew: inserted,
       eventsUpdated: updated, errors, startedAt,
-    })
+    }, IPO_ID)
     return Response.json({ runId, eventsFound: allEvents.length, inserted, updated, skippedInvalid, errors })
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err)
