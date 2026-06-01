@@ -37,12 +37,29 @@ interface Props {
   onClose: () => void
 }
 
+const LOADING_STEPS = [
+  'Connecting to website…',
+  'Fetching events page…',
+  'Parsing results…',
+  'Comparing with database…',
+  'Almost done…',
+]
+
 export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: Props) {
-  const [loading,  setLoading]  = useState(false)
-  const [preview,  setPreview]  = useState<PreviewData | null>(null)
-  const [fetchErr, setFetchErr] = useState<string | null>(null)
-  const [confirmed, setConfirmed] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [loading,      setLoading]      = useState(false)
+  const [loadingStep,  setLoadingStep]  = useState(0)
+  const [preview,      setPreview]      = useState<PreviewData | null>(null)
+  const [fetchErr,     setFetchErr]     = useState<string | null>(null)
+  const [confirmed,    setConfirmed]    = useState(false)
+  const [isPending,    startTransition] = useTransition()
+
+  useEffect(() => {
+    if (!loading) { setLoadingStep(0); return }
+    const id = setInterval(() => {
+      setLoadingStep(s => Math.min(s + 1, LOADING_STEPS.length - 1))
+    }, 2500)
+    return () => clearInterval(id)
+  }, [loading])
 
   // Trigger preview fetch whenever the dialog opens
   useEffect(() => {
@@ -102,7 +119,8 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
           {loading && (
             <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
-              <p className="text-sm">Checking {ipoName} for new events…</p>
+              <p className="text-sm font-medium text-foreground">{ipoName}</p>
+              <p className="text-xs">{LOADING_STEPS[loadingStep]}</p>
             </div>
           )}
 
