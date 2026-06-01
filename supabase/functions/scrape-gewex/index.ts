@@ -17,6 +17,7 @@ import {
 
 const IPO_ID = 'gewex'
 const BASE   = 'https://www.gewexevents.org'
+const LIST   = '/all-events/'
 
 // Split "Montreal (McGill), Canada" → ["Montreal (McGill)", "Canada"]
 function splitLocation(raw: string): [string | null, string | null] {
@@ -113,15 +114,14 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}))
 
-  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}/current-meetings/`, parseEvents)
+  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}${LIST}`, parseEvents)
 
   const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
   const startedAt = new Date().toISOString()
 
   try {
-    // Pre-check: if the first upcoming event already exists, skip full scrape
     if (!body.force) {
-      const peekTitle = await peekFirstTitle(`${BASE}/current-meetings/`, parseEvents)
+      const peekTitle = await peekFirstTitle(`${BASE}${LIST}`, parseEvents)
       if (peekTitle && await isFreshScrape(supabase, IPO_ID, peekTitle)) {
         console.log(`[${IPO_ID}] skipping — "${peekTitle}" already in DB`)
         await recordSkippedRun(supabase, runId, startedAt)
@@ -129,11 +129,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const [current, past] = await Promise.all([
-      scrapeSection('/current-meetings/'),
-      scrapeSection('/past-meetings/'),
-    ])
-    const allEvents = [...current, ...past]
+    const allEvents = await scrapeSection(LIST)
     const { inserted, updated, skippedInvalid, errors } = await upsertEvents(supabase, allEvents)
 
     await finishRun(supabase, runId, {
