@@ -69,7 +69,10 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
   const [expanded,  setExpanded]  = useState(false)
 
   useEffect(() => {
-    if (localStorage.getItem(`scrape_banner_dismissed_${runId}`)) setDismissed(true)
+    async function check() {
+      if (localStorage.getItem(`scrape_banner_dismissed_${runId}`)) setDismissed(true)
+    }
+    void check()
   }, [runId])
 
   if (dismissed) return null

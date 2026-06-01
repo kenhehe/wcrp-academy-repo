@@ -46,16 +46,18 @@ function duration(start: string, end: string | null) {
 }
 
 export default async function SystemHealthPage() {
-  // Use the admin (service-role) client so we bypass the user session cookie
-  // that causes double-refresh 400s from @supabase/ssr in nested server components.
-  const supabase = createAdminClient()
-
-  // Fetch all data; catch any individual query failures so the page never crashes
   let ipos:        { id: string; name: string; color_hex: string | null }[] = []
   let runs:        ScrapeRun[] = []
   let totalEvents: number | null = null
 
   try {
+    // createAdminClient() must be inside try-catch — if env vars are missing or
+    // the supabase-js JWT parser throws, the error propagates as an RSC stream
+    // error that the client fails to deserialize, showing a misleading
+    // "Cannot read properties of undefined (reading 'length')" crash instead of
+    // the actual error boundary message.
+    const supabase = createAdminClient()
+
     const [iposResult, runsResult, countResult] = await Promise.all([
       supabase.from('ipos').select('id,name,color_hex').order('name'),
       supabase

@@ -46,12 +46,15 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
 
   // Trigger preview fetch whenever the dialog opens
   useEffect(() => {
-    if (open) loadPreview()
-    else {
-      setPreview(null)
-      setFetchErr(null)
-      setConfirmed(false)
+    async function sync() {
+      if (open) loadPreview()
+      else {
+        setPreview(null)
+        setFetchErr(null)
+        setConfirmed(false)
+      }
     }
+    void sync()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
