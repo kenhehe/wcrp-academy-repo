@@ -78,21 +78,25 @@ export default async function SystemHealthPage() {
     console.error('[health] data fetch failed:', err)
   }
 
-  // Latest run per IPO, and latest successful run per IPO
-  const latestPerIpo   = new Map<string, ScrapeRun>()
+  // Latest run per IPO — plus latest manual run separately
+  const latestPerIpo      = new Map<string, ScrapeRun>()
   const lastSuccessPerIpo = new Map<string, ScrapeRun>()
+  const lastManualPerIpo  = new Map<string, ScrapeRun>()
   for (const run of runs) {
     if (!latestPerIpo.has(run.ipo_id)) latestPerIpo.set(run.ipo_id, run)
+    if (run.source === 'manual' && !lastManualPerIpo.has(run.ipo_id)) {
+      lastManualPerIpo.set(run.ipo_id, run)
+    }
     if (!lastSuccessPerIpo.has(run.ipo_id) && (run.status === 'success' || run.status === 'partial')) {
       lastSuccessPerIpo.set(run.ipo_id, run)
     }
   }
 
-  // Summary stats
+  // Summary stats — only count explicitly-labelled cron runs, not legacy null-source rows
   const recentRuns    = runs.slice(0, 30)
   const failedRecent  = recentRuns.filter(r => r.status === 'failed').length
-  const cronRecent    = recentRuns.filter(r => (r.source ?? 'cron') === 'cron').length
-  const lastCronRun   = runs.find(r => (r.source ?? 'cron') === 'cron') ?? null
+  const cronRecent    = recentRuns.filter(r => r.source === 'cron').length
+  const lastCronRun   = runs.find(r => r.source === 'cron') ?? null
   const lastRun       = runs[0] ?? null
 
   const summaryStats = [
@@ -137,6 +141,7 @@ export default async function SystemHealthPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium">IPO</th>
                 <th className="px-4 py-3 text-left font-medium">Last run</th>
+                <th className="px-4 py-3 text-left font-medium">Last manual</th>
                 <th className="px-4 py-3 text-left font-medium">Last successful</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Events found</th>
@@ -160,6 +165,24 @@ export default async function SystemHealthPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {latest ? fmt(latest.started_at) : 'Never'}
+                    </td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      {lastManualPerIpo.has(ipo.id) ? (
+                        <span>
+                          <span className={`inline-flex items-center rounded px-1 py-0.5 text-xs font-medium mr-1 ${
+                            (lastManualPerIpo.get(ipo.id)!.status === 'queued' || lastManualPerIpo.get(ipo.id)!.status === 'running')
+                              ? 'bg-yellow-50 text-yellow-700'
+                              : lastManualPerIpo.get(ipo.id)!.status === 'failed'
+                                ? 'bg-red-50 text-red-700'
+                                : 'bg-green-50 text-green-700'
+                          }`}>
+                            {STATUS_LABEL[lastManualPerIpo.get(ipo.id)!.status] ?? lastManualPerIpo.get(ipo.id)!.status}
+                          </span>
+                          <span className="text-muted-foreground">{fmt(lastManualPerIpo.get(ipo.id)!.started_at)}</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {lastSuccessPerIpo.get(ipo.id) ? fmt(lastSuccessPerIpo.get(ipo.id)!.started_at) : '—'}
@@ -228,9 +251,11 @@ export default async function SystemHealthPage() {
                         <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                           run.source === 'cron'
                             ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
-                            : 'bg-muted text-muted-foreground'
+                            : run.source === 'manual'
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-muted text-muted-foreground'
                         }`}>
-                          {run.source ?? 'cron'}
+                          {run.source ?? 'auto'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
