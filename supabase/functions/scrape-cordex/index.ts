@@ -19,6 +19,7 @@ const IPO_ID = 'cordex'
 const BASE   = 'https://cordex.org'
 const LIST   = '/news-events/meetings/'
 
+
 function splitLocation(raw: string): [string | null, string | null] {
   const s = raw.trim()
   if (!s) return [null, null]
@@ -62,26 +63,52 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
   }
   if (events.length > 0) return events
 
-  // Fallback: generic WordPress post list
-  const posts = root.querySelectorAll('.post, article, .entry')
-  for (const post of posts) {
-    const titleEl = post.querySelector('h2 a, h3 a, .entry-title a')
-    const title   = titleEl?.text.trim()
-    if (!title) continue
+  // CORDEX manually-maintained page: year headings (h2/h3) + <ul><li> items
+  // Each li: "DD-DD Month: Title, Location (Country)"
+  // Year is not inside each li — it comes from the nearest preceding heading.
+  for (const heading of root.querySelectorAll('h2, h3')) {
+    const yearText = heading.text.trim()
+    if (!/^20\d{2}$/.test(yearText)) continue
+    const year = yearText
 
-    const href     = titleEl?.getAttribute('href') ?? ''
-    const eventUrl = href.startsWith('http') ? href : `${BASE}${href}`
+    // Find the <ul> or <ol> that immediately follows this heading
+    let sib = heading.nextElementSibling
+    while (sib && !['ul', 'ol'].includes(sib.tagName.toLowerCase())) {
+      if (['h2', 'h3'].includes(sib.tagName.toLowerCase())) break
+      sib = sib.nextElementSibling
+    }
+    if (!sib) continue
 
-    // Date usually in a meta span or paragraph
-    const metaTxt = post.querySelector('.entry-meta, .post-date, time, .date')?.text ?? ''
-    const { start, end } = parseDateRange(metaTxt)
-    if (!start) continue
+    for (const li of sib.querySelectorAll('li')) {
+      const text      = li.text.replace(/\s+/g, ' ').trim()
+      const colonIdx  = text.indexOf(':')
+      if (colonIdx === -1) continue
 
-    events.push({
-      ipo_id: IPO_ID, title, start_date: start, end_date: end,
-      url: eventUrl, status: computeStatus(start, end),
-      source: 'cordex.org', source_url: sourceUrl,
-    })
+      const datePart  = text.slice(0, colonIdx).trim()
+      const rest      = text.slice(colonIdx + 1).trim()
+      if (!rest) continue
+
+      // Split "Title, Location (Country)" on last ", Xxx (Yyy)" pattern
+      const locMatch  = rest.match(/^(.*),\s*([^,(]+)\s*\(([^)]+)\)\s*$/)
+      const title     = (locMatch ? locMatch[1] : rest).trim()
+      const location  = locMatch ? locMatch[2].trim() : null
+      const country   = locMatch ? locMatch[3].trim() : null
+      if (!title) continue
+
+      const link      = li.querySelector('a')
+      const href      = link?.getAttribute('href') ?? ''
+      const eventUrl  = href ? (href.startsWith('http') ? href : `${BASE}${href}`) : null
+
+      const { start, end } = parseDateRange(`${datePart} ${year}`)
+      if (!start) continue
+
+      events.push({
+        ipo_id: IPO_ID, title, start_date: start, end_date: end,
+        location, country, url: eventUrl,
+        status: computeStatus(start, end),
+        source: 'cordex.org', source_url: sourceUrl,
+      })
+    }
   }
   return events
 }
