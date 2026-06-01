@@ -361,6 +361,49 @@ export async function dryRunEvents(
 }
 
 // ---------------------------------------------------------------------------
+// Dry-run streaming — emits NDJSON progress so the preview dialog updates live
+// Stage indices map to the SCRAPE_STAGES array in ScrapePreviewDialog:
+//   0 = Connecting to website
+//   1 = Fetching events page
+//   2 = Parsing results
+//   3 = Comparing with database
+// ---------------------------------------------------------------------------
+
+// deno-lint-ignore no-explicit-any
+export function dryRunStream(
+  supabase: any,
+  ipoId: string,
+  listUrl: string,
+  parser: (html: string, sourceUrl: string) => ScrapedEvent[],
+  note?: string,
+): Response {
+  const { readable, writable } = new TransformStream()
+  const writer = writable.getWriter()
+  const enc    = new TextEncoder()
+  const send   = (obj: object) => writer.write(enc.encode(JSON.stringify(obj) + '\n'))
+
+  ;(async () => {
+    try {
+      await send({ stage: 0 })
+      const res  = await fetchWithRetry(listUrl)
+      await send({ stage: 1 })
+      const html = await res.text()
+      await send({ stage: 2 })
+      const events  = parser(html, listUrl)
+      await send({ stage: 3 })
+      const preview = await dryRunEvents(supabase, ipoId, events)
+      await send({ done: true, ipo: ipoId, ...(note ? { note } : {}), ...preview })
+    } catch (err) {
+      await send({ error: String(err) })
+    } finally {
+      await writer.close()
+    }
+  })()
+
+  return new Response(readable, { headers: { 'Content-Type': 'application/x-ndjson' } })
+}
+
+// ---------------------------------------------------------------------------
 // Freshness pre-check — skip scrape if site hasn't changed
 // ---------------------------------------------------------------------------
 

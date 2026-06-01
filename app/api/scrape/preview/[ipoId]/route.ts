@@ -32,7 +32,6 @@ export async function POST(
     return NextResponse.json({ error: 'Missing env vars' }, { status: 500 })
 
   try {
-    // Await this response — dry-run is a page-1 scrape, fast enough to fit in maxDuration
     const res = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
       method:  'POST',
       headers: {
@@ -53,8 +52,10 @@ export async function POST(
       return NextResponse.json({ error: errMsg }, { status: 502 })
     }
 
-    const data = await res.json()
-    return NextResponse.json(data)
+    // Proxy the NDJSON stream — edge function emits stage/done/error lines live
+    return new NextResponse(res.body, {
+      headers: { 'Content-Type': 'application/x-ndjson' },
+    })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

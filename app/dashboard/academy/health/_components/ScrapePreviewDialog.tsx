@@ -52,14 +52,6 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
   const [confirmed,    setConfirmed]    = useState(false)
   const [isPending,    startTransition] = useTransition()
 
-  useEffect(() => {
-    if (!loading) { setLoadingStep(0); return }
-    const id = setInterval(() => {
-      setLoadingStep(s => Math.min(s + 1, SCRAPE_STAGES.length - 1))
-    }, 2500)
-    return () => clearInterval(id)
-  }, [loading])
-
   // Trigger preview fetch whenever the dialog opens
   useEffect(() => {
     async function sync() {
@@ -76,18 +68,48 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
 
   function loadPreview() {
     setLoading(true)
+    setLoadingStep(0)
     setFetchErr(null)
     setPreview(null)
     setConfirmed(false)
 
-    fetch(`/api/scrape/preview/${ipoId}`, { method: 'POST' })
-      .then(async r => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`)
-        setPreview(data as PreviewData)
-      })
-      .catch(err => setFetchErr(String(err)))
-      .finally(() => setLoading(false))
+    ;(async () => {
+      try {
+        const r = await fetch(`/api/scrape/preview/${ipoId}`, { method: 'POST' })
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({})) as { error?: string }
+          throw new Error(data.error ?? `HTTP ${r.status}`)
+        }
+
+        const reader  = r.body!.getReader()
+        const decoder = new TextDecoder()
+        let buf = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += decoder.decode(value, { stream: true })
+          const lines = buf.split('\n')
+          buf = lines.pop() ?? ''
+          for (const line of lines) {
+            if (!line.trim()) continue
+            const msg = JSON.parse(line) as Record<string, unknown>
+            if (typeof msg.stage === 'number') {
+              setLoadingStep(msg.stage as number)
+            } else if (msg.done) {
+              const { done: _d, ...rest } = msg
+              setPreview(rest as unknown as PreviewData)
+            } else if (msg.error) {
+              throw new Error(msg.error as string)
+            }
+          }
+        }
+      } catch (err) {
+        setFetchErr(String(err))
+      } finally {
+        setLoading(false)
+      }
+    })()
   }
 
   function handleOpenChange(o: boolean) {

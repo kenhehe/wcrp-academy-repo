@@ -3,7 +3,7 @@ import { parse } from 'npm:node-html-parser'
 import type { ScrapedEvent } from '../_shared/types.ts'
 import {
   computeStatus,
-  dryRunEvents,
+
   fetchWithRetry,
   finishRun,
   isFreshScrape,
@@ -11,7 +11,7 @@ import {
   parseDate,
   peekFirstTitle,
   recordSkippedRun,
-  scrapeOnePage,
+  dryRunStream,
   sleep,
   startRun,
   upsertEvents,
@@ -159,15 +159,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}))
 
   // Dry-run: page 1 only — CLIVAR's per-page delay makes full dry-run impractical
-  if (body.dry_run) {
-    try {
-      const events  = await scrapeOnePage(`${BASE}${LIST}`, parseEvents)
-      const preview = await dryRunEvents(supabase, IPO_ID, events)
-      return Response.json({ dry_run: true, ipo: IPO_ID, note: 'Page 1 only', ...preview })
-    } catch (err) {
-      return Response.json({ error: String(err) }, { status: 500 })
-    }
-  }
+  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}${LIST}`, parseEvents, 'Page 1 only')
 
   const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
   const startedAt = new Date().toISOString()

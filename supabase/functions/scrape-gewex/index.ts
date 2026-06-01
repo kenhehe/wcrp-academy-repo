@@ -3,14 +3,14 @@ import { parse } from 'npm:node-html-parser'
 import type { ScrapedEvent } from '../_shared/types.ts'
 import {
   computeStatus,
-  dryRunEvents,
+
   fetchWithRetry,
   finishRun,
   isFreshScrape,
   parseDateRange,
   peekFirstTitle,
   recordSkippedRun,
-  scrapeOnePage,
+  dryRunStream,
   startRun,
   upsertEvents,
 } from '../_shared/utils.ts'
@@ -113,16 +113,7 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}))
 
-  // Dry-run: preview new/updated events without writing to DB
-  if (body.dry_run) {
-    try {
-      const events  = await scrapeOnePage(`${BASE}/current-meetings/`, parseEvents)
-      const preview = await dryRunEvents(supabase, IPO_ID, events)
-      return Response.json({ dry_run: true, ipo: IPO_ID, ...preview })
-    } catch (err) {
-      return Response.json({ error: String(err) }, { status: 500 })
-    }
-  }
+  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}/current-meetings/`, parseEvents)
 
   const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
   const startedAt = new Date().toISOString()

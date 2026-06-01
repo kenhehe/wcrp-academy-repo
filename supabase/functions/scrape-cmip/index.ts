@@ -148,22 +148,33 @@ Deno.serve(async (req) => {
 
   // Dry-run: CMIP is a single page so we parse it all
   if (body.dry_run) {
-    try {
-      const res    = await fetchWithRetry(SOURCE_URL)
-      const html   = await res.text()
-      const events = parseEvents(html)
-      const preview = await dryRunEvents(supabase, IPO_ID, events)
-      return Response.json({ dry_run: true, ipo: IPO_ID, ...preview })
-    } catch (err) {
-      const msg = String(err)
-      if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
-        return Response.json(
-          { error: 'The CMIP website uses Cloudflare bot protection (HTTP 403). Automated scraping is blocked — add CMIP events manually through the Catalogue.' },
-          { status: 403 },
-        )
+    const { readable, writable } = new TransformStream()
+    const writer = writable.getWriter()
+    const enc    = new TextEncoder()
+    const send   = (obj: object) => writer.write(enc.encode(JSON.stringify(obj) + '\n'))
+    ;(async () => {
+      try {
+        await send({ stage: 0 })
+        const res  = await fetchWithRetry(SOURCE_URL)
+        await send({ stage: 1 })
+        const html = await res.text()
+        await send({ stage: 2 })
+        const events = parseEvents(html)
+        await send({ stage: 3 })
+        const preview = await dryRunEvents(supabase, IPO_ID, events)
+        await send({ done: true, ipo: IPO_ID, ...preview })
+      } catch (err) {
+        const msg = String(err)
+        await send({
+          error: (msg.includes('403') || msg.toLowerCase().includes('forbidden'))
+            ? 'The CMIP website uses Cloudflare bot protection (HTTP 403). Automated scraping is blocked — add CMIP events manually through the Catalogue.'
+            : msg,
+        })
+      } finally {
+        await writer.close()
       }
-      return Response.json({ error: msg }, { status: 500 })
-    }
+    })()
+    return new Response(readable, { headers: { 'Content-Type': 'application/x-ndjson' } })
   }
 
   const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
