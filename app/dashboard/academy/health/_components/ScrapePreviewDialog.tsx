@@ -84,6 +84,8 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
         const reader  = r.body!.getReader()
         const decoder = new TextDecoder()
         let buf = ''
+        let lastStageAt = Date.now()
+        const MIN_STAGE_MS = 500
 
         while (true) {
           const { done, value } = await reader.read()
@@ -95,11 +97,19 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
             if (!line.trim()) continue
             const msg = JSON.parse(line) as Record<string, unknown>
             if (typeof msg.stage === 'number') {
+              // Ensure each stage is visible for at least MIN_STAGE_MS
+              const elapsed = Date.now() - lastStageAt
+              if (elapsed < MIN_STAGE_MS) {
+                await new Promise(r => setTimeout(r, MIN_STAGE_MS - elapsed))
+              }
               setLoadingStep(msg.stage as number)
+              lastStageAt = Date.now()
             } else if (msg.done) {
+              await new Promise(r => setTimeout(r, MIN_STAGE_MS))
               const { done: _d, ...rest } = msg
               setPreview(rest as unknown as PreviewData)
             } else if (msg.error) {
+              await new Promise(r => setTimeout(r, MIN_STAGE_MS))
               throw new Error(msg.error as string)
             }
           }
@@ -187,7 +197,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
           {confirmed && (
             <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/20 dark:text-green-300">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Scrape queued — check System Health for progress.
+              Scrape is running in the background — refresh System Health to see the result.
             </div>
           )}
 
