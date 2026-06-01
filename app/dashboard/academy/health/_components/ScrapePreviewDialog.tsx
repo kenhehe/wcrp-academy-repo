@@ -117,8 +117,8 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
                 </div>
               </div>
               <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Force trigger anyway?</p>
-                <p>This will log the attempt as a failed run so the IPO dashboard notification is shown to the organisation.</p>
+                <p className="font-medium text-foreground">Trigger anyway?</p>
+                <p>Skips the preview and queues the scraper directly. The run result (success or failure) will appear in System Health.</p>
               </div>
             </div>
           )}
@@ -243,10 +243,10 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
             {confirmed ? 'Close' : 'Cancel'}
           </Button>
           {!confirmed && fetchErr && !loading && (
-            <Button size="sm" variant="destructive" onClick={handleConfirm} disabled={isPending}>
+            <Button size="sm" onClick={handleConfirm} disabled={isPending}>
               {isPending
                 ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Queuing…</>
-                : 'Force trigger & log failure'
+                : 'Trigger anyway'
               }
             </Button>
           )}
@@ -259,9 +259,17 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
             </Button>
           )}
           {!confirmed && preview && !hasChanges && !loading && (
-            <Button size="sm" variant="outline" onClick={loadPreview}>
-              Refresh
-            </Button>
+            <>
+              <Button size="sm" variant="outline" onClick={loadPreview}>
+                Refresh
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleConfirm} disabled={isPending}>
+                {isPending
+                  ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Queuing…</>
+                  : 'Force trigger'
+                }
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>
