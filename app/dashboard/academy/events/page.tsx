@@ -27,16 +27,24 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
   const yearFilter  = typeof sp.year  === 'string' ? sp.year  : undefined
   const page        = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
-  // Fetch stats data and matched links in parallel
-  const [{ data: allMeta }, { data: matchedLinks }] = await Promise.all([
+  // Fetch stats data, matched links, and IPO names in parallel
+  const [{ data: allMeta }, { data: matchedLinks }, { data: ipos }] = await Promise.all([
     supabase.from('academy_events').select('id,is_external,start_date'),
-    supabase.from('events').select('academy_event_id').not('academy_event_id', 'is', null),
+    supabase.from('events').select('academy_event_id,ipo_id').not('academy_event_id', 'is', null),
+    supabase.from('ipos').select('id,name'),
   ])
+
+  const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
 
   const matchedIds = [...new Set(
     (matchedLinks ?? []).map(l => l.academy_event_id).filter((id): id is string => !!id)
   )]
-  const matchedSet = new Set(matchedIds)
+  const matchedSet    = new Set(matchedIds)
+  const matchedIpoMap = new Map(
+    (matchedLinks ?? [])
+      .filter(l => l.academy_event_id)
+      .map(l => [l.academy_event_id as string, l.ipo_id as string])
+  )
 
   const total          = allMeta?.length ?? 0
   const externalCount  = (allMeta ?? []).filter(e => e.is_external).length
@@ -203,6 +211,8 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                 (events ?? []).map(row => {
                   const isMatched  = matchedSet.has(row.id)
                   const isExternal = row.is_external
+                  const ipoId      = matchedIpoMap.get(row.id)
+                  const ipoName    = ipoId ? (ipoNameMap.get(ipoId) ?? ipoId.toUpperCase()) : null
 
                   return (
                     <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
@@ -245,6 +255,11 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                           <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                             <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
                             <span>Matched</span>
+                            {ipoName && (
+                              <span className="ml-1 rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950/30 dark:text-emerald-400">
+                                {ipoName}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 text-xs text-amber-600">
@@ -254,8 +269,16 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {!isMatched && !isExternal && (
-                          <MarkExternalButton action={markAsExternal} eventId={row.id} />
+                        {isMatched ? null : isExternal ? null : (
+                          <div className="flex items-center gap-2">
+                            <MarkExternalButton action={markAsExternal} eventId={row.id} />
+                            <Link
+                              href="/dashboard/academy/gaps"
+                              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-xs text-muted-foreground gap-1')}
+                            >
+                              Find match →
+                            </Link>
+                          </div>
                         )}
                       </td>
                     </tr>
