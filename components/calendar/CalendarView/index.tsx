@@ -64,10 +64,16 @@ function formatDate(d: string) {
   })
 }
 
+interface DayPopup {
+  date:   Date
+  events: Array<{ title: string; start: Date; end: Date; resource: CalendarEvent }>
+}
+
 export default function CalendarView({ events, ipos }: Props) {
   const [selectedIpo, setSelectedIpo] = useState<string>('all')
   const [selected, setSelected]       = useState<CalendarEvent | null>(null)
   const [showPast, setShowPast]       = useState(false)
+  const [dayPopup, setDayPopup]       = useState<DayPopup | null>(null)
 
   const ipoMap = useMemo(
     () => new Map(ipos.map(i => [i.id, i])),
@@ -109,6 +115,16 @@ export default function CalendarView({ events, ipos }: Props) {
   )
 
   const selectedIpo_ = selected ? ipoMap.get(selected.ipo_id) : null
+
+  function openDayPopup(date: Date, evts?: typeof calEvents) {
+    const d = new Date(date); d.setHours(0, 0, 0, 0)
+    const dayEvts = evts ?? calEvents.filter(e => {
+      const s = new Date(e.start); s.setHours(0, 0, 0, 0)
+      const en = new Date(e.end);  en.setHours(0, 0, 0, 0)
+      return d >= s && d <= en
+    })
+    if (dayEvts.length > 0) setDayPopup({ date: d, events: dayEvts })
+  }
 
   return (
     <Card className="overflow-visible">
@@ -175,7 +191,10 @@ export default function CalendarView({ events, ipos }: Props) {
             events={calEvents}
             defaultView="month"
             views={['month']}
+            selectable
             onSelectEvent={e => setSelected(e.resource as CalendarEvent)}
+            onSelectSlot={slot => openDayPopup(slot.start)}
+            onShowMore={(evts, date) => openDayPopup(date, evts)}
             eventPropGetter={e => {
               const ev  = e.resource as CalendarEvent
               const ipo = ipoMap.get(ev.ipo_id)
@@ -208,6 +227,53 @@ export default function CalendarView({ events, ipos }: Props) {
           />
         </div>
       </CardContent>
+
+      {/* Day popup — all events for a clicked day */}
+      <Dialog open={!!dayPopup} onOpenChange={open => { if (!open) setDayPopup(null) }}>
+        {dayPopup && (
+          <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                {dayPopup.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </DialogTitle>
+              <DialogDescription>{dayPopup.events.length} event{dayPopup.events.length !== 1 ? 's' : ''}</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {dayPopup.events.map((e, i) => {
+                const ev  = e.resource
+                const ipo = ipoMap.get(ev.ipo_id)
+                return (
+                  <div
+                    key={i}
+                    className="rounded-md border p-3 space-y-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => { setDayPopup(null); setSelected(ev) }}
+                  >
+                    <div className="flex items-start gap-2">
+                      {ipo && (
+                        <span className="mt-1 h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: ipo.color_hex ?? '#94a3b8' }} />
+                      )}
+                      <p className="text-sm font-medium leading-snug">{ev.title}</p>
+                    </div>
+                    <div className="flex items-center gap-2 pl-4">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs"
+                        style={{
+                          backgroundColor: (STATUS_COLOR[ev.status] ?? '#94a3b8') + '22',
+                          color:            STATUS_COLOR[ev.status] ?? '#94a3b8',
+                        }}
+                      >
+                        {ev.status}
+                      </Badge>
+                      {ipo && <span className="text-xs text-muted-foreground">{ipo.name}</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null) }}>
         {selected && (

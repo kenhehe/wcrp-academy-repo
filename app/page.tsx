@@ -6,30 +6,41 @@ import ChartBar from '@/components/charts/ChartBar'
 import CalendarView, { type CalendarEvent } from '@/components/calendar/CalendarView'
 import { classifyCountry, COUNTRY_NORMALIZE } from '@/lib/geo'
 import Link from 'next/link'
+import IpoStatusGrid from '@/components/ipo/IpoStatusGrid'
 
 export const dynamic = 'force-dynamic'
 
 type IPORow   = { id: string; name: string; color_hex: string | null }
 type EventAgg = { ipo_id: string; status: string; year: number | null }
 
+type ScrapeRunRow = { ipo_id: string; status: string; error_message: string | null; started_at: string }
+
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
-  const [{ data: ipos }, { data: agg }, { data: calEvents }] = await Promise.all([
+  const [{ data: ipos }, { data: agg }, { data: calEvents }, { data: recentRuns }] = await Promise.all([
     supabase.from('ipos').select('id, name, color_hex').order('name'),
     supabase.from('events').select('ipo_id, status, year'),
     supabase.from('events').select('id, ipo_id, title, start_date, end_date, status, location, country, url').order('start_date'),
+    supabase.from('scrape_runs').select('ipo_id, status, error_message, started_at').order('started_at', { ascending: false }).limit(50),
   ])
 
+  // Latest run per IPO
+  const latestRunMap = new Map<string, ScrapeRunRow>()
+  for (const run of (recentRuns ?? []) as ScrapeRunRow[]) {
+    if (!latestRunMap.has(run.ipo_id)) latestRunMap.set(run.ipo_id, run)
+  }
+
   return {
-    ipos:      (ipos      ?? []) as IPORow[],
-    agg:       (agg       ?? []) as EventAgg[],
-    calEvents: (calEvents ?? []) as CalendarEvent[],
+    ipos:       (ipos      ?? []) as IPORow[],
+    agg:        (agg       ?? []) as EventAgg[],
+    calEvents:  (calEvents ?? []) as CalendarEvent[],
+    scrapeRuns: [...latestRunMap.values()],
   }
 })
 
 export default async function HomePage() {
-  const { ipos, agg, calEvents } = await fetchSummary()
+  const { ipos, agg, calEvents, scrapeRuns } = await fetchSummary()
 
   const total          = agg.length
   const upCount        = agg.filter(e => e.status === 'Upcoming').length
@@ -220,40 +231,7 @@ export default async function HomePage() {
         {/* Per-IPO detail cards */}
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-4">By IPO</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {ipoStats.map(ipo => (
-              <Card key={ipo.id}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: ipo.color_hex ?? 'hsl(var(--primary))' }}
-                    />
-                    {ipo.name}
-                    <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
-                      {ipo.total} total
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-end gap-6">
-                    <div>
-                      <p className="text-xl font-semibold tabular-nums">{ipo.upcoming}</p>
-                      <p className="text-xs text-muted-foreground">Upcoming</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-semibold tabular-nums">{ipo.ongoing}</p>
-                      <p className="text-xs text-muted-foreground">Ongoing</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-semibold tabular-nums">{ipo.past}</p>
-                      <p className="text-xs text-muted-foreground">Past</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <IpoStatusGrid ipoStats={ipoStats} scrapeRuns={scrapeRuns} />
         </section>
 
       </main>
