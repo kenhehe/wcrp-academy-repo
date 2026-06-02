@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PageInfo from '@/components/base/PageInfo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import ImportWizard from '@/components/import/ImportWizard'
 import ExportPanel from '@/components/import/ExportPanel'
@@ -22,7 +23,10 @@ export default async function ImportExportPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Import / Export</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Import / Export</h1>
+          <PageInfo>Bulk-import events from a spreadsheet using the provided template, or export your current catalogue as a CSV for offline review or sharing with your team.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Bulk-import events from a spreadsheet or export your catalogue
         </p>

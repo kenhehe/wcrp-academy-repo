@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
 import { ExternalLink, Globe, Layers, Upload } from 'lucide-react'
+import PageInfo from '@/components/base/PageInfo'
 import Link from 'next/link'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
 
@@ -116,7 +117,10 @@ export default async function IPOOverviewPage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Overview</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Overview</h1>
+          <PageInfo>Your IPO event catalogue scraped from your official website. Monitor upcoming events, review sync history, and track coverage stats across all your listings.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">Your event catalogue at a glance</p>
       </div>
 

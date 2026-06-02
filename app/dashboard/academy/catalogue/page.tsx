@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import PageInfo from '@/components/base/PageInfo'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -52,7 +53,10 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Academy Catalogue</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">Academy Catalogue</h1>
+            <PageInfo>A live mirror of the WCRP Academy event catalogue pulled from WordPress via the REST API. This view is read-only — to add or edit an event, update it directly on the Academy website.</PageInfo>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Live from WordPress · {mapped.length} events
           </p>

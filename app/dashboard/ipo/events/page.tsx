@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import EventsTable from '@/components/events/EventsTable'
+import PageInfo from '@/components/base/PageInfo'
 import type { ActiveFilters } from '@/components/events/EventsTable/types'
 import { PAGE_SIZE } from '@/components/events/EventsTable/types'
 
@@ -76,7 +77,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
   return (
     <div className="p-8 space-y-2">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Events</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Events</h1>
+          <PageInfo>The full list of events scraped from your IPO&apos;s website. Filter by status or date, search by title, and export your catalogue to a spreadsheet for offline use.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           {count ?? 0} total events in your catalogue
         </p>

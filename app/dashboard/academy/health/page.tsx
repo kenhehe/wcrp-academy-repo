@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import PageInfo from '@/components/base/PageInfo'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -139,7 +140,10 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
       <RealtimeHealthSync />
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">System Health</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">System Health</h1>
+            <PageInfo>Live scraper status across all 7 IPOs. Events are auto-scraped twice daily, diffed against the database, and updated in real time. Use Force Run to manually trigger a scrape, or Preview to see what would change before committing.</PageInfo>
+          </div>
           <div className="flex items-center gap-1.5 mt-1">
             <p className="text-sm text-muted-foreground">
               Live scraper status across all 7 IPOs — events are auto-scraped twice daily, diffed against the database, and updated in real time.

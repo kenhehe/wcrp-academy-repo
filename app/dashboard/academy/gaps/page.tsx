@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import PageInfo from '@/components/base/PageInfo'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
@@ -48,7 +49,10 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Gap Analysis</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Gap Analysis</h1>
+          <PageInfo>Shows IPO-scraped events that have not yet been added to the WCRP Academy catalogue. Use this to identify upcoming events that need manual review before publishing to the Academy website.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           IPO events not yet present in the Academy catalogue
         </p>

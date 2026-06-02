@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PageInfo from '@/components/base/PageInfo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, AlertCircle } from 'lucide-react'
@@ -51,7 +52,10 @@ export default async function AcademyImportPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Import / Export</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Import / Export</h1>
+          <PageInfo>Sync the Academy catalogue from WordPress or export events for offline review. Use Force Sync to pull fresh data regardless of cache, or export to CSV/Excel for sharing.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Manage Academy event data — sync from WordPress or export to spreadsheet
         </p>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import PageInfo from '@/components/base/PageInfo'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -93,7 +94,10 @@ export default async function AcademyOverviewPage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Global Overview</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Global Overview</h1>
+          <PageInfo>High-level view of how the WCRP Academy covers events across all 7 IPOs. Charts show upcoming events, recent sync status, and which IPOs have gaps in Academy coverage.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">Coverage across all 7 IPOs</p>
       </div>
 

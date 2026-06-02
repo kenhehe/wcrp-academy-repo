@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import PageInfo from '@/components/base/PageInfo'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
@@ -87,7 +88,10 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Academy Coverage</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">Academy Coverage</h1>
+          <PageInfo>Cross-references Academy events with IPO-scraped events to show which Academy listings are backed by an IPO source. Use this to identify events that are standalone or missing a source link.</PageInfo>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Which events in the Academy catalogue are linked to an IPO source
         </p>
