@@ -83,6 +83,37 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
       source: 'wcrp-rifs.org', source_url: sourceUrl,
     })
   }
+  if (events.length > 0) return events
+
+  // Fallback: plain HTML list — <li> + <strong> + <a> with inline date (e.g. "Jun 9-12, 2026")
+  const listItems = root.querySelectorAll('li')
+  for (const li of listItems) {
+    if (!li.querySelector('strong')) continue
+    const anchor = li.querySelector('strong a, a')
+    if (!anchor) continue
+    const title = anchor.text.trim()
+    if (!title || title.length < 5) continue
+    const href     = anchor.getAttribute('href') ?? ''
+    const eventUrl = href.startsWith('http') ? href : href ? `${BASE}${href}` : null
+
+    const text      = li.text
+    const dateMatch = text.match(
+      /(\d{1,2}[\s–-]+\d{1,2}\s+\w+\s+\d{4}|\d{1,2}\s+\w+\s*[-–]\s*\d{1,2}\s+\w+\s+\d{4}|\w+\s+\d{1,2}[-–]\d{1,2},?\s+\d{4}|\d{1,2}\s+\w+\s+\d{4})/,
+    )
+    if (!dateMatch) continue
+    const { start, end } = parseDateRange(dateMatch[0])
+    if (!start) continue
+
+    const locMatch  = text.match(/[Ll]ocation:\s*([^\n|]+)/)
+    const locRaw    = locMatch ? locMatch[1].trim() : ''
+    const [location, country] = splitLocation(locRaw)
+
+    events.push({
+      ipo_id: IPO_ID, title, start_date: start, end_date: end,
+      location, country, url: eventUrl, status: computeStatus(start, end),
+      source: 'wcrp-rifs.org', source_url: sourceUrl,
+    })
+  }
   return events
 }
 

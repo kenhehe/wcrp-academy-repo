@@ -57,7 +57,7 @@ const MONTHS: Record<string, string> = {
   may: '05', june: '06', july: '07', august: '08',
   september: '09', october: '10', november: '11', december: '12',
   jan: '01', feb: '02', mar: '03', apr: '04',
-  jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  jun: '06', jul: '07', aug: '08', sep: '09', sept: '09', oct: '10', nov: '11', dec: '12',
 }
 
 export function parseDate(input: string | null | undefined): string | null {
