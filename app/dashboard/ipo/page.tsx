@@ -95,26 +95,45 @@ export default async function IPOOverviewPage() {
 
       {/* Event source banner */}
       {source && (
-        <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${sourceBadgeClass}`}>
-          {sourceIcon}
-          <div className="flex-1 min-w-0">
-            <span className="font-medium">Events sourced from: </span>
-            {source.platform
-              ? <span>{source.platform} · <span className="text-xs opacity-75">{source.label}</span></span>
-              : <span>{source.label}</span>
-            }
-            {source.type === 'blocked' && (
-              <span className="ml-2 text-xs opacity-75">— pending Cloudflare whitelist approval</span>
-            )}
+        <div className={`rounded-lg border text-sm ${sourceBadgeClass}`}>
+          <div className="flex items-center gap-3 px-4 py-3">
+            {sourceIcon}
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">Events sourced from: </span>
+              {source.platform
+                ? <span>{source.platform} · <span className="text-xs opacity-75">{source.label}</span></span>
+                : <span>{source.label}</span>
+              }
+              {source.type === 'blocked' && (
+                <span className="ml-2 text-xs opacity-75">— pending Cloudflare whitelist</span>
+              )}
+            </div>
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
-          <a
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
+
+          {/* Whitelist instructions — only shown for blocked sources */}
+          {source.type === 'blocked' && (
+            <div className="border-t border-orange-200 dark:border-orange-800 px-4 py-3 space-y-2">
+              <p className="text-xs font-medium">To whitelist our scraper, ask the CMIP team to add this Cloudflare WAF rule:</p>
+              <div className="rounded-md bg-orange-100/60 dark:bg-orange-950/40 px-3 py-2 space-y-1.5 font-mono text-xs">
+                <p><span className="opacity-60">Rule name: </span>Allow WCRP Events Bot</p>
+                <p><span className="opacity-60">If: </span>HTTP Request Header <span className="font-semibold">User-Agent</span> contains</p>
+                <p className="pl-4 select-all font-semibold">WCRP-Events-Bot/1.0</p>
+                <p><span className="opacity-60">Then: </span>Skip → All Security Rules (WAF + Bot Management)</p>
+              </div>
+              <p className="text-xs opacity-70">
+                Full User-Agent sent by our scraper:{' '}
+                <span className="select-all font-mono">Mozilla/5.0 (compatible; WCRP-Events-Bot/1.0; +https://wcrp-events.org)</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
