@@ -6,6 +6,7 @@ import TriggerButton from './_components/TriggerButton'
 import RunAllButton from './_components/RunAllButton'
 import ClearRunsButton from './_components/ClearRunsButton'
 import RealtimeHealthSync from './_components/RealtimeHealthSync'
+import CronScheduleInfo from './_components/CronScheduleInfo'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,12 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">System Health</h1>
-          <p className="text-sm text-muted-foreground mt-1">Scraper status across all IPOs</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <p className="text-sm text-muted-foreground">
+              Live scraper status across all 7 IPOs — events are auto-scraped twice daily, diffed against the database, and updated in real time.
+            </p>
+            <CronScheduleInfo />
+          </div>
         </div>
         <RunAllButton />
       </div>
