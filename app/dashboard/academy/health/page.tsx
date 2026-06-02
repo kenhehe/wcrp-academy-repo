@@ -308,7 +308,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
                           {STATUS_LABEL[run.status] ?? run.status}
                         </Badge>
                         {run.error_message && (
-                          <p className="text-xs text-destructive mt-0.5 max-w-xs truncate">
+                          <p className="text-xs text-destructive mt-0.5 max-w-xs line-clamp-2">
                             {run.error_message}
                           </p>
                         )}
