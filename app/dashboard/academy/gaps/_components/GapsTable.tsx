@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, LinkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { markInAcademy, confirmMatch } from '../actions'
 import MarkInAcademyButton from './MarkInAcademyButton'
+import ManualMatchDialog from './ManualMatchDialog'
 
 const PAGE_SIZE = 25
 
@@ -50,7 +51,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
 
   const gapIds = (gaps ?? []).map(g => g.id)
   const { data: fuzzyRaw } = gapIds.length > 0
-    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds, threshold: 0.15 })
+    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds, threshold: 0.35 })
     : { data: [] }
 
   const matchMap = new Map<string, FuzzyMatch>(
@@ -59,6 +60,13 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
 
   const ipoNameMap = new Map(ipos.map(i => [i.id, i.name]))
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
+
+  // Sort: rows with a fuzzy match first (highest score first), unmatched after
+  const sortedGaps = [...(gaps ?? [])].sort((a, b) => {
+    const sa = matchMap.get(a.id)?.score ?? -1
+    const sb = matchMap.get(b.id)?.score ?? -1
+    return sb - sa
+  })
 
   return (
     <>
@@ -74,7 +82,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
             </tr>
           </thead>
           <tbody>
-            {(gaps ?? []).length === 0 ? (
+            {sortedGaps.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   No gaps found
@@ -82,7 +90,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                 </td>
               </tr>
             ) : (
-              (gaps ?? []).map(row => {
+              sortedGaps.map(row => {
                 const match = matchMap.get(row.id)
                 return (
                   <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
@@ -143,6 +151,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                             </button>
                           </form>
                         )}
+                        <ManualMatchDialog eventId={row.id} eventTitle={row.title} />
                       </div>
                     </td>
                   </tr>
