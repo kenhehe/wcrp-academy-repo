@@ -217,9 +217,9 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                   return (
                     <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 max-w-xs">
-                        {row.official_link ? (
+                        {row.academy_id ? (
                           <a
-                            href={row.official_link}
+                            href={`https://wcrp-academy.org/?p=${row.academy_id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="truncate font-medium hover:underline hover:text-primary transition-colors block"
