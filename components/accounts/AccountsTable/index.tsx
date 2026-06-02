@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, Globe, Layers, ShieldAlert } from 'lucide-react'
+import { Pencil, Trash2, Plus, Globe, Layers, Upload } from 'lucide-react'
 import { createIPOUser, updateIPOUser, deleteIPOUser } from '@/app/dashboard/academy/accounts/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -108,7 +108,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
                   {user.source_type ? (
                     <div className="flex items-center gap-1.5">
                       {user.source_type === 'third_party' && <Layers className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
-                      {user.source_type === 'blocked'     && <ShieldAlert className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
+                      {user.source_type === 'blocked'     && <Upload className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
                       {user.source_type === 'html'        && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
                       <span className={`text-xs font-medium ${
                         user.source_type === 'third_party' ? 'text-purple-700 dark:text-purple-400' :

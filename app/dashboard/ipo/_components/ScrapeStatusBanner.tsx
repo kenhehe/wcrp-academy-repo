@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button'
 
 const CONTACT_EMAIL = 'wcrp-academy@wcrp-climate.org'
 
+const WHITELIST_RULE = {
+  label:       'Quick Fix',
+  labelColor:  'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  icon:        Zap,
+  title:       'Whitelist our scraper bot',
+  description: 'Ask your web admin to add a firewall rule allowing our bot by User-Agent. Takes ~2 minutes and fully restores automatic sync — no ongoing effort needed.',
+} as const
+
 const SOLUTIONS = [
-  {
-    label:       'Quick Fix',
-    labelColor:  'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-    icon:        Zap,
-    title:       'Whitelist our scraper bot',
-    description: 'Ask your web admin to add a firewall rule allowing our bot by User-Agent. Takes ~2 minutes and fully restores automatic sync — no ongoing effort needed.',
-  },
+  WHITELIST_RULE,
   {
     label:       'Best Long-Term',
     labelColor:  'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -139,6 +141,19 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
                 </div>
                 <p className="text-sm font-medium leading-snug">{title}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+
+                {/* WAF rule details — only shown in the Quick Fix card */}
+                {label === 'Quick Fix' && (
+                  <div className="mt-2 rounded border bg-muted/40 p-2.5 space-y-1.5 font-mono text-[11px] text-foreground">
+                    <p><span className="text-muted-foreground">Rule name: </span>Allow WCRP Events Bot</p>
+                    <p><span className="text-muted-foreground">If: </span>Header <span className="font-semibold">User-Agent</span> contains</p>
+                    <p className="pl-3 select-all font-semibold text-green-700 dark:text-green-400">WCRP-Events-Bot/1.0</p>
+                    <p><span className="text-muted-foreground">Then: </span>Skip → All Security Rules</p>
+                    <p className="border-t pt-1.5 text-muted-foreground font-sans text-[10px]">
+                      Full UA: <span className="select-all font-mono">Mozilla/5.0 (compatible; WCRP-Events-Bot/1.0; +https://wcrp-events.org)</span>
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

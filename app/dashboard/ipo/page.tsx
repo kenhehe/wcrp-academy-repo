@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
-import { ExternalLink, Globe, Layers, ShieldAlert } from 'lucide-react'
+import { ExternalLink, Globe, Layers, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
 
@@ -32,6 +32,7 @@ export default async function IPOOverviewPage() {
   const [
     { data: events },
     { data: upcomingList },
+    { data: lastSuccessfulRun },
   ] = await Promise.all([
     // Lightweight fetch for all aggregations
     supabase
@@ -46,6 +47,15 @@ export default async function IPOOverviewPage() {
       .eq('status', 'Upcoming')
       .order('start_date', { ascending: true })
       .limit(5),
+    // Check if scraper has ever succeeded — determines which icon to show
+    supabase
+      .from('scrape_runs')
+      .select('id,source')
+      .eq('ipo_id', orgId)
+      .eq('status', 'success')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const all        = events ?? []
@@ -76,14 +86,22 @@ export default async function IPOOverviewPage() {
 
   const source = IPO_SOURCES[orgId] ?? null
 
+  // If the scraper has a successful run, treat it as Globe regardless of configured type.
+  // If blocked/no successful run, show Upload (manual import mode).
+  const scraperWorking  = !!lastSuccessfulRun && lastSuccessfulRun.source !== 'manual'
+  const effectiveType   = scraperWorking ? 'html' : (source?.type ?? 'html')
+
   const sourceIcon =
-    source?.type === 'third_party' ? <Layers className="h-4 w-4" /> :
-    source?.type === 'blocked'     ? <ShieldAlert className="h-4 w-4" /> :
-                                     <Globe className="h-4 w-4" />
+    effectiveType === 'third_party' ? <Layers className="h-4 w-4" /> :
+    effectiveType === 'blocked'     ? <Upload className="h-4 w-4" /> :
+    source?.type === 'blocked' && !scraperWorking
+                                    ? <Upload className="h-4 w-4" /> :
+                                      <Globe className="h-4 w-4" />
 
   const sourceBadgeClass =
     source?.type === 'third_party' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400' :
-    source?.type === 'blocked'     ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' :
+    source?.type === 'blocked' && !scraperWorking
+                                   ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' :
                                      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400'
 
   return (
@@ -95,45 +113,26 @@ export default async function IPOOverviewPage() {
 
       {/* Event source banner */}
       {source && (
-        <div className={`rounded-lg border text-sm ${sourceBadgeClass}`}>
-          <div className="flex items-center gap-3 px-4 py-3">
-            {sourceIcon}
-            <div className="flex-1 min-w-0">
-              <span className="font-medium">Events sourced from: </span>
-              {source.platform
-                ? <span>{source.platform} · <span className="text-xs opacity-75">{source.label}</span></span>
-                : <span>{source.label}</span>
-              }
-              {source.type === 'blocked' && (
-                <span className="ml-2 text-xs opacity-75">— pending Cloudflare whitelist</span>
-              )}
-            </div>
-            <a
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
+        <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${sourceBadgeClass}`}>
+          {sourceIcon}
+          <div className="flex-1 min-w-0">
+            <span className="font-medium">Events sourced from: </span>
+            {source.platform
+              ? <span>{source.platform} · <span className="text-xs opacity-75">{source.label}</span></span>
+              : <span>{source.label}</span>
+            }
+            {source.type === 'blocked' && !scraperWorking && (
+              <span className="ml-2 text-xs opacity-75">— pending Cloudflare whitelist · manual import active</span>
+            )}
           </div>
-
-          {/* Whitelist instructions — only shown for blocked sources */}
-          {source.type === 'blocked' && (
-            <div className="border-t border-orange-200 dark:border-orange-800 px-4 py-3 space-y-2">
-              <p className="text-xs font-medium">To whitelist our scraper, ask the CMIP team to add this Cloudflare WAF rule:</p>
-              <div className="rounded-md bg-orange-100/60 dark:bg-orange-950/40 px-3 py-2 space-y-1.5 font-mono text-xs">
-                <p><span className="opacity-60">Rule name: </span>Allow WCRP Events Bot</p>
-                <p><span className="opacity-60">If: </span>HTTP Request Header <span className="font-semibold">User-Agent</span> contains</p>
-                <p className="pl-4 select-all font-semibold">WCRP-Events-Bot/1.0</p>
-                <p><span className="opacity-60">Then: </span>Skip → All Security Rules (WAF + Bot Management)</p>
-              </div>
-              <p className="text-xs opacity-70">
-                Full User-Agent sent by our scraper:{' '}
-                <span className="select-all font-mono">Mozilla/5.0 (compatible; WCRP-Events-Bot/1.0; +https://wcrp-events.org)</span>
-              </p>
-            </div>
-          )}
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
       )}
 
