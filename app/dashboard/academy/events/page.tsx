@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import AcademyEventsFilters from '@/components/academy/AcademyEventsFilters'
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, MinusCircle, InfoIcon } from 'lucide-react'
+import { resolveStatus } from '@/lib/data/academy-events.types'
 import { cn } from '@/lib/utils'
 import { markAsExternal } from './actions'
 import MarkExternalButton from './_components/MarkExternalButton'
@@ -53,7 +54,7 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
   // Build main paginated query
   let mainQuery = supabase
     .from('academy_events')
-    .select('id,academy_id,title,start_date,end_date,official_link,is_external', { count: 'exact' })
+    .select('id,academy_id,title,start_date,end_date,publish_date,status,official_link,is_external', { count: 'exact' })
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
@@ -223,9 +224,15 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap tabular-nums text-xs text-muted-foreground">
-                        {row.start_date}
-                        {row.end_date && row.end_date !== row.start_date && (
-                          <span> → {row.end_date}</span>
+                        {row.start_date ? (
+                          <>
+                            {row.start_date}
+                            {row.end_date && row.end_date !== row.start_date && (
+                              <span> → {row.end_date}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="italic">{resolveStatus(row)}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
