@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}))
 
-  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}${LIST}`, parseEvents)
+  if (body.dry_run) return dryRunStream(supabase, IPO_ID, `${BASE}${LIST}`, parseEvents, 'Preview covers page 1 only — full run scrapes all pages and may find more events.')
 
   const runId     = await startRun(supabase, IPO_ID, body.runId, body.source)
   const startedAt = new Date().toISOString()

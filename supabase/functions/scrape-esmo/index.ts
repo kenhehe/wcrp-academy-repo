@@ -96,11 +96,18 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
       }
     }
 
-    // Text fallback — handles "Jul 06, 2026 to Jul 09, 2026"
+    // Text fallback — extract just the date portion so anchored parseDateRange patterns work.
+    // The full block text starts with the event title, which would break ^-anchored patterns.
     if (!startDate) {
-      const txt = (link.parentNode?.parentNode?.text ?? link.parentNode?.text ?? '').trim()
-      const { start, end } = parseDateRange(txt.replace(/\s+/g, ' ').slice(0, 120))
-      startDate = start; endDate = end
+      const rawTxt = (link.parentNode?.parentNode?.text ?? link.parentNode?.text ?? '')
+        .replace(/\s+/g, ' ').trim()
+      const dateChunk = rawTxt.match(
+        /[A-Za-z]+\.?\s+\d{1,2},?\s+\d{4}\s+to\s+[A-Za-z]+\.?\s+\d{1,2},?\s+\d{4}|[A-Za-z]+\.?\s+\d{1,2}[-–]\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2}/,
+      )?.[0]
+      if (dateChunk) {
+        const { start, end } = parseDateRange(dateChunk)
+        startDate = start; endDate = end
+      }
     }
 
     if (!startDate) continue
