@@ -99,7 +99,7 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">Academy Coverage</h1>
-          <PageInfo>Cross-references Academy events with IPO-scraped events to show which Academy listings are backed by an IPO source. Use this to identify events that are standalone or missing a source link.</PageInfo>
+          <PageInfo>This page audits how well the WCRP Academy represents IPO events. Every event in the Academy catalogue is listed here with one of three states: Matched (linked to a scraped IPO source), Needs review (not yet checked), or Not an IPO event (confirmed as coming from outside the 7 IPOs). The coverage % rises as you work through the &ldquo;Needs review&rdquo; pile — either by confirming a match in Gap Analysis or marking it as not an IPO event.</PageInfo>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Which events in the Academy catalogue are linked to an IPO source
