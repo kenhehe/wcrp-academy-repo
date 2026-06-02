@@ -1,7 +1,6 @@
 'use client'
 
 import { Info } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
@@ -21,10 +20,8 @@ const SCHEDULE = [
 export default function CronScheduleInfo() {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground">
-          <Info className="h-4 w-4" />
-        </Button>
+      <PopoverTrigger className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors">
+        <Info className="h-4 w-4" />
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="start">
         <div className="px-4 py-3 border-b">
