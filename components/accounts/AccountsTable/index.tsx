@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Globe, Layers, ShieldAlert } from 'lucide-react'
 import { createIPOUser, updateIPOUser, deleteIPOUser } from '@/app/dashboard/academy/accounts/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -83,6 +83,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
             <TableRow>
               <TableHead>Email</TableHead>
               <TableHead>IPO</TableHead>
+              <TableHead>Event source</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-20" />
             </TableRow>
@@ -90,7 +91,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
           <TableBody>
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   No IPO accounts yet
                 </TableCell>
               </TableRow>
@@ -102,6 +103,24 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
                   <Badge variant="secondary" className="uppercase text-xs">
                     {user.org_id}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {user.source_type ? (
+                    <div className="flex items-center gap-1.5">
+                      {user.source_type === 'third_party' && <Layers className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
+                      {user.source_type === 'blocked'     && <ShieldAlert className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
+                      {user.source_type === 'html'        && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
+                      <span className={`text-xs font-medium ${
+                        user.source_type === 'third_party' ? 'text-purple-700 dark:text-purple-400' :
+                        user.source_type === 'blocked'     ? 'text-orange-700 dark:text-orange-400' :
+                                                             'text-blue-700 dark:text-blue-400'
+                      }`}>
+                        {user.source_label}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {new Date(user.created_at).toLocaleDateString()}

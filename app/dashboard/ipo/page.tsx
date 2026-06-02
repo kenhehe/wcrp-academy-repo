@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Globe, Layers, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'
+import { IPO_SOURCES } from '@/lib/ipo-sources'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,12 +74,49 @@ export default async function IPOOverviewPage() {
     { label: 'Avg Duration',  value: avgDuration != null ? `${avgDuration} days` : '—' },
   ]
 
+  const source = IPO_SOURCES[orgId] ?? null
+
+  const sourceIcon =
+    source?.type === 'third_party' ? <Layers className="h-4 w-4" /> :
+    source?.type === 'blocked'     ? <ShieldAlert className="h-4 w-4" /> :
+                                     <Globe className="h-4 w-4" />
+
+  const sourceBadgeClass =
+    source?.type === 'third_party' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400' :
+    source?.type === 'blocked'     ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' :
+                                     'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400'
+
   return (
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Overview</h1>
         <p className="text-sm text-muted-foreground mt-1">Your event catalogue at a glance</p>
       </div>
+
+      {/* Event source banner */}
+      {source && (
+        <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${sourceBadgeClass}`}>
+          {sourceIcon}
+          <div className="flex-1 min-w-0">
+            <span className="font-medium">Events sourced from: </span>
+            {source.platform
+              ? <span>{source.platform} · <span className="text-xs opacity-75">{source.label}</span></span>
+              : <span>{source.label}</span>
+            }
+            {source.type === 'blocked' && (
+              <span className="ml-2 text-xs opacity-75">— pending Cloudflare whitelist approval</span>
+            )}
+          </div>
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

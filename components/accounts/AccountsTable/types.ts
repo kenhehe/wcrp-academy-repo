@@ -3,6 +3,9 @@ export interface IPOUser {
   email: string
   org_id: string
   created_at: string
+  source_type?:  string
+  source_label?: string
+  source_url?:   string
 }
 
 export const IPO_OPTIONS = [
