@@ -33,6 +33,7 @@ export default async function IPOOverviewPage() {
     { data: events },
     { data: upcomingList },
     { data: lastSuccessfulRun },
+    { data: lastRun },
   ] = await Promise.all([
     // Lightweight fetch for all aggregations
     supabase
@@ -53,6 +54,14 @@ export default async function IPOOverviewPage() {
       .select('id,source')
       .eq('ipo_id', orgId)
       .eq('status', 'success')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Most recent run — if failed the sync banner is already showing so hide the source banner
+    supabase
+      .from('scrape_runs')
+      .select('id,status')
+      .eq('ipo_id', orgId)
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -111,8 +120,8 @@ export default async function IPOOverviewPage() {
         <p className="text-sm text-muted-foreground mt-1">Your event catalogue at a glance</p>
       </div>
 
-      {/* Event source banner */}
-      {source && (
+      {/* Event source banner — hidden when the sync failure banner is already visible */}
+      {source && lastRun?.status !== 'failed' && (
         <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${sourceBadgeClass}`}>
           {sourceIcon}
           <div className="flex-1 min-w-0">

@@ -104,7 +104,7 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <a href={`mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`}>
+          <a href="http://wcrp-academy.org/contact-us" target="_blank" rel="noopener noreferrer">
             <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/30">
               Contact us
             </Button>
