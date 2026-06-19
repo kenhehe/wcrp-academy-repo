@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { LinkIcon, Search, Loader2 } from 'lucide-react'
+import { LinkIcon, Search, Loader2, RefreshCw } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { searchAcademyEvents, confirmMatch } from '../actions'
+import { searchAcademyEvents, confirmMatch, triggerAcademySync } from '../actions'
 
 interface AcademyResult {
   id:         string
@@ -25,12 +25,14 @@ interface Props {
 }
 
 export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
-  const [open,       setOpen]       = useState(false)
-  const [query,      setQuery]      = useState('')
-  const [results,    setResults]    = useState<AcademyResult[]>([])
-  const [searching,  setSearching]  = useState(false)
-  const [selected,   setSelected]   = useState<AcademyResult | null>(null)
-  const [isPending,  startTransition] = useTransition()
+  const [open,      setOpen]      = useState(false)
+  const [query,     setQuery]     = useState('')
+  const [results,   setResults]   = useState<AcademyResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [selected,  setSelected]  = useState<AcademyResult | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncMsg,   setSyncMsg]   = useState<{ ok: boolean; text: string } | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   // Debounced search
   useEffect(() => {
@@ -50,6 +52,22 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
       setQuery('')
       setResults([])
       setSelected(null)
+      setSyncMsg(null)
+    }
+  }
+
+  async function handleSync() {
+    setIsSyncing(true)
+    setSyncMsg(null)
+    const result = await triggerAcademySync()
+    setIsSyncing(false)
+    setSyncMsg({ ok: result.ok, text: result.message })
+
+    if (result.ok && query.trim()) {
+      setSearching(true)
+      const data = await searchAcademyEvents(query)
+      setResults(data)
+      setSearching(false)
     }
   }
 
@@ -63,6 +81,8 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
       setOpen(false)
     })
   }
+
+  const showNoResults = !!query.trim() && !searching && results.length === 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -91,7 +111,7 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
             type="text"
             placeholder="Search Academy catalogue…"
             value={query}
-            onChange={e => { setQuery(e.target.value); setSelected(null) }}
+            onChange={e => { setQuery(e.target.value); setSelected(null); setSyncMsg(null) }}
             className="w-full rounded-md border bg-background pl-8 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
             autoFocus
           />
@@ -106,10 +126,39 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
             <p className="px-3 py-6 text-center text-xs text-muted-foreground">
               Type to search the Academy catalogue
             </p>
-          ) : results.length === 0 && !searching ? (
-            <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-              No results for &ldquo;{query}&rdquo;
-            </p>
+          ) : showNoResults ? (
+            <div className="px-4 py-5 text-center space-y-3">
+              <p className="text-xs text-muted-foreground">
+                No results for &ldquo;{query}&rdquo; in the local catalogue.
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  The event may not have synced yet from the Academy site.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                >
+                  {isSyncing
+                    ? <><Loader2 className="h-3 w-3 animate-spin" />Syncing from Academy…</>
+                    : <><RefreshCw className="h-3 w-3" />Sync from Academy</>
+                  }
+                </Button>
+              </div>
+              {syncMsg && (
+                <p className={`text-xs font-medium ${syncMsg.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+                  {syncMsg.text}
+                </p>
+              )}
+              {syncMsg?.ok && results.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Still no match — this event may not be in the Academy catalogue yet.
+                </p>
+              )}
+            </div>
           ) : (
             results.map(r => (
               <button

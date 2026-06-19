@@ -15,6 +15,24 @@ export async function markInAcademy(formData: FormData) {
   revalidatePath('/dashboard/academy')
 }
 
+export async function triggerAcademySync(): Promise<{ ok: boolean; message: string }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return { ok: false, message: 'Missing Supabase env vars' }
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/sync-academy-wp`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+    })
+    const json = await res.json() as { message?: string; synced?: number; error?: string }
+    if (!res.ok) return { ok: false, message: json.error ?? `HTTP ${res.status}` }
+    return { ok: true, message: `Synced ${json.synced ?? 0} events from Academy` }
+  } catch (err) {
+    return { ok: false, message: String(err) }
+  }
+}
+
 export async function searchAcademyEvents(query: string): Promise<{ id: string; title: string; start_date: string | null; status: string | null }[]> {
   if (!query.trim()) return []
   const supabase = await createClient()
