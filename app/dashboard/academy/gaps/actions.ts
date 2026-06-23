@@ -15,6 +15,8 @@ export async function markInAcademy(formData: FormData) {
   revalidatePath('/dashboard/academy')
 }
 
+// Awaits the sync response (unlike scraper triggers which fire-and-forget).
+// Safe to await here — sync-academy-wp is fast (WP API fetch + DB upsert, ~3–10s).
 export async function triggerAcademySync(): Promise<{ ok: boolean; message: string }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
