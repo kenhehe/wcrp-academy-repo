@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   BarChart,
   Bar,
@@ -55,6 +56,12 @@ function CustomTooltip({ active, payload, label }: {
 export default function IPOCoverageChart({ data }: { data: IPOChartRow[] }) {
   const rowHeight   = 44
   const chartHeight = Math.max(300, data.length * rowHeight + 60)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  // ResponsiveContainer reads real DOM dimensions — render only after mount
+  // to avoid width/height=-1 during SSR and the resulting hydration mismatch.
+  if (!mounted) return <div style={{ height: chartHeight }} />
 
   return (
     <ResponsiveContainer width="100%" height={chartHeight}>
