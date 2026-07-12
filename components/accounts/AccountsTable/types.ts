@@ -16,4 +16,5 @@ export const IPO_OPTIONS = [
   { value: 'cordex', label: 'CORDEX' },
   { value: 'clic',   label: 'CliC' },
   { value: 'gewex',  label: 'GEWEX' },
+  { value: 'wcrp',   label: 'WCRP' },
 ] as const

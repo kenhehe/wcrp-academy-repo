@@ -15,4 +15,5 @@ export const IPO_SOURCES: Record<string, IpoSource> = {
   cmip:   { type: 'blocked',     label: 'Cloudflare protected', url: 'https://wcrp-cmip.org/science-and-seminars/cmip-seminars/' },
   clic:   { type: 'third_party', label: 'Elfsight Calendar', platform: 'Elfsight', url: 'https://climate-cryosphere.org/events/' },
   clivar: { type: 'html',        label: 'Official website', url: 'https://www.clivar.org/events' },
+  wcrp:   { type: 'html',        label: 'WCRP organisation', url: 'https://wcrp-climate.org' },
 }
