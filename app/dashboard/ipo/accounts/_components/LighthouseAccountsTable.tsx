@@ -2,28 +2,43 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, Globe, Layers, Upload } from 'lucide-react'
-import { createIPOUser, updateIPOUser, deleteIPOUser } from '@/app/dashboard/academy/accounts/actions'
+import { Pencil, Trash2, Plus } from 'lucide-react'
+import { createLighthouseUser, updateLighthouseUser, deleteLighthouseUser } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { IPOUser } from './types'
-import { IPO_OPTIONS } from './types'
+
+export interface LighthouseUser {
+  id:         string
+  email:      string
+  org_id:     string
+  org_name:   string
+  created_at: string
+}
+
+const LIGHTHOUSE_OPTIONS = [
+  { value: 'de',    label: 'Digital Earths' },
+  { value: 'epesc', label: 'EPESC — Explaining & Predicting ESC' },
+  { value: 'gpex',  label: 'GPEX — Global Precipitation EXperiment' },
+  { value: 'mcr',   label: 'My Climate Risk' },
+  { value: 'rci',   label: 'RCI — Research on Climate Intervention' },
+  { value: 'slc',   label: 'Safe Landing Climates' },
+] as const
 
 type Modal =
   | { type: 'create' }
-  | { type: 'edit'; user: IPOUser }
-  | { type: 'delete'; user: IPOUser }
+  | { type: 'edit';   user: LighthouseUser }
+  | { type: 'delete'; user: LighthouseUser }
   | null
 
-export default function AccountsTable({ users }: { users: IPOUser[] }) {
-  const [modal, setModal]     = useState<Modal>(null)
-  const [pending, startTransition] = useTransition()
+export default function LighthouseAccountsTable({ users }: { users: LighthouseUser[] }) {
+  const [modal, setModal]           = useState<Modal>(null)
+  const [pending, startTransition]  = useTransition()
 
   function close() { setModal(null) }
 
@@ -32,7 +47,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
     const fd = new FormData(e.currentTarget)
     startTransition(async () => {
       try {
-        await createIPOUser(fd)
+        await createLighthouseUser(fd)
         toast.success('Account created')
         close()
       } catch (err) {
@@ -46,7 +61,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
     const fd = new FormData(e.currentTarget)
     startTransition(async () => {
       try {
-        await updateIPOUser(fd)
+        await updateLighthouseUser(fd)
         toast.success('Account updated')
         close()
       } catch (err) {
@@ -58,7 +73,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
   function handleDelete(userId: string) {
     startTransition(async () => {
       try {
-        await deleteIPOUser(userId)
+        await deleteLighthouseUser(userId)
         toast.success('Account deleted')
         close()
       } catch (err) {
@@ -71,9 +86,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">
-          {users.filter(u => u.org_group === 'IPO').length} IPO
-          {' · '}
-          {users.filter(u => u.org_group === 'Lighthouse').length} Lighthouse
+          {users.length} account{users.length !== 1 ? 's' : ''}
         </p>
         <Button size="sm" onClick={() => setModal({ type: 'create' })}>
           <Plus className="h-4 w-4 mr-2" />
@@ -86,8 +99,7 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Email</TableHead>
-              <TableHead>Organisation</TableHead>
-              <TableHead>Event source</TableHead>
+              <TableHead>Programme</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-20" />
             </TableRow>
@@ -95,8 +107,8 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
           <TableBody>
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No IPO accounts yet
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  No lighthouse accounts yet
                 </TableCell>
               </TableRow>
             )}
@@ -104,32 +116,9 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {user.org_label}
-                    </Badge>
-                    {user.org_group === 'Lighthouse' && (
-                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">LHA</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {user.source_type ? (
-                    <div className="flex items-center gap-1.5">
-                      {user.source_type === 'third_party' && <Layers className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
-                      {user.source_type === 'blocked'     && <Upload className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
-                      {user.source_type === 'html'        && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
-                      <span className={`text-xs font-medium ${
-                        user.source_type === 'third_party' ? 'text-purple-700 dark:text-purple-400' :
-                        user.source_type === 'blocked'     ? 'text-orange-700 dark:text-orange-400' :
-                                                             'text-blue-700 dark:text-blue-400'
-                      }`}>
-                        {user.source_label}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
+                  <Badge variant="secondary" className="text-xs">
+                    {user.org_name}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {new Date(user.created_at).toLocaleDateString()}
@@ -160,31 +149,26 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
       <Dialog open={modal?.type === 'create'} onOpenChange={open => !open && close()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add IPO account</DialogTitle>
+            <DialogTitle>Add lighthouse account</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="c-email">Email</Label>
-              <Input id="c-email" name="email" type="email" required placeholder="user@ipo.org" />
+              <Input id="c-email" name="email" type="email" required placeholder="user@programme.org" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="c-password">Password</Label>
               <Input id="c-password" name="password" type="password" required minLength={8} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-org">IPO</Label>
+              <Label htmlFor="c-org">Programme</Label>
               <Select name="org_id" required>
                 <SelectTrigger id="c-org">
-                  <SelectValue placeholder="Select IPO…" />
+                  <SelectValue placeholder="Select programme…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['IPO', 'Lighthouse'] as const).map(group => (
-                    <SelectGroup key={group}>
-                      <SelectLabel>{group}</SelectLabel>
-                      {IPO_OPTIONS.filter(o => o.group === group).map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
+                  {LIGHTHOUSE_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -217,19 +201,14 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
                 <Input id="e-password" name="password" type="password" minLength={8} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="e-org">IPO</Label>
+                <Label htmlFor="e-org">Programme</Label>
                 <Select name="org_id" defaultValue={modal.user.org_id}>
                   <SelectTrigger id="e-org">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(['IPO', 'Lighthouse'] as const).map(group => (
-                      <SelectGroup key={group}>
-                        <SelectLabel>{group}</SelectLabel>
-                        {IPO_OPTIONS.filter(o => o.group === group).map(o => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectGroup>
+                    {LIGHTHOUSE_OPTIONS.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

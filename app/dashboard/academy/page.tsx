@@ -30,25 +30,42 @@ export default async function AcademyOverviewPage() {
     { data: upcomingGaps },
     { data: recentRuns },
     { data: ipos },
+    { data: lhaPending },
+    { data: lhaApproved },
+    { data: lighthouses },
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
-    // Lightweight fetch for month/year distribution
-    supabase.from('events').select('month,year,status,in_academy'),
-    // Next 5 upcoming events not in academy
+    // IPO events only — exclude LHA community calendar events
+    supabase.from('events').select('month,year,status,in_academy').is('approval_status', null),
+    // Next 5 upcoming IPO events not in academy
     supabase
       .from('events')
       .select('id,title,start_date,ipo_id')
       .eq('status', 'Upcoming')
       .eq('in_academy', false)
+      .is('approval_status', null)
       .order('start_date', { ascending: true })
       .limit(5),
-    // Recent scrape runs
+    // Recent scrape runs — ipos only
     supabase
       .from('scrape_runs')
       .select('id,ipo_id,started_at,status')
       .order('started_at', { ascending: false })
       .limit(6),
-    supabase.from('ipos').select('id,name'),
+    // IPO names for scrape run labels
+    supabase.from('ipos').select('id,name').eq('type', 'ipo'),
+    // LHA pending submissions
+    supabase
+      .from('events')
+      .select('ipo_id')
+      .eq('approval_status', 'pending'),
+    // LHA approved events
+    supabase
+      .from('events')
+      .select('ipo_id')
+      .eq('approval_status', 'approved'),
+    // Lighthouse programme names
+    supabase.from('ipos').select('id,name').eq('type', 'lighthouse'),
   ])
 
   const all           = eventsRaw ?? []
@@ -82,6 +99,21 @@ export default async function AcademyOverviewPage() {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
+
+  // LHA breakdown by programme
+  const lhaNameMap = new Map((lighthouses ?? []).map(i => [i.id, i.name]))
+  const lhaPendingByOrg  = new Map<string, number>()
+  const lhaApprovedByOrg = new Map<string, number>()
+  for (const e of lhaPending  ?? []) lhaPendingByOrg.set(e.ipo_id,  (lhaPendingByOrg.get(e.ipo_id)  ?? 0) + 1)
+  for (const e of lhaApproved ?? []) lhaApprovedByOrg.set(e.ipo_id, (lhaApprovedByOrg.get(e.ipo_id) ?? 0) + 1)
+  const lhaRows = (lighthouses ?? []).map(i => ({
+    id:       i.id,
+    name:     i.name,
+    pending:  lhaPendingByOrg.get(i.id)  ?? 0,
+    approved: lhaApprovedByOrg.get(i.id) ?? 0,
+  })).filter(r => r.pending > 0 || r.approved > 0)
+  const totalPending  = (lhaPending  ?? []).length
+  const totalApproved = (lhaApproved ?? []).length
 
   const summaryStats = [
     { label: 'Total IPO Events',    value: totalEvents },
@@ -172,6 +204,53 @@ export default async function AcademyOverviewPage() {
         </CardHeader>
         <CardContent>
           <ChartBar data={yearData} color="hsl(var(--primary) / 0.7)" height={220} />
+        </CardContent>
+      </Card>
+
+      {/* Lighthouse Activities summary */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium">Lighthouse Activities</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Community calendar submissions from LHA programmes
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            {totalPending > 0 && (
+              <span className="flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                {totalPending} pending
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400">
+              {totalApproved} approved
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          {lhaRows.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">No LHA events submitted yet</p>
+          ) : (
+            <div className="divide-y">
+              {lhaRows.map(row => (
+                <div key={row.id} className="flex items-center justify-between gap-3 px-6 py-3">
+                  <span className="text-sm truncate">{row.name}</span>
+                  <div className="flex items-center gap-3 text-xs shrink-0">
+                    {row.pending > 0 && (
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        {row.pending} pending
+                      </span>
+                    )}
+                    {row.approved > 0 && (
+                      <span className="text-green-600 dark:text-green-400 font-medium">
+                        {row.approved} approved
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -30,6 +30,9 @@ export default async function IPOOverviewPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const orgId = user?.app_metadata?.org_id as string
 
+  const { data: ipoMeta } = await supabase.from('ipos').select('type').eq('id', orgId).single()
+  const isLighthouse = ipoMeta?.type === 'lighthouse'
+
   const [
     { data: events },
     { data: upcomingList },
@@ -124,8 +127,8 @@ export default async function IPOOverviewPage() {
         <p className="text-sm text-muted-foreground mt-1">Your event catalogue at a glance</p>
       </div>
 
-      {/* Event source banner — hidden when the sync failure banner is already visible */}
-      {source && lastRun?.status !== 'failed' && (
+      {/* IPO scraper source banner — hidden for lighthouses and when sync failure banner is already visible */}
+      {!isLighthouse && source && lastRun?.status !== 'failed' && (
         <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${sourceBadgeClass}`}>
           {sourceIcon}
           <div className="flex-1 min-w-0">

@@ -15,7 +15,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  const orgId = user?.app_metadata?.org_id as string
+  const orgId    = user?.app_metadata?.org_id as string
+  const ipoType  = await supabase.from('ipos').select('type').eq('id', orgId).single()
+    .then(r => (r.data?.type ?? 'ipo') as 'ipo' | 'lighthouse')
 
   const status = typeof sp.status === 'string' ? sp.status : undefined
   const year   = typeof sp.year   === 'string' ? sp.year   : undefined
@@ -32,7 +34,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   // Build events query
   let query = supabase
     .from('events')
-    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,source,extra_fields', { count: 'exact' })
+    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,source,extra_fields,approval_status', { count: 'exact' })
     .eq('ipo_id', orgId)
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
@@ -86,6 +88,16 @@ export default async function EventsPage({ searchParams }: PageProps) {
         </p>
       </div>
 
+      {ipoType === 'lighthouse' && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+          <span className="text-base">🏠</span>
+          <div>
+            <span className="font-medium">Lighthouse Activity — </span>
+            Events you add here go into a pending queue and appear on the community calendar once approved by WCRP.
+          </div>
+        </div>
+      )}
+
       <EventsTable
         events={events ?? []}
         totalCount={count ?? 0}
@@ -93,6 +105,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         registryFields={registry ?? []}
         availableYears={availableYears}
         activeFilters={activeFilters}
+        ipoType={ipoType}
       />
     </div>
   )

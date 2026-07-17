@@ -41,6 +41,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
     .from('events')
     .select('id,title,start_date,status,url,ipo_id', { count: 'exact' })
     .eq('in_academy', false)
+    .is('approval_status', null)  // exclude LHA events — they belong to community calendar, not Academy catalogue
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 

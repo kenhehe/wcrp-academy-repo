@@ -36,6 +36,7 @@ interface EventsTableProps {
   registryFields: RegistryField[]
   availableYears: number[]
   activeFilters:  ActiveFilters
+  ipoType?:       'ipo' | 'lighthouse'
 }
 
 export default function EventsTable({
@@ -45,7 +46,9 @@ export default function EventsTable({
   registryFields,
   availableYears,
   activeFilters,
+  ipoType,
 }: EventsTableProps) {
+  const isLighthouse = ipoType === 'lighthouse'
   const router       = useRouter()
   const pathname     = usePathname()
   const searchParams = useSearchParams()
@@ -79,6 +82,7 @@ export default function EventsTable({
         await createEvent(new FormData(e.currentTarget))
         toast.success('Event created')
         close()
+        router.refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to create event')
       }
@@ -92,6 +96,7 @@ export default function EventsTable({
         await updateEvent(new FormData(e.currentTarget))
         toast.success('Event updated')
         close()
+        router.refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to update event')
       }
@@ -104,6 +109,7 @@ export default function EventsTable({
         await deleteEvent(eventId)
         toast.success('Event deleted')
         close()
+        router.refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to delete event')
       }
@@ -194,6 +200,7 @@ export default function EventsTable({
               <TableHead>Start</TableHead>
               <TableHead>End</TableHead>
               <TableHead>Status</TableHead>
+              {isLighthouse && <TableHead>Approval</TableHead>}
               <TableHead>Location</TableHead>
               <TableHead>Country</TableHead>
               {registryFields.map(f => (
@@ -237,6 +244,19 @@ export default function EventsTable({
                     {event.status}
                   </Badge>
                 </TableCell>
+                {isLighthouse && (
+                  <TableCell>
+                    {event.approval_status === 'approved' ? (
+                      <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
+                        Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                        Pending
+                      </Badge>
+                    )}
+                  </TableCell>
+                )}
                 <TableCell className="text-sm text-muted-foreground">{event.location ?? '—'}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{event.country ?? '—'}</TableCell>
                 {registryFields.map(f => (

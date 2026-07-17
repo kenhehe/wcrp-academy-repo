@@ -74,7 +74,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     console.log('[health] admin client created OK')
 
     const [iposResult, allRunsResult, pageRunsResult] = await Promise.all([
-      supabase.from('ipos').select('id,name,color_hex').order('name'),
+      supabase.from('ipos').select('id,name,color_hex').eq('type', 'ipo').order('name'),
       // Full recent batch for latest-per-IPO computation
       supabase
         .from('scrape_runs')

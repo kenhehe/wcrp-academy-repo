@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const IPO_IDS = ['cmip', 'clivar', 'esmo', 'rifs', 'cordex', 'clic', 'gewex', 'wcrp'] as const
+const IPO_IDS = ['cmip', 'clivar', 'esmo', 'rifs', 'cordex', 'clic', 'gewex', 'wcrp', 'de', 'epesc', 'gpex', 'mcr', 'rci', 'slc'] as const
 type IpoId = typeof IPO_IDS[number]
 
 function buildAppMeta(orgId: IpoId) {

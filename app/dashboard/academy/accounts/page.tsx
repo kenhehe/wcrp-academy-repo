@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import AccountsTable from '@/components/accounts/AccountsTable'
 import PageInfo from '@/components/base/PageInfo'
 import type { IPOUser } from '@/components/accounts/AccountsTable/types'
+import { IPO_OPTIONS } from '@/components/accounts/AccountsTable/types'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
 
 export const dynamic = 'force-dynamic'
@@ -12,15 +13,20 @@ export default async function AccountsPage() {
 
   if (error) throw new Error(error.message)
 
+  const orgLabelMap = new Map(IPO_OPTIONS.map(o => [o.value, { label: o.label, group: o.group }]))
+
   const ipoUsers: IPOUser[] = data.users
     .filter(u => u.app_metadata?.role === 'ipo_user')
     .map(u => {
-      const orgId = u.app_metadata?.org_id ?? ''
-      const src   = IPO_SOURCES[orgId]
+      const orgId  = u.app_metadata?.org_id ?? ''
+      const src    = IPO_SOURCES[orgId]
+      const orgMeta = orgLabelMap.get(orgId)
       return {
         id:           u.id,
         email:        u.email ?? '',
         org_id:       orgId,
+        org_label:    orgMeta?.label ?? orgId.toUpperCase(),
+        org_group:    (orgMeta?.group ?? 'IPO') as 'IPO' | 'Lighthouse',
         created_at:   u.created_at,
         source_type:  src?.type,
         source_label: src?.platform ?? src?.label,

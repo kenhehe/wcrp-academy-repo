@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, CalendarDays, Upload, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Upload, LogOut, ClipboardCheck, Sparkles, Users } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
@@ -10,13 +10,13 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { IPOSidebarProps } from './types'
 
-const NAV = [
-  { href: '/dashboard/ipo',         label: 'Overview',       icon: LayoutDashboard },
-  { href: '/dashboard/ipo/events',  label: 'Events',         icon: CalendarDays },
-  { href: '/dashboard/ipo/import',  label: 'Import / Export', icon: Upload },
+const BASE_NAV = [
+  { href: '/dashboard/ipo',        label: 'Overview',        icon: LayoutDashboard, badge: 0 },
+  { href: '/dashboard/ipo/events', label: 'Events',          icon: CalendarDays,    badge: 0 },
+  { href: '/dashboard/ipo/import', label: 'Import / Export', icon: Upload,          badge: 0 },
 ]
 
-export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail }: IPOSidebarProps) {
+export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoType, canApprove, pendingCount }: IPOSidebarProps) {
   const pathname = usePathname()
   const router   = useRouter()
 
@@ -30,17 +30,29 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail }: IPOS
 
   const initials = userEmail.slice(0, 2).toUpperCase()
 
+  const nav = [
+    ...BASE_NAV,
+    ...(canApprove ? [
+      { href: '/dashboard/ipo/approvals', label: 'Approvals',    icon: ClipboardCheck, badge: pendingCount },
+      { href: '/dashboard/ipo/accounts',  label: 'LHA Accounts', icon: Users,          badge: 0 },
+    ] : []),
+  ]
+
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-background">
-      {/* Brand + IPO identity */}
+      {/* Brand + identity */}
       <div className="flex items-center gap-3 px-5 py-5">
-        <div
-          className="h-3 w-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: colorHex }}
-        />
+        <div className="relative flex-shrink-0">
+          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colorHex }} />
+          {ipoType === 'lighthouse' && (
+            <Sparkles className="absolute -top-1.5 -right-2 h-3 w-3 text-amber-500" />
+          )}
+        </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{ipoName}</p>
-          <p className="truncate text-xs text-muted-foreground uppercase tracking-wide">{ipoId}</p>
+          <p className="truncate text-xs text-muted-foreground uppercase tracking-wide">
+            {ipoType === 'lighthouse' ? 'Lighthouse Activity' : ipoId}
+          </p>
         </div>
       </div>
 
@@ -48,7 +60,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail }: IPOS
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV.map(({ href, label, icon: Icon }) => (
+        {nav.map(({ href, label, icon: Icon, badge }) => (
           <Link
             key={href}
             href={href}
@@ -60,7 +72,12 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail }: IPOS
             )}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
-            {label}
+            <span className="flex-1">{label}</span>
+            {badge > 0 && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
