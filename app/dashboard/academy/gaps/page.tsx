@@ -24,14 +24,14 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   const statusFilter = typeof sp.status === 'string' ? sp.status : undefined
   const page         = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
-  const [
-    { data: ipos },
-    { data: coverage },
-    { data: missingRaw },
-  ] = await Promise.all([
-    supabase.from('ipos').select('id,name').eq('type', 'ipo').order('name'),
+  const { data: ipos } = await supabase
+    .from('ipos').select('id,name').eq('type', 'ipo').order('name')
+
+  const ipoIds = (ipos ?? []).map(i => i.id)
+
+  const [{ data: coverage }, { data: missingRaw }] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*').order('coverage_pct', { ascending: true }),
-    supabase.from('events').select('ipo_id,status').eq('in_academy', false).is('approval_status', null),
+    supabase.from('events').select('ipo_id,status').eq('in_academy', false).in('ipo_id', ipoIds),
   ])
 
   type StatusBreakdown = { Upcoming: number; Ongoing: number; Past: number }

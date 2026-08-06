@@ -24,48 +24,46 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function AcademyOverviewPage() {
   const supabase = await createClient()
 
+  // Fetch org lists first — needed to correctly scope all event queries by ipo_id
+  // (approval_status is no longer a reliable discriminator after the bulk-approve migration)
+  const [{ data: ipos }, { data: lighthouses }] = await Promise.all([
+    supabase.from('ipos').select('id,name').eq('type', 'ipo'),
+    supabase.from('ipos').select('id,name').eq('type', 'lighthouse'),
+  ])
+
+  const ipoIds = (ipos ?? []).map(i => i.id)
+  const lhaIds = (lighthouses ?? []).map(i => i.id)
+
   const [
     { data: coverage },
     { data: eventsRaw },
     { data: upcomingGaps },
     { data: recentRuns },
-    { data: ipos },
     { data: lhaPending },
     { data: lhaApproved },
-    { data: lighthouses },
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
-    // IPO events only — exclude LHA community calendar events
-    supabase.from('events').select('month,year,status,in_academy').is('approval_status', null),
+    // IPO events only — scoped by ipo_id, not approval_status
+    supabase.from('events').select('month,year,status,in_academy').in('ipo_id', ipoIds),
     // Next 5 upcoming IPO events not in academy
     supabase
       .from('events')
       .select('id,title,start_date,ipo_id')
       .eq('status', 'Upcoming')
       .eq('in_academy', false)
-      .is('approval_status', null)
+      .in('ipo_id', ipoIds)
       .order('start_date', { ascending: true })
       .limit(5),
-    // Recent scrape runs — ipos only
+    // Recent scrape runs
     supabase
       .from('scrape_runs')
       .select('id,ipo_id,started_at,status')
       .order('started_at', { ascending: false })
       .limit(6),
-    // IPO names for scrape run labels
-    supabase.from('ipos').select('id,name').eq('type', 'ipo'),
-    // LHA pending submissions
-    supabase
-      .from('events')
-      .select('ipo_id')
-      .eq('approval_status', 'pending'),
-    // LHA approved events
-    supabase
-      .from('events')
-      .select('ipo_id')
-      .eq('approval_status', 'approved'),
-    // Lighthouse programme names
-    supabase.from('ipos').select('id,name').eq('type', 'lighthouse'),
+    // LHA pending submissions — scoped to lighthouse org IDs
+    supabase.from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'pending'),
+    // LHA approved events — scoped to lighthouse org IDs
+    supabase.from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'approved'),
   ])
 
   const all           = eventsRaw ?? []
