@@ -131,28 +131,20 @@ export default async function ClimateAnalytics() {
         ))}
       </div>
 
-      {/* Stacked bar charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card style={{ overflow: 'visible' }}>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">IPO events</CardTitle>
-            <p className="text-xs text-muted-foreground">Scraped events by year / month, per IPO</p>
-          </CardHeader>
-          <CardContent>
-            <EventsStackedBar orgs={ipoOrgs} events={ipoEventsForChart} />
-          </CardContent>
-        </Card>
-
-        <Card style={{ overflow: 'visible' }}>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Lighthouse Activity events</CardTitle>
-            <p className="text-xs text-muted-foreground">Submitted events by year / month, per programme</p>
-          </CardHeader>
-          <CardContent>
-            <EventsStackedBar orgs={lhaOrgs} events={lhaEventsForChart} />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Combined stacked bar chart — IPO + LHA */}
+      <Card style={{ overflow: 'visible' }}>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">IPO + Lighthouse Activity events</CardTitle>
+          <p className="text-xs text-muted-foreground">All events by year / month, per IPO and LHA programme</p>
+        </CardHeader>
+        <CardContent>
+          <EventsStackedBar
+            orgs={[...ipoOrgs, ...lhaOrgs]}
+            events={[...ipoEventsForChart, ...lhaEventsForChart]}
+            height={260}
+          />
+        </CardContent>
+      </Card>
 
       {/* Per-IPO breakdown */}
       <Card>
