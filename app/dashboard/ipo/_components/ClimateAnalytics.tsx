@@ -3,16 +3,18 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import ChartBar from '@/components/charts/ChartBar'
-import StatusDonut from '@/components/charts/StatusDonut'
-import { ClipboardCheck, ExternalLink } from 'lucide-react'
+import EventsStackedBar from '@/components/charts/EventsStackedBar'
+import { ClipboardCheck } from 'lucide-react'
+
+// Fallback colours for LHA programmes that have no color_hex in the DB
+const LHA_FALLBACK = ['#f59e0b', '#d97706', '#ea580c', '#f97316', '#b45309', '#92400e']
 
 export default async function ClimateAnalytics() {
   const db = createAdminClient()
 
   const [{ data: ipos }, { data: lighthouses }] = await Promise.all([
     db.from('ipos').select('id,name,color_hex').eq('type', 'ipo').order('name'),
-    db.from('ipos').select('id,name').eq('type', 'lighthouse').order('name'),
+    db.from('ipos').select('id,name,color_hex').eq('type', 'lighthouse').order('name'),
   ])
 
   const ipoIds = (ipos ?? []).map(i => i.id)
@@ -20,14 +22,19 @@ export default async function ClimateAnalytics() {
 
   const [
     { data: ipoEvents },
+    { data: lhaEvents },
     { data: lhaPending },
     { data: lhaApproved },
     { data: pendingList },
   ] = await Promise.all([
     db
       .from('events')
-      .select('ipo_id,status,year,approval_status')
+      .select('ipo_id,status,year,month')
       .in('ipo_id', ipoIds),
+    db
+      .from('events')
+      .select('ipo_id,year,month')
+      .in('ipo_id', lhaIds),
     db
       .from('events')
       .select('ipo_id')
@@ -50,26 +57,21 @@ export default async function ClimateAnalytics() {
   const ipoAll      = ipoEvents ?? []
   const totalIpo    = ipoAll.length
   const ipoUpcoming = ipoAll.filter(e => e.status === 'Upcoming').length
-  const ipoOngoing  = ipoAll.filter(e => e.status === 'Ongoing').length
-  const ipoPast     = ipoAll.filter(e => e.status === 'Past').length
-  const ipoCancelled = ipoAll.filter(e => e.status === 'Cancelled').length
-  const ipoPostponed = ipoAll.filter(e => e.status === 'Postponed').length
 
   const totalPending  = (lhaPending  ?? []).length
   const totalApproved = (lhaApproved ?? []).length
   const totalLha      = totalPending + totalApproved
 
-  // Per-IPO counts
-  const ipoCountMap = new Map<string, { upcoming: number; ongoing: number; past: number; total: number }>()
+  // Per-IPO counts (for the progress bars)
+  const ipoCountMap = new Map<string, { upcoming: number; ongoing: number; total: number }>()
   for (const e of ipoAll) {
     if (!ipoCountMap.has(e.ipo_id)) {
-      ipoCountMap.set(e.ipo_id, { upcoming: 0, ongoing: 0, past: 0, total: 0 })
+      ipoCountMap.set(e.ipo_id, { upcoming: 0, ongoing: 0, total: 0 })
     }
     const c = ipoCountMap.get(e.ipo_id)!
     c.total++
     if      (e.status === 'Upcoming') c.upcoming++
     else if (e.status === 'Ongoing')  c.ongoing++
-    else if (e.status === 'Past')     c.past++
   }
 
   // LHA per-programme
@@ -78,19 +80,32 @@ export default async function ClimateAnalytics() {
   for (const e of lhaPending  ?? []) lhaPendingByOrg.set(e.ipo_id,  (lhaPendingByOrg.get(e.ipo_id)  ?? 0) + 1)
   for (const e of lhaApproved ?? []) lhaApprovedByOrg.set(e.ipo_id, (lhaApprovedByOrg.get(e.ipo_id) ?? 0) + 1)
 
-  // Year distribution across IPO events
-  const yearMap = new Map<string, number>()
-  for (const e of ipoAll) {
-    if (e.year != null) {
-      const k = String(e.year)
-      yearMap.set(k, (yearMap.get(k) ?? 0) + 1)
-    }
-  }
-  const yearData = [...yearMap.entries()]
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => a.name.localeCompare(b.name))
-
   const lhaNameMap = new Map((lighthouses ?? []).map(i => [i.id, i.name]))
+
+  // Chart series
+  const ipoOrgs = (ipos ?? []).map(i => ({
+    id:    i.id,
+    name:  i.name,
+    color: i.color_hex ?? '#6b7280',
+  }))
+
+  const lhaOrgs = (lighthouses ?? []).map((i, idx) => ({
+    id:    i.id,
+    name:  i.name,
+    color: i.color_hex ?? LHA_FALLBACK[idx % LHA_FALLBACK.length],
+  }))
+
+  const ipoEventsForChart = ipoAll.map(e => ({
+    org_id: e.ipo_id,
+    year:   e.year   as number | null,
+    month:  e.month  as number | null,
+  }))
+
+  const lhaEventsForChart = (lhaEvents ?? []).map(e => ({
+    org_id: e.ipo_id,
+    year:   e.year   as number | null,
+    month:  e.month  as number | null,
+  }))
 
   return (
     <div className="space-y-8">
@@ -98,10 +113,10 @@ export default async function ClimateAnalytics() {
       {/* Header stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {([
-          { label: 'Total IPO Events',    value: totalIpo },
-          { label: 'IPO · Upcoming',      value: ipoUpcoming },
-          { label: 'Total LHA Events',    value: totalLha },
-          { label: 'LHA · Pending Approval', value: totalPending },
+          { label: 'Total IPO Events',        value: totalIpo },
+          { label: 'IPO · Upcoming',           value: ipoUpcoming },
+          { label: 'Total LHA Events',         value: totalLha },
+          { label: 'LHA · Pending Approval',   value: totalPending },
         ] as const).map(({ label, value }) => (
           <Card key={label}>
             <CardHeader className="pb-2">
@@ -116,29 +131,25 @@ export default async function ClimateAnalytics() {
         ))}
       </div>
 
-      {/* IPO status + year charts */}
+      {/* Stacked bar charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card style={{ overflow: 'visible' }}>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">IPO events — status breakdown</CardTitle>
+            <CardTitle className="text-sm font-medium">IPO events</CardTitle>
+            <p className="text-xs text-muted-foreground">Scraped events by year / month, per IPO</p>
           </CardHeader>
           <CardContent>
-            <StatusDonut
-              upcoming={ipoUpcoming}
-              ongoing={ipoOngoing}
-              past={ipoPast}
-              cancelled={ipoCancelled}
-              postponed={ipoPostponed}
-            />
+            <EventsStackedBar orgs={ipoOrgs} events={ipoEventsForChart} />
           </CardContent>
         </Card>
 
         <Card style={{ overflow: 'visible' }}>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">IPO events — by year</CardTitle>
+            <CardTitle className="text-sm font-medium">Lighthouse Activity events</CardTitle>
+            <p className="text-xs text-muted-foreground">Submitted events by year / month, per programme</p>
           </CardHeader>
           <CardContent>
-            <ChartBar data={yearData} />
+            <EventsStackedBar orgs={lhaOrgs} events={lhaEventsForChart} />
           </CardContent>
         </Card>
       </div>
@@ -151,7 +162,7 @@ export default async function ClimateAnalytics() {
         </CardHeader>
         <CardContent className="space-y-3">
           {(ipos ?? []).map(ipo => {
-            const c = ipoCountMap.get(ipo.id) ?? { upcoming: 0, ongoing: 0, past: 0, total: 0 }
+            const c = ipoCountMap.get(ipo.id) ?? { upcoming: 0, ongoing: 0, total: 0 }
             const maxTotal = Math.max(...(ipos ?? []).map(i => ipoCountMap.get(i.id)?.total ?? 0), 1)
             return (
               <div key={ipo.id}>
