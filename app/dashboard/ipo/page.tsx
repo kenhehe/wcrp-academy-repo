@@ -7,6 +7,7 @@ import { ExternalLink, Globe, Layers, Upload } from 'lucide-react'
 import PageInfo from '@/components/base/PageInfo'
 import Link from 'next/link'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
+import ClimateAnalytics from './_components/ClimateAnalytics'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,24 @@ export default async function IPOOverviewPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const orgId = user?.app_metadata?.org_id as string
+
+  const canApprove = user?.app_metadata?.can_approve === true
+
+  // Carlos (can_approve) gets a cross-org analytics view instead of the single-IPO overview
+  if (canApprove) {
+    return (
+      <div className="p-8 space-y-8">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">Climate Analytics</h1>
+            <PageInfo>Cross-org view of all IPO scraped events and Lighthouse Activity submissions. No Academy catalogue data — for Academy coverage go to the Academy dashboard.</PageInfo>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">All IPO + LHA events at a glance</p>
+        </div>
+        <ClimateAnalytics />
+      </div>
+    )
+  }
 
   const { data: ipoMeta } = await supabase.from('ipos').select('type').eq('id', orgId).single()
   const isLighthouse = ipoMeta?.type === 'lighthouse'
