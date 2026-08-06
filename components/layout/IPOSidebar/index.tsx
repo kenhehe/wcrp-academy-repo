@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, CalendarDays, Upload, LogOut, ClipboardCheck, Sparkles, Users } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Upload, LogOut, ClipboardCheck, Sparkles, Users, KeyRound } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
@@ -35,6 +35,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
     ...(canApprove ? [
       { href: '/dashboard/ipo/approvals', label: 'Approvals',    icon: ClipboardCheck, badge: pendingCount },
       { href: '/dashboard/ipo/accounts',  label: 'LHA Accounts', icon: Users,          badge: 0 },
+      { href: '/dashboard/ipo/api-keys',  label: 'API Keys',     icon: KeyRound,       badge: 0 },
     ] : []),
   ]
 

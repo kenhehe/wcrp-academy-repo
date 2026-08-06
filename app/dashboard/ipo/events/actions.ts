@@ -25,10 +25,6 @@ export async function createEvent(formData: FormData) {
   const orgId = user.app_metadata?.org_id as string
   if (!orgId) throw new Error('No org_id on user')
 
-  // Lighthouse events go into a pending queue — only visible after Carlos approves
-  const { data: ipo } = await supabase.from('ipos').select('type').eq('id', orgId).single()
-  const isLighthouse  = ipo?.type === 'lighthouse'
-
   const extra_fields = extractExtraFields(formData)
 
   const payload = {
@@ -42,7 +38,8 @@ export async function createEvent(formData: FormData) {
     url:             (formData.get('url') as string) || null,
     source:          'manual',
     extra_fields:    Object.keys(extra_fields).length ? extra_fields : {},
-    approval_status: isLighthouse ? 'pending' : null,
+    // All manually added events require approval before appearing on the public calendar
+    approval_status: 'pending',
   }
 
   // Must use admin client — RLS on events table blocks ipo_user role from inserting
