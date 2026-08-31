@@ -43,22 +43,38 @@ export async function unlinkDuplicate(formData: FormData) {
   revalidateDuplicateViews()
 }
 
+export async function dismissDuplicate(formData: FormData) {
+  const eventId          = formData.get('event_id') as string
+  const duplicateEventId = formData.get('duplicate_event_id') as string
+  if (!eventId || !duplicateEventId) return
+
+  const supabase = createAdminClient()
+  await supabase
+    .from('duplicate_dismissals')
+    .upsert({ event_id: eventId, duplicate_event_id: duplicateEventId }, { onConflict: 'event_id,duplicate_event_id' })
+
+  revalidateDuplicateViews()
+}
+
 export async function searchDuplicateCandidates(
   query: string,
-  excludeEventId: string,
-  excludeIpoId: string,
+  excludeEventId?: string,
+  excludeIpoId?: string,
 ): Promise<{ id: string; ipo_id: string; title: string; start_date: string | null; status: string | null }[]> {
   if (!query.trim()) return []
   // Admin client — same reasoning as ipo/approvals: a plain org session's RLS
   // won't show other IPOs' events, and this needs to search across all of them.
   const supabase = createAdminClient()
-  const { data } = await supabase
+  let queryBuilder = supabase
     .from('events')
     .select('id,ipo_id,title,start_date,status')
     .ilike('title', `%${query.trim()}%`)
     .is('duplicate_of_event_id', null)
-    .neq('id', excludeEventId)
-    .neq('ipo_id', excludeIpoId)
+
+  if (excludeEventId) queryBuilder = queryBuilder.neq('id', excludeEventId)
+  if (excludeIpoId)   queryBuilder = queryBuilder.neq('ipo_id', excludeIpoId)
+
+  const { data } = await queryBuilder
     .order('start_date', { ascending: false })
     .limit(10)
   return data ?? []
