@@ -43,8 +43,10 @@ export default async function AcademyOverviewPage() {
     { data: lhaApproved },
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
-    // IPO events only — scoped by ipo_id, not approval_status
-    supabase.from('events').select('month,year,status,in_academy').in('ipo_id', ipoIds),
+    // IPO events only — scoped by ipo_id, not approval_status.
+    // duplicate_of_event_id filter avoids double-counting a confirmed cross-IPO
+    // duplicate as two events in the grand totals below.
+    supabase.from('events').select('month,year,status,in_academy').in('ipo_id', ipoIds).is('duplicate_of_event_id', null),
     // Next 5 upcoming IPO events not in academy
     supabase
       .from('events')

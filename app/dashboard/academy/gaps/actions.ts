@@ -3,13 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { setAcademyStatus } from '@/lib/data/event-duplicates'
 
 export async function markInAcademy(formData: FormData) {
   const id = formData.get('id') as string
   if (!id) return
 
   const supabase = createAdminClient()
-  await supabase.from('events').update({ in_academy: true }).eq('id', id)
+  await setAcademyStatus(supabase, id, true, null)
 
   revalidatePath('/dashboard/academy/gaps')
   revalidatePath('/dashboard/academy')
@@ -53,10 +54,7 @@ export async function confirmMatch(formData: FormData) {
   if (!eventId || !academyEventId) return
 
   const supabase = createAdminClient()
-  await supabase
-    .from('events')
-    .update({ in_academy: true, academy_event_id: academyEventId })
-    .eq('id', eventId)
+  await setAcademyStatus(supabase, eventId, true, academyEventId)
 
   revalidatePath('/dashboard/academy/gaps')
   revalidatePath('/dashboard/academy')

@@ -31,7 +31,7 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
 
   const [{ data: coverage }, { data: missingRaw }] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*').order('coverage_pct', { ascending: true }),
-    supabase.from('events').select('ipo_id,status').eq('in_academy', false).in('ipo_id', ipoIds),
+    supabase.from('events').select('ipo_id,status').eq('in_academy', false).is('duplicate_of_event_id', null).in('ipo_id', ipoIds),
   ])
 
   type StatusBreakdown = { Upcoming: number; Ongoing: number; Past: number }

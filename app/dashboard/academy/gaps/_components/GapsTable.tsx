@@ -44,6 +44,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
     .from('events')
     .select('id,title,start_date,status,url,ipo_id', { count: 'exact' })
     .eq('in_academy', false)
+    .is('duplicate_of_event_id', null)
     .in('ipo_id', ipoIds)
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
