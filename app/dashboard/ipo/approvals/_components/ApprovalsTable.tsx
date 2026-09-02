@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import PublicationFlags from '@/components/events/PublicationFlags'
 import { approveEvent } from '../actions'
 
 interface PendingEvent {
@@ -16,6 +17,9 @@ interface PendingEvent {
   ipo_id:     string
   ipoName:    string
   ipoColor:   string
+  wants_social_media:    boolean
+  wants_website_article: boolean
+  wants_newsletter:      boolean
 }
 
 interface Props {
@@ -98,6 +102,11 @@ export default function ApprovalsTable({ events }: Props) {
                   <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
                     Pending
                   </Badge>
+                  <PublicationFlags
+                    wants_social_media={event.wants_social_media}
+                    wants_website_article={event.wants_website_article}
+                    wants_newsletter={event.wants_newsletter}
+                  />
                   <ApproveButton eventId={event.id} />
                 </div>
               </td>

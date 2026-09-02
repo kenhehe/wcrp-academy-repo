@@ -12,7 +12,20 @@ Two core data tables:
 - `events` — scraped IPO events (source of truth for what IPOs publish)
 - `academy_events` — synced from WordPress (the Academy training catalogue)
 
-Link: `events.academy_event_id` → `academy_events.id` (set when matched)
+Links:
+- `events.academy_event_id` → `academy_events.id` (set when matched to the Academy catalogue)
+- `events.duplicate_of_event_id` → `events.id` (set when two IPOs independently scraped the same real-world event — see `app/dashboard/academy/duplicates` / `app/dashboard/ipo/duplicates`). Both rows are kept for attribution; `in_academy`/`academy_event_id` stay in lockstep across a linked pair via `lib/data/event-duplicates.ts`'s `setAcademyStatus`.
+
+## Account Types & Access
+
+Two disjoint account types, checked in each tree's root `layout.tsx` — a user is one or the other, never both:
+
+- **`academy_admin`** (`user.app_metadata.role === 'academy_admin'`) — full access to `/dashboard/academy/*` (gate: `app/dashboard/academy/layout.tsx`). Has no `org_id`; cannot enter `/dashboard/ipo/*` at all.
+- **IPO / Lighthouse org accounts** (`user.app_metadata.role === 'ipo_user'`, `org_id` set to an `ipos.id`) — access `/dashboard/ipo/*` (gate: `app/dashboard/ipo/layout.tsx`), normally scoped to their own `ipo_id` by RLS.
+  - `ipos.type` is `'ipo'` (one of the 7 real IPOs) or `'lighthouse'` (an LHA programme, hardcoded id list in `app/dashboard/ipo/accounts/page.tsx`) — affects terminology/UI, not access level.
+  - `user.app_metadata.can_approve` — an extra flag on select IPO/lighthouse accounts (e.g. the Climate account) unlocking cross-org pages inside the `ipo/` tree: `approvals`, `accounts`, `api-keys`, `duplicates`, plus the Climate Analytics view on the overview page. These pages use `createAdminClient()` for reads, since a plain org session's RLS won't show other orgs' data.
+
+A feature that needs to reach both `academy_admin` and a `can_approve` IPO account (like Duplicates) can't live on one route — see `app/dashboard/CLAUDE.md`'s note on sharing components/actions across the two trees.
 
 ## Coding Rules
 
@@ -34,17 +47,24 @@ app/dashboard/academy/
   health/       System Health — run scrapers, view logs
   events/       Academy Coverage — audit of academy_events vs IPO sources
   gaps/         Gap Analysis — IPO events not in Academy (in_academy=false)
+  duplicates/   Cross-IPO Duplicates — same event scraped from two IPO sites (academy_admin)
   catalogue/    CRUD editor for academy_events table
   accounts/     User management
   import/       Bulk CSV import
 
 app/dashboard/ipo/
-  events/       Browse all scraped IPO events
-  import/       Bulk import for IPO events
+  events/                 Browse all scraped IPO events; Add/Edit modal has publication-preference checkboxes
+  duplicates/             Same Duplicates feature as above, gated by can_approve instead of academy_admin
+  approvals/              LHA event approvals (can_approve) — pending, lighthouse-only
+  publication-requests/   Every event flagged for social/website/newsletter, any org, any status (can_approve)
+  accounts/               Manage LHA programme login credentials (can_approve)
+  api-keys/               Manage public API tokens for the events REST API (can_approve)
+  import/                 Bulk import for IPO events
 
 components/
   ui/           shadcn/ui — CLI-managed, do NOT edit manually
   base/         Project wrappers (PageInfo)
+  duplicates/   Shared Duplicates review UI — rendered from BOTH academy/ and ipo/ trees, see below
   [feature]/    Domain components shared across pages — each is Component/index.tsx + types.ts
 
 lib/
@@ -52,6 +72,9 @@ lib/
   supabase/admin.ts     createAdminClient() — service role, server-only
   supabase/client.ts    Browser Supabase client (for Realtime only)
   data/academy-events.types.ts   AcademyEventRow interface, resolveStatus()
+  data/event-duplicates.ts       Plain helper (no 'use server'): setAcademyStatus() keeps a duplicate pair's coverage status in sync
+  actions/event-duplicates.ts    'use server': linkDuplicate, unlinkDuplicate, dismissDuplicate, searchDuplicateCandidates —
+                                  shared across academy/duplicates and ipo/duplicates instead of a per-route actions.ts (see note below)
 
 supabase/functions/
   _shared/utils.ts      All scraper helpers: parseDateRange, upsertEvents, dryRunStream, etc.

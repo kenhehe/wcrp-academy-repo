@@ -25,12 +25,32 @@ export async function createEvent(formData: FormData) {
   const orgId = user.app_metadata?.org_id as string
   if (!orgId) throw new Error('No org_id on user')
 
+  const title     = (formData.get('title') as string).trim()
+  const startDate = formData.get('start_date') as string
+
+  // Must use admin client — RLS on events table blocks ipo_user role from inserting
+  const db = createAdminClient()
+
+  // Exact-match check, scoped to this org only — cross-IPO duplicates are
+  // expected and handled separately by the Duplicates feature.
+  const { data: existing } = await db
+    .from('events')
+    .select('id,title')
+    .eq('ipo_id', orgId)
+    .eq('start_date', startDate)
+    .ilike('title', title) // no wildcards -> case-insensitive equality
+    .limit(1)
+
+  if (existing && existing.length > 0) {
+    throw new Error(`An event with this title and date already exists: "${existing[0].title}". Edit the existing event instead, or use a different title/date.`)
+  }
+
   const extra_fields = extractExtraFields(formData)
 
   const payload = {
     ipo_id:          orgId,
-    title:           (formData.get('title') as string).trim(),
-    start_date:      formData.get('start_date') as string,
+    title,
+    start_date:      startDate,
     end_date:        (formData.get('end_date') as string) || null,
     status:          formData.get('status') as string,
     location:        (formData.get('location') as string) || null,
@@ -40,12 +60,20 @@ export async function createEvent(formData: FormData) {
     extra_fields:    Object.keys(extra_fields).length ? extra_fields : {},
     // All manually added events require approval before appearing on the public calendar
     approval_status: 'pending',
+    // Checkboxes are absent from FormData entirely when unchecked (never "false")
+    wants_social_media:    formData.get('wants_social_media') === 'on',
+    wants_website_article: formData.get('wants_website_article') === 'on',
+    wants_newsletter:      formData.get('wants_newsletter') === 'on',
   }
 
-  // Must use admin client — RLS on events table blocks ipo_user role from inserting
-  const db = createAdminClient()
   const { error } = await db.from('events').insert(payload)
-  if (error) throw new Error(error.message)
+  if (error) {
+    // Safety net for the rare race the pre-check above can't catch
+    if (error.code === '23505') {
+      throw new Error('An event with this title and date already exists for your organization.')
+    }
+    throw new Error(error.message)
+  }
   revalidatePath(REVALIDATE)
 }
 
@@ -70,6 +98,9 @@ export async function updateEvent(formData: FormData) {
     url:          (formData.get('url') as string) || null,
     extra_fields: Object.keys(extra_fields).length ? extra_fields : {},
     last_seen_at: new Date().toISOString(),
+    wants_social_media:    formData.get('wants_social_media') === 'on',
+    wants_website_article: formData.get('wants_website_article') === 'on',
+    wants_newsletter:      formData.get('wants_newsletter') === 'on',
   }
 
   // Must use admin client — RLS blocks ipo_user from updating

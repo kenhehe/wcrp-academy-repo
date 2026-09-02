@@ -18,7 +18,7 @@ export default async function ApprovalsPage() {
   const [{ data: pending }, { data: lighthouses }] = await Promise.all([
     db
       .from('events')
-      .select('id,title,start_date,end_date,location,country,ipo_id')
+      .select('id,title,start_date,end_date,location,country,ipo_id,wants_social_media,wants_website_article,wants_newsletter')
       .eq('approval_status', 'pending')
       .order('start_date', { ascending: true }),
     db

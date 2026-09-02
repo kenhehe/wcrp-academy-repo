@@ -34,7 +34,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   // Build events query
   let query = supabase
     .from('events')
-    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,source,extra_fields,approval_status', { count: 'exact' })
+    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,source,extra_fields,approval_status,wants_social_media,wants_website_article,wants_newsletter', { count: 'exact' })
     .eq('ipo_id', orgId)
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)

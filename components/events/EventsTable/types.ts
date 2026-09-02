@@ -11,6 +11,9 @@ export interface EventRow {
   source:          string
   extra_fields:    Record<string, string> | null
   approval_status: string | null
+  wants_social_media:    boolean
+  wants_website_article: boolean
+  wants_newsletter:      boolean
 }
 
 export interface RegistryField {

@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { STATUS_OPTIONS } from './types'
@@ -91,6 +92,30 @@ export default function EventForm({ event, registryFields }: EventFormProps) {
             defaultValue={event?.url ?? undefined}
             placeholder="https://…"
           />
+        </div>
+      </div>
+
+      <Separator />
+      <div className="space-y-2">
+        <Label>Consider for publication</Label>
+        <p className="text-xs text-muted-foreground">
+          Optional — let the Secretariat know if you&rsquo;d like this event considered for any of
+          the following. This is a request, not a guarantee: the Secretariat reviews and
+          prioritizes what gets communicated.
+        </p>
+        <div className="flex flex-col gap-2 pt-1">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox name="wants_social_media" defaultChecked={event?.wants_social_media} />
+            Social media
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox name="wants_website_article" defaultChecked={event?.wants_website_article} />
+            Website article
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox name="wants_newsletter" defaultChecked={event?.wants_newsletter} />
+            Newsletter
+          </label>
         </div>
       </div>
 

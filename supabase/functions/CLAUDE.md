@@ -75,6 +75,10 @@ All helpers — import from here, never duplicate.
 | `isFreshScrape(supabase, ipoId, title)` | `→ boolean` | True if that title is already in the DB — safe to skip |
 | `recordSkippedRun(supabase, runId, startedAt)` | `→ void` | Marks a run as `skipped` |
 
+### Cross-IPO duplicates are NOT this layer's job
+
+`upsertEvents`'s conflict key is `ipo_id,start_date,title` — `ipo_id` is deliberately part of it, so re-scraping the *same* IPO's site correctly updates existing rows, but two *different* IPOs publishing the same real-world event (common for jointly-organised conferences) will always insert as two separate rows. That's expected — don't try to "fix" it here. Cross-IPO duplicate detection is a dashboard-side feature (`app/dashboard/academy/duplicates`, `app/dashboard/ipo/duplicates`), reviewed and linked by a human via `events.duplicate_of_event_id`, not something scrapers or `upsertEvents` should attempt to resolve automatically.
+
 ### Critical: `parseDateRange` must receive a substring
 
 ```typescript

@@ -16,6 +16,9 @@ export interface EventRow {
   url: string | null
   source: string
   extra_fields: Record<string, string> | null
+  wants_social_media: boolean
+  wants_website_article: boolean
+  wants_newsletter: boolean
 }
 
 export const STATUS_OPTIONS = ['Upcoming', 'Ongoing', 'Past', 'Cancelled', 'Postponed'] as const
