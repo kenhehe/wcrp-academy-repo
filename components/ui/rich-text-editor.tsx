@@ -31,7 +31,7 @@ function ToolbarButton({
       onMouseDown={e => { e.preventDefault(); onClick() }}
       title={title}
       className={cn(
-        'p-1.5 rounded text-sm transition-colors',
+        'cursor-pointer p-1.5 rounded text-sm transition-colors',
         active
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-accent'

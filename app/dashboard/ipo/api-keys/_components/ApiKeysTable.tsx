@@ -104,7 +104,7 @@ export default function ApiKeysTable({ tokens }: { tokens: ApiToken[] }) {
                 <TableCell>
                   <button
                     onClick={() => setModal({ type: 'revoke', item: t })}
-                    className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                    className="cursor-pointer p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -191,10 +191,10 @@ function RevealDialog({ token, onClose }: { token: string; onClose: () => void }
             <code className="flex-1 text-xs break-all">
               {visible ? token : token.slice(0, 12) + '•'.repeat(token.length - 12)}
             </code>
-            <button onClick={() => setVisible(v => !v)} className="shrink-0 text-muted-foreground hover:text-foreground">
+            <button onClick={() => setVisible(v => !v)} className="cursor-pointer shrink-0 text-muted-foreground hover:text-foreground">
               {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
-            <button onClick={copy} className="shrink-0 text-muted-foreground hover:text-foreground">
+            <button onClick={copy} className="cursor-pointer shrink-0 text-muted-foreground hover:text-foreground">
               <Copy className="h-4 w-4" />
             </button>
           </div>

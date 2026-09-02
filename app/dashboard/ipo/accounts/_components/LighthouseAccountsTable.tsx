@@ -127,13 +127,13 @@ export default function LighthouseAccountsTable({ users }: { users: LighthouseUs
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setModal({ type: 'edit', user })}
-                      className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setModal({ type: 'delete', user })}
-                      className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                      className="cursor-pointer p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

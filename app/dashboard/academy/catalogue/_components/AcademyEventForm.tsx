@@ -439,7 +439,7 @@ export default function AcademyEventForm({ initialData, action, submitLabel }: P
                 <button
                   type="button"
                   onClick={() => removeExtraField(i)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  className="cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
                 >
                   <XIcon className="h-4 w-4" />
                 </button>

@@ -177,7 +177,7 @@ export default function EventsTable({
             onClick={() => pushParams(
               Object.fromEntries(Object.keys(activeFilters).map(k => [k, null]))
             )}
-            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            className="cursor-pointer text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
           >
             Clear filters
           </button>
@@ -268,13 +268,13 @@ export default function EventsTable({
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setModal({ type: 'edit', event })}
-                      className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setModal({ type: 'delete', event })}
-                      className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                      className="cursor-pointer p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

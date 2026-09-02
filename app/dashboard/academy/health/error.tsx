@@ -19,7 +19,7 @@ export default function AcademyHealthError({
       <p className="text-sm text-muted-foreground max-w-sm text-center">{error.message}</p>
       <button
         onClick={reset}
-        className="text-sm underline underline-offset-4 text-muted-foreground hover:text-foreground"
+        className="cursor-pointer text-sm underline underline-offset-4 text-muted-foreground hover:text-foreground"
       >
         Try again
       </button>

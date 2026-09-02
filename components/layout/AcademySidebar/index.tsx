@@ -52,7 +52,7 @@ export default function AcademySidebar({ userEmail }: AcademySidebarProps) {
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="cursor-pointer flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -97,7 +97,7 @@ export default function AcademySidebar({ userEmail }: AcademySidebarProps) {
         )}
         <button
           onClick={handleSignOut}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Sign out"
         >
           <LogOut className="h-4 w-4" />

@@ -111,7 +111,7 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
           </a>
           <button
             onClick={handleDismiss}
-            className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 p-0.5 rounded"
+            className="cursor-pointer text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 p-0.5 rounded"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />
@@ -123,7 +123,7 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
       <div className="border-t border-amber-200 dark:border-amber-800">
         <button
           onClick={() => setExpanded(v => !v)}
-          className="flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+          className="cursor-pointer flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
         >
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           {expanded ? 'Hide solutions' : 'How to resolve this'}

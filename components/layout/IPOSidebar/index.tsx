@@ -97,7 +97,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
         </div>
         <button
           onClick={handleSignOut}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Sign out"
         >
           <LogOut className="h-4 w-4" />

@@ -121,7 +121,7 @@ export default function EventsStackedBar({ orgs, events, height = 220 }: EventsS
       <div className="flex items-center gap-1 flex-wrap">
         <button
           onClick={() => setYearFilter(null)}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+          className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
             yearFilter === null
               ? 'bg-foreground text-background border-foreground'
               : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/40'
@@ -133,7 +133,7 @@ export default function EventsStackedBar({ orgs, events, height = 220 }: EventsS
           <button
             key={y}
             onClick={() => setYearFilter(y)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+            className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
               yearFilter === y
                 ? 'bg-foreground text-background border-foreground'
                 : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/40'
