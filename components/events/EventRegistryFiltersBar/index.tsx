@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, Loader2 } from 'lucide-react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { STATUS_OPTIONS } from '../EventRegistryBrowser/types'
@@ -57,6 +57,16 @@ export default function EventRegistryFiltersBar({ orgs, activeQuery, activeIpo, 
 
   const hasActiveFilters = !!(query || activeIpo || activeStatus || activeYear)
 
+  const GROUP_LABELS: Record<string, string> = {
+    ipo:         'IPOs',
+    lighthouse:  'Lighthouse Activities',
+    secretariat: 'Secretariat',
+  }
+  const groupOrder = ['ipo', 'lighthouse', 'secretariat']
+  const groupedOrgs = groupOrder
+    .map(type => ({ type, items: orgs.filter(o => o.type === type) }))
+    .filter(g => g.items.length > 0)
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -83,8 +93,13 @@ export default function EventRegistryFiltersBar({ orgs, activeQuery, activeIpo, 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All orgs</SelectItem>
-            {orgs.map(org => (
-              <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+            {groupedOrgs.map(group => (
+              <SelectGroup key={group.type}>
+                <SelectLabel>{GROUP_LABELS[group.type] ?? group.type}</SelectLabel>
+                {group.items.map(org => (
+                  <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                ))}
+              </SelectGroup>
             ))}
           </SelectContent>
         </Select>

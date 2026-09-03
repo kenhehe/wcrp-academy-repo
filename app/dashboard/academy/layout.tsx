@@ -12,7 +12,7 @@ export default async function AcademyLayout({ children }: { children: React.Reac
   if (role !== 'academy_admin') redirect('/dashboard/ipo')
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden">
       <AcademySidebar userEmail={user.email ?? ''} />
       <main className="flex-1 overflow-y-auto bg-muted/20">
         {children}

@@ -23,6 +23,7 @@ export interface RegistryField {
 }
 
 export interface ActiveFilters {
+  q?: string
   status?: string
   year?: string
   [key: string]: string | undefined

@@ -41,7 +41,7 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
   const failedRun = lastRun?.status === 'failed' ? lastRun : null
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden">
       <IPOSidebar
         ipoId={ipo.id}
         ipoName={ipo.name}

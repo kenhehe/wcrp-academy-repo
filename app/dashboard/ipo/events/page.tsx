@@ -19,9 +19,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const ipoType  = await supabase.from('ipos').select('type').eq('id', orgId).single()
     .then(r => (r.data?.type ?? 'ipo') as 'ipo' | 'lighthouse')
 
-  const status = typeof sp.status === 'string' ? sp.status : undefined
-  const year   = typeof sp.year   === 'string' ? sp.year   : undefined
-  const page   = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
+  const queryText = typeof sp.q      === 'string' ? sp.q      : undefined
+  const status    = typeof sp.status === 'string' ? sp.status : undefined
+  const year      = typeof sp.year   === 'string' ? sp.year   : undefined
+  const page      = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
   // Collect dynamic field filters: ?field_event_type=Workshop
   const dynamicFilters: Record<string, string> = {}
@@ -39,8 +40,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
-  if (status) query = query.eq('status', status)
-  if (year)   query = query.eq('year', parseInt(year))
+  if (queryText) query = query.ilike('title', `%${queryText}%`)
+  if (status)    query = query.eq('status', status)
+  if (year)      query = query.eq('year', parseInt(year))
   for (const [key, val] of Object.entries(dynamicFilters)) {
     query = query.eq(`extra_fields->>${key}`, val)
   }
@@ -69,8 +71,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const availableYears = [...new Set((yearsRaw ?? []).map(r => r.year).filter(Boolean))] as number[]
 
   const activeFilters: ActiveFilters = {
-    ...(status ? { status } : {}),
-    ...(year   ? { year }   : {}),
+    ...(queryText ? { q: queryText } : {}),
+    ...(status    ? { status }       : {}),
+    ...(year      ? { year }         : {}),
     ...Object.fromEntries(
       Object.entries(dynamicFilters).map(([k, v]) => [`field_${k}`, v])
     ),

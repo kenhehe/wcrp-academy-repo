@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Search, Loader2 } from 'lucide-react'
 import { createEvent, updateEvent, deleteEvent } from '@/app/dashboard/ipo/events/actions'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import EventForm from '@/components/events/EventForm'
+import { cn } from '@/lib/utils'
 import type { EventRow, RegistryField, ActiveFilters } from './types'
 import { STATUS_OPTIONS, PAGE_SIZE } from './types'
 
@@ -55,6 +56,12 @@ export default function EventsTable({
   const [modal, setModal]           = useState<Modal>(null)
   const [pending, startTransition]  = useTransition()
 
+  // Separate transition for filter/search navigation — kept apart from the
+  // create/edit/delete `pending` above so typing in the search box doesn't
+  // get confused with a modal form submitting.
+  const [query, setQuery]                         = useState(activeFilters.q ?? '')
+  const [filtersPending, startFiltersTransition]   = useTransition()
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   function pushParams(updates: Record<string, string | null>) {
@@ -64,8 +71,22 @@ export default function EventsTable({
       else params.set(k, v)
     }
     params.delete('page')
-    router.replace(`${pathname}?${params.toString()}`)
+    startFiltersTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`)
+    })
   }
+
+  // Debounced search-as-you-type — waits, then pushes `q` into the URL the
+  // same way the other filters do, via the same transition.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (query !== (activeFilters.q ?? '')) {
+        pushParams({ q: query || null })
+      }
+    }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
 
   function setPage(p: number) {
     const params = new URLSearchParams(searchParams.toString())
@@ -122,6 +143,21 @@ export default function EventsTable({
     <>
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search by title…"
+            className="h-8 w-56 rounded-md border bg-background pl-8 pr-8 text-sm outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+          />
+          {filtersPending && (
+            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          )}
+        </div>
+
         {/* Status */}
         <Select
           value={activeFilters.status ?? '__all__'}
@@ -174,9 +210,10 @@ export default function EventsTable({
 
         {hasActiveFilters && (
           <button
-            onClick={() => pushParams(
-              Object.fromEntries(Object.keys(activeFilters).map(k => [k, null]))
-            )}
+            onClick={() => {
+              setQuery('')
+              pushParams(Object.fromEntries(Object.keys(activeFilters).map(k => [k, null])))
+            }}
             className="cursor-pointer text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
           >
             Clear filters
@@ -191,7 +228,9 @@ export default function EventsTable({
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table + pagination — dimmed while a filter/search transition is pending,
+          instead of a jarring flash, so old results stay visible during typing */}
+      <div className={cn('transition-opacity', filtersPending && 'opacity-60 pointer-events-none')}>
       <div className="rounded-md border bg-background overflow-hidden">
         <Table>
           <TableHeader>
@@ -310,6 +349,7 @@ export default function EventsTable({
           </div>
         </div>
       )}
+      </div>
 
       {/* Create modal */}
       <Dialog open={modal?.type === 'create'} onOpenChange={open => !open && close()}>

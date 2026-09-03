@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, CalendarDays, Upload, LogOut, ClipboardCheck, Sparkles, Users, KeyRound, Copy, Megaphone, Rows3 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import SidebarDrawer from '@/components/layout/SidebarDrawer'
 import type { IPOSidebarProps } from './types'
 
 const BASE_NAV = [
@@ -30,80 +30,106 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
 
   const initials = userEmail.slice(0, 2).toUpperCase()
 
-  const nav = [
-    ...BASE_NAV,
+  const navGroups = [
+    { label: undefined, items: BASE_NAV },
     ...(canApprove ? [
-      { href: '/dashboard/ipo/approvals',              label: 'Approvals',              icon: ClipboardCheck, badge: pendingCount },
-      { href: '/dashboard/ipo/event-registry',         label: 'Event Registry',         icon: Rows3,          badge: 0 },
-      { href: '/dashboard/ipo/publication-requests',   label: 'Publication Requests',   icon: Megaphone,      badge: 0 },
-      { href: '/dashboard/ipo/duplicates',             label: 'Duplicates',             icon: Copy,           badge: 0 },
-      { href: '/dashboard/ipo/accounts',               label: 'LHA Accounts',           icon: Users,          badge: 0 },
-      { href: '/dashboard/ipo/api-keys',               label: 'API Keys',               icon: KeyRound,       badge: 0 },
+      {
+        label: 'Cross-Org Review',
+        items: [
+          { href: '/dashboard/ipo/approvals',            label: 'Approvals',            icon: ClipboardCheck, badge: pendingCount },
+          { href: '/dashboard/ipo/event-registry',       label: 'Event Registry',       icon: Rows3,          badge: 0 },
+          { href: '/dashboard/ipo/publication-requests', label: 'Publication Requests', icon: Megaphone,      badge: 0 },
+          { href: '/dashboard/ipo/duplicates',           label: 'Duplicates',           icon: Copy,           badge: 0 },
+        ],
+      },
+      {
+        label: 'Admin',
+        items: [
+          { href: '/dashboard/ipo/accounts',  label: 'LHA Accounts', icon: Users,    badge: 0 },
+          { href: '/dashboard/ipo/api-keys',  label: 'API Keys',     icon: KeyRound, badge: 0 },
+        ],
+      },
     ] : []),
   ]
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-background">
-      {/* Brand + identity */}
-      <div className="flex items-center gap-3 px-5 py-5">
-        <div className="relative flex-shrink-0">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colorHex }} />
-          {ipoType === 'lighthouse' && (
-            <Sparkles className="absolute -top-1.5 -right-2 h-3 w-3 text-amber-500" />
-          )}
+    <SidebarDrawer
+      topBar={
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorHex }} />
+          <p className="truncate text-sm font-medium">{ipoName}</p>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{ipoName}</p>
-          <p className="truncate text-xs text-muted-foreground uppercase tracking-wide">
-            {ipoType === 'lighthouse' ? 'Lighthouse Activity' : ipoId}
-          </p>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {nav.map(({ href, label, icon: Icon, badge }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-              pathname === href
-                ? 'bg-accent text-accent-foreground font-medium'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+      }
+      triggerBadge={
+        canApprove && pendingCount > 0 ? (
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-semibold text-white">
+            {pendingCount > 99 ? '99+' : pendingCount}
+          </span>
+        ) : undefined
+      }
+      header={
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative flex-shrink-0">
+            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colorHex }} />
+            {ipoType === 'lighthouse' && (
+              <Sparkles className="absolute -top-1.5 -right-2 h-3 w-3 text-amber-500" />
             )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{ipoName}</p>
+            <p className="truncate text-xs text-muted-foreground uppercase tracking-wide">
+              {ipoType === 'lighthouse' ? 'Lighthouse Activity' : ipoId}
+            </p>
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Sign out"
           >
-            <Icon className="h-4 w-4 flex-shrink-0" />
-            <span className="flex-1">{label}</span>
-            {badge > 0 && (
-              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
-                {badge > 99 ? '99+' : badge}
-              </span>
-            )}
-          </Link>
-        ))}
-      </nav>
-
-      <Separator />
-
-      {/* User footer */}
-      <div className="flex items-center gap-3 px-4 py-4">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Sign out"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
-      </div>
-    </aside>
+      }
+    >
+      {navGroups.map((group, i) => (
+        <div key={group.label ?? `group-${i}`}>
+          {group.label && (
+            <p className="px-3 pt-4 pb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground first:pt-0">
+              {group.label}
+            </p>
+          )}
+          {group.items.map(({ href, label, icon: Icon, badge }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                pathname === href
+                  ? 'bg-accent text-accent-foreground font-medium'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              <span className="flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+      ))}
+    </SidebarDrawer>
   )
 }
