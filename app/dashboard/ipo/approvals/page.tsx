@@ -15,19 +15,19 @@ export default async function ApprovalsPage() {
   // Use admin client so RLS doesn't restrict cross-org visibility
   const db = createAdminClient()
 
-  const [{ data: pending }, { data: lighthouses }] = await Promise.all([
+  const [{ data: pending }, { data: allOrgs }] = await Promise.all([
     db
       .from('events')
       .select('id,title,start_date,end_date,location,country,ipo_id,wants_social_media,wants_website_article,wants_newsletter')
       .eq('approval_status', 'pending')
       .order('start_date', { ascending: true }),
+    // Unscoped by type — pending events can come from any org, not just LHAs
     db
       .from('ipos')
-      .select('id,name,color_hex')
-      .eq('type', 'lighthouse'),
+      .select('id,name,color_hex'),
   ])
 
-  const ipoMap = new Map((lighthouses ?? []).map(i => [i.id, i]))
+  const ipoMap = new Map((allOrgs ?? []).map(i => [i.id, i]))
 
   const events = (pending ?? []).map(e => {
     const ipo = ipoMap.get(e.ipo_id)
@@ -44,8 +44,8 @@ export default async function ApprovalsPage() {
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">Approvals</h1>
           <PageInfo>
-            Events submitted by Lighthouse Activity teams that are waiting for your review.
-            Once approved, they become visible on the WCRP community calendar.
+            Events awaiting your review before they appear on the WCRP community calendar —
+            from IPO websites and Lighthouse Activity submissions alike.
           </PageInfo>
         </div>
         <p className="text-sm text-muted-foreground mt-1">

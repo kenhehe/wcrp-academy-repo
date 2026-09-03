@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, Database, ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, Database, ChevronLeft, ChevronRight, Copy, Rows3 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/dashboard/academy/import',    label: 'Import / Export', icon: Upload },
   { href: '/dashboard/academy/gaps',      label: 'Gap Analysis',    icon: SearchX },
   { href: '/dashboard/academy/duplicates', label: 'Duplicates',     icon: Copy },
+  { href: '/dashboard/academy/event-registry', label: 'Event Registry', icon: Rows3 },
   { href: '/dashboard/academy/health',    label: 'System Health',   icon: Activity },
   { href: '/dashboard/academy/accounts',  label: 'IPO Accounts',    icon: Users },
 ]

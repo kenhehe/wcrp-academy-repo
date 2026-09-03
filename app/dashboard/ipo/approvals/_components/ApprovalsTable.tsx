@@ -59,7 +59,7 @@ export default function ApprovalsTable({ events }: Props) {
   if (events.length === 0) {
     return (
       <div className="rounded-md border bg-background px-6 py-16 text-center text-sm text-muted-foreground">
-        No events pending approval — all lighthouse submissions are up to date.
+        No events pending approval — everything is up to date.
       </div>
     )
   }
@@ -70,7 +70,7 @@ export default function ApprovalsTable({ events }: Props) {
         <thead>
           <tr className="border-b bg-muted/50">
             <th className="px-4 py-3 text-left font-medium">Event</th>
-            <th className="px-4 py-3 text-left font-medium">Lighthouse Activity</th>
+            <th className="px-4 py-3 text-left font-medium">Org</th>
             <th className="px-4 py-3 text-left font-medium">Dates</th>
             <th className="px-4 py-3 text-left font-medium">Location</th>
             <th className="px-4 py-3 text-left font-medium" />

@@ -48,14 +48,16 @@ app/dashboard/academy/
   events/       Academy Coverage — audit of academy_events vs IPO sources
   gaps/         Gap Analysis — IPO events not in Academy (in_academy=false)
   duplicates/   Cross-IPO Duplicates — same event scraped from two IPO sites (academy_admin)
+  event-registry/ Read-only, searchable browse of every event across every org (IPO + LHA) — see note below
   catalogue/    CRUD editor for academy_events table
   accounts/     User management
   import/       Bulk CSV import
 
 app/dashboard/ipo/
   events/                 Browse all scraped IPO events; Add/Edit modal has publication-preference checkboxes
+  event-registry/         Same Event Registry feature as above, gated by can_approve instead of academy_admin
   duplicates/             Same Duplicates feature as above, gated by can_approve instead of academy_admin
-  approvals/              LHA event approvals (can_approve) — pending, lighthouse-only
+  approvals/              Approve pending events for the public calendar/API (can_approve) — covers every org, not just LHA; display/copy is LHA-flavored but not functionally scoped that way
   publication-requests/   Every event flagged for social/website/newsletter, any org, any status (can_approve)
   accounts/               Manage LHA programme login credentials (can_approve)
   api-keys/               Manage public API tokens for the events REST API (can_approve)
