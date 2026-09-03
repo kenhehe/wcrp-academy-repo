@@ -30,6 +30,20 @@ page.tsx (Server Component)
 
 **Exception — features rendered from more than one route tree:** `academy/duplicates` and `ipo/duplicates` are two different routes (different auth gates: `academy_admin` vs `can_approve`) that render the *same* component and call the *same* mutations. Per-route `actions.ts` doesn't fit there — the Server Actions live once in `lib/actions/event-duplicates.ts` instead, imported by both pages' shared `components/duplicates/` components. Reach for this pattern only when a feature is genuinely reachable from multiple trees; a single-route feature still keeps its mutations in that route's own `actions.ts`.
 
+## Sidebar / Navigation
+
+Both `AcademySidebar` and `IPOSidebar` (`components/layout/`) render into a shared `components/layout/SidebarDrawer` — a hamburger trigger + always-visible identity bar (normal document flow) plus a slide-in overlay panel (`fixed`, `translate-x` transition, backdrop). The drawer starts closed and auto-closes on navigation (React's "adjust state during render" pattern — comparing `pathname` against a `prevPathname` state var directly in the component body, **not** a plain `useEffect(() => setOpen(false), [pathname])`, which trips the `react-hooks/set-state-in-effect` lint rule), on Escape, and on backdrop click.
+
+Because the sidebar is `fixed` (out of flow), the root layouts (`academy/layout.tsx`, `ipo/layout.tsx`) are `flex-col`, not the old side-by-side `flex` — `<main>` gets the full viewport width unconditionally, the drawer overlays on top rather than sharing space with it.
+
+Each sidebar owns its own nav data as **groups**: `{ label?: string; items: NavItem[] }[]`. A group with no `label` renders unlabeled (used for the top "primary" links — Overview/Events/Import-Export); labeled groups get a small uppercase header. `AcademySidebar` groups into Catalogue / Data Quality / Admin; `IPOSidebar`'s `canApprove`-only groups are Cross-Org Review / Admin. There's no icon-rail collapse mode anymore (`AcademySidebar` used to have one) — the drawer replaced it everywhere, one interaction model for both trees.
+
+The Secretariat account's pending-approvals count shows both inline on the Approvals nav link *and* as a small badge directly on the hamburger trigger (`SidebarDrawer`'s `triggerBadge` prop) — otherwise it'd be invisible whenever the drawer is closed, which is the default state.
+
+## Search-as-you-type pattern
+
+Used on `ipo/events` (`components/events/EventsTable`) and `academy/event-registry` / `ipo/event-registry` (`components/events/EventRegistryFiltersBar`): a debounced (300ms) text input updates the URL's `?q=` param via `router.replace`, wrapped in `startTransition()`. While that transition is pending, the existing results stay mounted and get dimmed (`opacity-60 pointer-events-none`) with a small spinner, instead of a Suspense-skeleton swap on every keystroke. `EventsTable` uses a *second*, separate `useTransition` from the one already used for the create/edit/delete modals, so typing in the search box never gets confused with a form submitting. New instances of "search inside a filtered table" should reuse this exact pattern rather than inventing another one.
+
 ## When to Use `'use client'`
 
 Add it only when the component needs:
@@ -127,7 +141,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 
 ### `ipo/events`
 - Source: `events` table, **scoped to the logged-in org's own `ipo_id` only** (`.eq('ipo_id', orgId)`) — this is intentionally single-org and must stay that way for every account type, including `can_approve` ones (see `ipo/event-registry` below for the cross-org equivalent).
-- Filter by status, year via URL params
+- Filter by status, year, and a live debounced title search (`?q=`) via URL params — see "Search-as-you-type pattern" above
 - Add/Edit/Delete modal (`components/events/EventsTable` + `components/events/EventForm`, submitted via `createEvent`/`updateEvent`/`deleteEvent` in `actions.ts`) — a manual single-event submission form, intended for Lighthouse Activity (LHA) use. **Not actually code-gated to lighthouse orgs today** — the "Add event" button renders for any IPO org, so a regular IPO account can technically create a manual event too; known gap, not yet fixed.
 - Includes three publication-preference checkboxes (`wants_social_media`, `wants_website_article`, `wants_newsletter`) — a client (Secretariat) request: let the organizer flag interest in being considered for those channels, purely informational, no automatic publication. Surfaced to reviewers as small icons on `ipo/approvals` and `ipo/event-registry` (see below). Real boolean columns on `events`, not `extra_fields` — they're a fixed, universal question set, not a per-IPO-configurable registry field.
 - Since a regular IPO account only reaches these checkboxes via **editing** an existing (usually scraped) event — not via create, since scrapers never fill out the form — a flag set that way reaches the Secretariat via both `ipo/approvals` (if the event also happens to be pending) and `ipo/publication-requests` (below), which covers it regardless of approval status.
@@ -136,10 +150,10 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 ### `academy/event-registry` and `ipo/event-registry` (Event Registry)
 
 - Client point-2 ask: "view all IPO events" — no page anywhere showed a single filterable table spanning every org until this one. Two routes, one shared implementation: `academy/event-registry` (gated via `academy/layout.tsx`, `role==='academy_admin'`) and `ipo/event-registry` (gated `can_approve`, same guard as `approvals`), both rendering `components/events/EventRegistryBrowser` + `components/events/EventRegistryFiltersBar`.
-- **Do not repurpose `ipo/events` for this.** `ipo/events` means "my org's own events" for every account that uses it — conditionally widening its query for `can_approve` accounts would make the same route mean different things depending on who's logged in, and breaks the day the Climate account gets its own `ipo_id`/events (there's none today, but it's plausible later). Event Registry is a deliberately separate, read-only page instead.
-- Scope: **every org, IPO and LHA alike** (unlike `ipo/duplicates`/`academy/duplicates`, `academy/gaps`, and `ipo_coverage_stats`, which all deliberately exclude `type='lighthouse'` — this page is the one place that doesn't).
+- **Do not repurpose `ipo/events` for this.** `ipo/events` means "my org's own events" for every account that uses it — conditionally widening its query for `can_approve` accounts would make the same route mean different things depending on who's logged in. The Climate account *does* have its own `ipo_id` (`wcrp`, `type='secretariat'` — see root `CLAUDE.md`), just zero events on it today. Event Registry is a deliberately separate, read-only page instead.
+- Scope: **every org, IPO and LHA alike** (unlike `ipo/duplicates`/`academy/duplicates`, `academy/gaps`, and `ipo_coverage_stats`, which all deliberately exclude `type='lighthouse'` — this page is the one place that doesn't). The org filter dropdown groups by type — IPOs / Lighthouse Activities / Secretariat — via `SelectGroup`/`SelectLabel`, not one flat alphabetical list.
 - Read-only — no create/edit/delete. Editing stays each org's own responsibility via their own `ipo/events`.
-- Live search-as-you-type by title (`.ilike`), debounced 300ms, plus IPO/status/year selects — same URL-param-driven filter pattern as everywhere else (`GapFiltersBar`, `DuplicateFiltersBar`), but the search box additionally wraps its `router.replace` call in `useTransition()` so the existing table stays mounted and dims (`opacity-60 pointer-events-none`) with a small spinner while new results load, instead of the Suspense-skeleton swap every other filtered table uses — deliberate, to avoid a full-table flash on every keystroke. `EventRegistryFiltersBar` owns `isPending` and wraps `children` (the server-rendered, Suspense-wrapped `EventRegistryBrowser`) in the dimmable container.
+- Live search-as-you-type by title plus IPO/status/year selects — see "Search-as-you-type pattern" above (this page and `ipo/events` are the two places using it).
 - Reuses `PublicationFlags` (`components/events/PublicationFlags`) for the same icon cluster used on `ipo/approvals`/`ipo/publication-requests`.
 
 ### `ipo/approvals`

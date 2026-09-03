@@ -22,8 +22,9 @@ Two disjoint account types, checked in each tree's root `layout.tsx` — a user 
 
 - **`academy_admin`** (`user.app_metadata.role === 'academy_admin'`) — full access to `/dashboard/academy/*` (gate: `app/dashboard/academy/layout.tsx`). Has no `org_id`; cannot enter `/dashboard/ipo/*` at all.
 - **IPO / Lighthouse org accounts** (`user.app_metadata.role === 'ipo_user'`, `org_id` set to an `ipos.id`) — access `/dashboard/ipo/*` (gate: `app/dashboard/ipo/layout.tsx`), normally scoped to their own `ipo_id` by RLS.
-  - `ipos.type` is `'ipo'` (one of the 7 real IPOs) or `'lighthouse'` (an LHA programme, hardcoded id list in `app/dashboard/ipo/accounts/page.tsx`) — affects terminology/UI, not access level.
-  - `user.app_metadata.can_approve` — an extra flag on select IPO/lighthouse accounts (e.g. the Climate account) unlocking cross-org pages inside the `ipo/` tree: `approvals`, `accounts`, `api-keys`, `duplicates`, plus the Climate Analytics view on the overview page. These pages use `createAdminClient()` for reads, since a plain org session's RLS won't show other orgs' data.
+  - `ipos.type` is `'ipo'` (one of the 7 real IPOs), `'lighthouse'` (an LHA programme, hardcoded id list in `app/dashboard/ipo/accounts/page.tsx`), or `'secretariat'` (just one row today: `id='wcrp'`, the Climate/Secretariat account's own org — see migration `20260903_reclassify_wcrp_org_type.sql`; it used to be `type='ipo'`, which silently polluted every "7 IPOs" query written before that row existed). Type affects terminology/UI and org-filter grouping, not access level.
+  - `user.app_metadata.can_approve` — an extra flag on select accounts (e.g. the Climate account, `org_id='wcrp'`) unlocking cross-org pages inside the `ipo/` tree: `approvals`, `event-registry`, `publication-requests`, `duplicates`, `accounts`, `api-keys`, plus the Climate Analytics view on the overview page. These pages use `createAdminClient()` for reads, since a plain org session's RLS won't show other orgs' data.
+  - When writing a query meant to mean "the 7 real IPOs," `.eq('type', 'ipo')` is correct today (it now excludes `secretariat`) — but don't assume `type` only has two possible values; a query that means "every content-producing org" (not just IPOs) needs `type` unfiltered or explicitly listing `ipo`+`lighthouse`.
 
 A feature that needs to reach both `academy_admin` and a `can_approve` IPO account (like Duplicates) can't live on one route — see `app/dashboard/CLAUDE.md`'s note on sharing components/actions across the two trees.
 
@@ -66,6 +67,8 @@ app/dashboard/ipo/
 components/
   ui/           shadcn/ui — CLI-managed, do NOT edit manually
   base/         Project wrappers (PageInfo)
+  layout/       AcademySidebar, IPOSidebar — both render into the shared SidebarDrawer
+                (hamburger trigger + slide-in overlay, grouped nav sections); see app/dashboard/CLAUDE.md
   duplicates/   Shared Duplicates review UI — rendered from BOTH academy/ and ipo/ trees, see below
   [feature]/    Domain components shared across pages — each is Component/index.tsx + types.ts
 
