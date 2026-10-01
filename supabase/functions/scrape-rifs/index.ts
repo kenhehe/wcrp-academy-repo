@@ -114,6 +114,39 @@ function parseEvents(html: string, sourceUrl: string): ScrapedEvent[] {
       source: 'wcrp-rifs.org', source_url: sourceUrl,
     })
   }
+  if (events.length > 0) return events
+
+  // Fallback: site redesign (as of 2026) dropped all wrapper markup — each
+  // event is now a bare <p><a><strong>Title</strong></a>&#8211; Date &#8211; Location</p>
+  // with no container class at all. Split on en/em dash only (not plain "-",
+  // which also appears inside date ranges like "Sept 8-11, 2025").
+  const paragraphs = root.querySelectorAll('p')
+  for (const p of paragraphs) {
+    const anchor = p.querySelector('a')
+    const strong = anchor?.querySelector('strong')
+    if (!anchor || !strong) continue
+    const title = strong.text.trim()
+    if (!title || title.length < 5) continue
+    const href     = anchor.getAttribute('href') ?? ''
+    const eventUrl = href.startsWith('http') ? href : href ? `${BASE}${href}` : null
+
+    const fullText   = p.text
+    const titleIndex = fullText.indexOf(title)
+    const afterTitle = titleIndex === -1 ? fullText : fullText.slice(titleIndex + title.length)
+    const parts      = afterTitle.split(/[–—]/).map(s => s.trim()).filter(Boolean)
+    if (parts.length === 0) continue
+
+    const { start, end } = parseDateRange(parts[0])
+    if (!start) continue
+
+    const [location, country] = splitLocation(parts[1] ?? '')
+
+    events.push({
+      ipo_id: IPO_ID, title, start_date: start, end_date: end,
+      location, country, url: eventUrl, status: computeStatus(start, end),
+      source: 'wcrp-rifs.org', source_url: sourceUrl,
+    })
+  }
   return events
 }
 

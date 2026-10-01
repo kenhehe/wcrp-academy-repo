@@ -124,6 +124,14 @@ supabase functions deploy scrape-rifs scrape-esmo scrape-gewex scrape-cordex
 supabase functions deploy sync-academy-wp
 ```
 
+## Scheduling — `pg_cron`, not `vercel.json`
+
+`vercel.json`'s cron (`/api/cron/scrape-all`, fires all 7 at once, daily) exists but isn't what actually drives the twice-daily schedule you'll see in `scrape_runs` — each scraper has its **own individual `pg_cron` job**, staggered ~15 minutes apart so they don't all hit their sites simultaneously (e.g. `scrape-clic-12h` at `45 1,13 * * *` — see `20260603_fix_clic_cron_key.sql`). These jobs live in Postgres, not in this repo — only ad-hoc fixes to one get committed as a migration, so the full set of 7 schedules can't be read from git alone. `cron.job` isn't exposed via the REST API (`Accept-Profile: cron` → `PGRST106`), so checking what's actually scheduled requires direct SQL access, not a script.
+
+**If a scraper silently stops running** (shows zero recent rows in `scrape_runs`, not even `failed` ones — confirmed this happened to `clivar` for ~4 months): check whether its `pg_cron` job still exists before assuming the code is broken. Dry-run it first (`{ dry_run: true }`, no DB writes) — if that finds real results, the scraper itself is fine and the fix is purely re-adding the schedule, not touching `parseEvents()`.
+
+**New cron jobs should authenticate via Supabase Vault**, not a hardcoded key in the migration (`20261001_add_clivar_cron.sql` is the template — references `vault.decrypted_secrets where name = 'service_role_key'` instead of embedding the literal JWT). The existing `clic` job still hardcodes its key; that's a pre-existing exception, not the pattern to copy going forward.
+
 ## How to Add a New Scraper
 
 1. **Create `supabase/functions/scrape-newipo/index.ts`** — copy `scrape-gewex/index.ts` as template.
@@ -165,3 +173,4 @@ Common failure patterns:
 - Event plugin changed (e.g., Tribe Events → plain HTML list)
 - Date format changed (e.g., "Sept" instead of "Sep" — add alias to MONTHS in `_shared/utils.ts`)
 - Site now requires JS rendering (edge functions cannot execute JS — the parser gets an empty shell)
+- All wrapper markup dropped entirely — confirmed on `rifs` (`scrape-rifs/index.ts`): a redesign left events as bare `<p><a><strong>Title</strong></a> – Date – Location</p>` with no class/container to select on at all. Fetch the raw HTML directly (not an AI-summarized fetch — those lose exact tag/class detail) and look for the smallest reliable anchor, here `p > a > strong`. Watch for en/em dash (`–`/`—`) vs. plain hyphen when splitting trailing text — a date range like "Sept 8-11, 2025" contains a real hyphen that a naive `/[-–—]/` split would wrongly cut on; split on `/[–—]/` only.

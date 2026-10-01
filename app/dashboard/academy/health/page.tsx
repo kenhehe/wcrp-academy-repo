@@ -64,6 +64,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
   let allRuns:     ScrapeRun[] = []   // recent 100 — used for per-IPO latest computation
   let pageRuns:    ScrapeRun[] = []   // current page slice — displayed in recent runs table
   let totalRuns:   number = 0
+  let successRuns: ScrapeRun[] = []   // most recent success/partial per IPO — queried directly, not derived from allRuns
 
   try {
     console.log('[health] page render start — page:', page)
@@ -98,7 +99,28 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     pageRuns = (pageRunsResult.data ?? []) as ScrapeRun[]
     totalRuns = pageRunsResult.count ?? 0
 
-    console.log('[health] data OK — ipos:', ipos.length, 'allRuns:', allRuns.length, 'pageRuns:', pageRuns.length, 'total:', totalRuns)
+    // Last successful run per IPO — queried directly per org, not derived from
+    // the capped 100-row allRuns batch above. A long quiet period (weeks of
+    // skipped/failed runs) can easily push a real success further back than
+    // that window reaches, which would otherwise make a working scraper show
+    // "—" under Last Successful even though it genuinely succeeded recently.
+    const successResults = await Promise.all(
+      ipos.map(ipo =>
+        supabase
+          .from('scrape_runs')
+          .select('id,ipo_id,started_at,finished_at,status,events_found,error_message,source')
+          .eq('ipo_id', ipo.id)
+          .in('status', ['success', 'partial'])
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      )
+    )
+    successRuns = successResults
+      .map(r => r.data)
+      .filter((r): r is ScrapeRun => !!r)
+
+    console.log('[health] data OK — ipos:', ipos.length, 'allRuns:', allRuns.length, 'pageRuns:', pageRuns.length, 'total:', totalRuns, 'successRuns:', successRuns.length)
   } catch (err) {
     console.error('[health] data fetch failed:', err)
   }
@@ -107,15 +129,12 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
 
   // Latest run per IPO — plus latest manual run separately
   const latestPerIpo      = new Map<string, ScrapeRun>()
-  const lastSuccessPerIpo = new Map<string, ScrapeRun>()
+  const lastSuccessPerIpo = new Map<string, ScrapeRun>(successRuns.map(r => [r.ipo_id, r]))
   const lastManualPerIpo  = new Map<string, ScrapeRun>()
   for (const run of runs) {
     if (!latestPerIpo.has(run.ipo_id)) latestPerIpo.set(run.ipo_id, run)
     if (run.source === 'manual' && !lastManualPerIpo.has(run.ipo_id)) {
       lastManualPerIpo.set(run.ipo_id, run)
-    }
-    if (!lastSuccessPerIpo.has(run.ipo_id) && (run.status === 'success' || run.status === 'partial')) {
-      lastSuccessPerIpo.set(run.ipo_id, run)
     }
   }
 
