@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,7 +13,6 @@ interface FlaggedEvent {
   country:                string | null
   url:                    string | null
   ipo_id:                 string
-  approval_status:        string | null
   wants_social_media:     boolean
   wants_website_article:  boolean
   wants_newsletter:       boolean
@@ -27,11 +25,6 @@ interface Props {
   page:       number
   totalPages: number
   sp:         Record<string, string | string[] | undefined>
-}
-
-const APPROVAL_BADGE: Record<string, { label: string; className: string }> = {
-  pending:  { label: 'Pending',  className: 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30' },
-  approved: { label: 'Approved', className: 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' },
 }
 
 export default function PublicationRequestsTable({ events, page, totalPages, sp }: Props) {
@@ -53,13 +46,11 @@ export default function PublicationRequestsTable({ events, page, totalPages, sp 
               <th className="px-4 py-3 text-left font-medium">IPO</th>
               <th className="px-4 py-3 text-left font-medium">Dates</th>
               <th className="px-4 py-3 text-left font-medium">Location</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
               <th className="px-4 py-3 text-left font-medium">Wants</th>
             </tr>
           </thead>
           <tbody>
             {events.map(event => {
-              const approval = event.approval_status ? APPROVAL_BADGE[event.approval_status] : undefined
               return (
                 <tr key={event.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 max-w-xs">
@@ -90,15 +81,6 @@ export default function PublicationRequestsTable({ events, page, totalPages, sp 
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {[event.location, event.country].filter(Boolean).join(', ') || '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {approval ? (
-                      <Badge variant="outline" className={`text-xs ${approval.className}`}>
-                        {approval.label}
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
                   </td>
                   <td className="px-4 py-3">
                     <PublicationFlags

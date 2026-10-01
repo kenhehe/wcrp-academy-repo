@@ -18,7 +18,7 @@ export default async function ApprovalsPage() {
   const [{ data: pending }, { data: allOrgs }] = await Promise.all([
     db
       .from('events')
-      .select('id,title,start_date,end_date,location,country,ipo_id,wants_social_media,wants_website_article,wants_newsletter')
+      .select('id,title,start_date,end_date,location,country,ipo_id')
       .eq('approval_status', 'pending')
       .order('start_date', { ascending: true }),
     // Unscoped by type — pending events can come from any org, not just LHAs

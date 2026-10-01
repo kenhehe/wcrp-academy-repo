@@ -29,7 +29,7 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
 
   let query = db
     .from('events')
-    .select('id,title,start_date,end_date,location,country,url,ipo_id,approval_status,wants_social_media,wants_website_article,wants_newsletter', { count: 'exact' })
+    .select('id,title,start_date,end_date,location,country,url,ipo_id,wants_social_media,wants_website_article,wants_newsletter', { count: 'exact' })
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
