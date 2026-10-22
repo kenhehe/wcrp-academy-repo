@@ -1,10 +1,11 @@
 import type { Trends } from './event-trends'
 
 export interface AnalyticsOrg {
-  id:    string
-  name:  string
-  color: string | null   // ipos.color_hex
-  type:  'ipo' | 'lighthouse'
+  id:       string
+  name:     string          // short name / acronym
+  fullName: string | null
+  color:    string | null   // ipos.color_hex
+  type:     'ipo' | 'lighthouse'
 }
 
 // Everything the client-side Event activity chart needs; plain JSON

@@ -51,6 +51,11 @@ function yearChange(year: number, total: number, previous: number | null) {
 
 const CHANGE_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus }
 
+const ORG_GROUPS = [
+  { type: 'ipo',        label: 'IPOs',                  one: 'IPO',                  many: 'IPOs' },
+  { type: 'lighthouse', label: 'Lighthouse Activities', one: 'Lighthouse programme', many: 'Lighthouse programmes' },
+] as const
+
 function Gridlines({ max, plot, axis }: { max: number; plot: number; axis: number }) {
   return (
     <>
@@ -213,7 +218,11 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
     .map(org => ({ org, count: orgCounts[org.id] }))
     .sort((a, b) => (b.count - a.count) || a.org.name.localeCompare(b.org.name))
   const total  = orgRows.reduce((s, r) => s + r.count, 0)
-  const orgMax = orgRows[0]?.count ?? 1
+  const orgMax = orgRows[0]?.count ?? 1   // one scale for both groups, so bar lengths compare across them
+  const groups = ORG_GROUPS.map(group => {
+    const rows = orgRows.filter(r => r.org.type === group.type)
+    return { ...group, rows, total: rows.reduce((s, r) => s + r.count, 0) }
+  })
   const months = year === null
     ? Array.from({ length: 12 }, (_, m) => years.reduce((s, y) => s + (byYearMonth[y]?.[m] ?? 0), 0))
     : (byYearMonth[year] ?? Array<number>(12).fill(0))
@@ -331,24 +340,38 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                 <div>
                   <h4 className="text-sm font-semibold">By organisation</h4>
                   <p className="text-sm text-muted-foreground">
-                    {orgRows.length} {orgRows.length === 1 ? 'organisation' : 'organisations'} with events{year === null ? '' : ` in ${year}`}
+                    {groups.map(g => `${g.rows.length} ${g.rows.length === 1 ? g.one : g.many}`).join(' and ')} with events{year === null ? '' : ` in ${year}`}
                   </p>
                 </div>
                 {view === 'chart' ? (
-                  <ul className="space-y-2">
-                    {orgRows.map(({ org, count }) => (
-                      <li key={org.id} className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] items-center gap-3 text-sm">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <OrgDot color={org.color} />
-                          <span className="truncate">{org.name}</span>
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <span className="h-3 min-w-[3px] rounded-r-[4px] bg-primary" style={{ width: `calc((100% - 3rem) * ${count / orgMax})` }} />
-                          <span className="text-xs font-semibold tabular-nums">{count}</span>
-                        </span>
-                      </li>
+                  <div className="space-y-5">
+                    {groups.map(group => (
+                      <section key={group.type} aria-label={group.label} className="space-y-2">
+                        <div className="flex items-baseline justify-between gap-3 border-b pb-1.5">
+                          <h5 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{group.label}</h5>
+                          <span className="text-xs tabular-nums text-muted-foreground">{eventsLabel(group.total)}</span>
+                        </div>
+                        {group.rows.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">None{year === null ? '' : ` in ${year}`}</p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {group.rows.map(({ org, count }) => (
+                              <li key={org.id} className="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)] items-center gap-3 text-sm">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <OrgDot color={org.color} />
+                                  <span className="truncate" title={org.name}>{org.name}</span>
+                                </span>
+                                <span className="flex items-center gap-2">
+                                  <span className="h-3 min-w-[3px] rounded-r-[4px] bg-primary" style={{ width: `calc((100% - 3rem) * ${count / orgMax})` }} />
+                                  <span className="text-xs font-semibold tabular-nums">{count}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <div className="rounded-lg border">
                     <Table>
@@ -360,16 +383,27 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {orgRows.map(({ org, count }) => (
-                          <TableRow key={org.id}>
-                            <TableCell className="pl-4">
-                              <span className="flex items-center gap-2"><OrgDot color={org.color} />{org.name}</span>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">{count}</TableCell>
-                            <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
-                              {Math.round((count / total) * 1000) / 10}%
-                            </TableCell>
-                          </TableRow>
+                        {groups.filter(group => group.rows.length > 0).map(group => (
+                          <Fragment key={group.type}>
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                              <TableCell className="pl-4 text-xs font-semibold">{group.label}</TableCell>
+                              <TableCell className="text-right text-xs font-semibold tabular-nums">{group.total}</TableCell>
+                              <TableCell className="pr-4 text-right text-xs tabular-nums text-muted-foreground">
+                                {Math.round((group.total / total) * 1000) / 10}%
+                              </TableCell>
+                            </TableRow>
+                            {group.rows.map(({ org, count }) => (
+                              <TableRow key={org.id}>
+                                <TableCell className="pl-6">
+                                  <span className="flex items-center gap-2"><OrgDot color={org.color} />{org.name}</span>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">{count}</TableCell>
+                                <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
+                                  {Math.round((count / total) * 1000) / 10}%
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>

@@ -58,10 +58,18 @@ export default function ClimateAnalyticsSkeleton() {
           <CardContent className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div className="space-y-3">
               <Skeleton className="h-4 w-32" />
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-3" style={{ width: `${80 - i * 10}%` }} />
+              {[5, 3].map((rows, g) => (
+                <div key={g} className="space-y-2 pt-2">
+                  <div className="flex justify-between border-b pb-1.5">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  {Array.from({ length: rows }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-3" style={{ width: `${70 - i * 12}%` }} />
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

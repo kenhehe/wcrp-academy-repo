@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -9,12 +10,12 @@ import type { EventRow, RegistryField } from './types'
 interface EventFormProps {
   event?: EventRow
   registryFields: RegistryField[]
-  // Off when the Academy or Secretariat edits another org's event: those are the org's own requests and fields
-  showPublicationFlags?: boolean
+  publicationHint?:      ReactNode   // replaces the org-facing "let the Secretariat know" text
+  // Off when the Academy or Secretariat edits another org's event: custom fields are the org's own
   showCustomFields?:     boolean
 }
 
-export default function EventForm({ event, registryFields, showPublicationFlags = true, showCustomFields = true }: EventFormProps) {
+export default function EventForm({ event, registryFields, publicationHint, showCustomFields = true }: EventFormProps) {
   return (
     <div className="space-y-4">
       {event && <input type="hidden" name="event_id" value={event.id} />}
@@ -98,14 +99,17 @@ export default function EventForm({ event, registryFields, showPublicationFlags 
         </div>
       </div>
 
-      {showPublicationFlags && (<>
       <Separator />
       <div className="space-y-2">
         <Label>Consider for publication</Label>
         <p className="text-xs text-muted-foreground">
-          Optional — let the Secretariat know if you&rsquo;d like this event considered for any of
-          the following. This is a request, not a guarantee: the Secretariat reviews and
-          prioritizes what gets communicated.
+          {publicationHint ?? (
+            <>
+              Optional — let the Secretariat know if you&rsquo;d like this event considered for any of
+              the following. This is a request, not a guarantee: the Secretariat reviews and
+              prioritizes what gets communicated.
+            </>
+          )}
         </p>
         <div className="flex flex-col gap-2 pt-1">
           <label className="flex items-center gap-2 text-sm">
@@ -122,7 +126,6 @@ export default function EventForm({ event, registryFields, showPublicationFlags 
           </label>
         </div>
       </div>
-      </>)}
 
       {/* Dynamic extra fields from ipo_field_registry */}
       {showCustomFields && registryFields.length > 0 && (

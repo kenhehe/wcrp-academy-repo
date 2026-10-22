@@ -47,6 +47,10 @@ function parseCore(formData: FormData): EventCoreInput {
     location: text(formData, 'location'),
     country:  text(formData, 'country'),
     url:      text(formData, 'url'),
+    // Checkboxes are absent from FormData entirely when unchecked (never "false")
+    wants_social_media:    formData.get('wants_social_media') === 'on',
+    wants_website_article: formData.get('wants_website_article') === 'on',
+    wants_newsletter:      formData.get('wants_newsletter') === 'on',
   }
 }
 

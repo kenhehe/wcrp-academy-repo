@@ -1,6 +1,7 @@
 export interface RegistryOrg {
   id:        string
-  name:      string
+  name:      string          // short name / acronym
+  full_name: string | null
   color_hex: string | null
   type:      string
 }

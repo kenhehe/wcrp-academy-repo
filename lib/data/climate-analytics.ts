@@ -22,10 +22,10 @@ export const getClimateAnalytics = cache(async (): Promise<ClimateAnalyticsData>
   const db = createAdminClient()
 
   const { data: orgRows, error: orgError } = await db
-    .from('ipos').select('id,name,color_hex,type').in('type', ['ipo', 'lighthouse']).order('name')
+    .from('ipos').select('id,name,full_name,color_hex,type').in('type', ['ipo', 'lighthouse']).order('name')
   if (orgError) throw new Error(`ipos query failed: ${orgError.message}`)
 
-  const orgs: AnalyticsOrg[] = (orgRows ?? []).map(o => ({ id: o.id, name: o.name, color: o.color_hex, type: o.type }))
+  const orgs: AnalyticsOrg[] = (orgRows ?? []).map(o => ({ id: o.id, name: o.name, fullName: o.full_name, color: o.color_hex, type: o.type }))
   const orgById = new Map(orgs.map(o => [o.id, o]))
 
   const events: EventRow[] = []

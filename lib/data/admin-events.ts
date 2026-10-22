@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type AdminEventSource = 'academy' | 'secretariat'
 
-// The fields an admin can set; an org's publication requests and custom fields stay the org's
+// The fields an admin can set; an org's custom fields (extra_fields) stay the org's
 export interface EventCoreInput {
   title:      string
   start_date: string
@@ -14,6 +14,10 @@ export interface EventCoreInput {
   location:   string | null
   country:    string | null
   url:        string | null
+  // Publication flags: ticked events show up in Publication Requests
+  wants_social_media:    boolean
+  wants_website_article: boolean
+  wants_newsletter:      boolean
 }
 
 export interface SimilarEvent {

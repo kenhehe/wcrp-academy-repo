@@ -1,12 +1,15 @@
 'use client'
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { groupOrgsByType, orgFullLabel } from '@/lib/data/org-groups'
 import { Button } from '@/components/ui/button'
 
 interface Ipo {
-  id:   string
-  name: string
+  id:        string
+  name:      string
+  full_name: string | null
+  type:      string
 }
 
 interface Props {
@@ -56,8 +59,13 @@ export default function PublicationRequestFiltersBar({ ipos, activeChannel, acti
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All orgs</SelectItem>
-          {ipos.map(ipo => (
-            <SelectItem key={ipo.id} value={ipo.id}>{ipo.name}</SelectItem>
+          {groupOrgsByType(ipos).map(group => (
+            <SelectGroup key={group.type}>
+              <SelectLabel>{group.label}</SelectLabel>
+              {group.items.map(ipo => (
+                <SelectItem key={ipo.id} value={ipo.id} title={orgFullLabel(ipo)}>{ipo.name}</SelectItem>
+              ))}
+            </SelectGroup>
           ))}
         </SelectContent>
       </Select>

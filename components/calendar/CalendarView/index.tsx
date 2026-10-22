@@ -5,7 +5,8 @@ import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { groupOrgsByType, orgFullLabel } from '@/lib/data/org-groups'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,7 +34,9 @@ export interface CalendarEvent {
 
 export interface IPORow {
   id: string
-  name: string
+  name: string             // short name / acronym
+  full_name: string | null
+  type: string             // ipo | lighthouse | secretariat
   color_hex: string | null
 }
 
@@ -153,34 +156,37 @@ export default function CalendarView({ events, ipos }: Props) {
 
           <Select value={selectedIpo} onValueChange={v => setSelectedIpo(v ?? 'all')}>
             <SelectTrigger size="sm" className="w-48">
-              <SelectValue placeholder="All IPOs" />
+              <SelectValue placeholder="All organisations" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
                 <span className="flex items-center justify-between w-full gap-3">
-                  <span>All IPOs</span>
+                  <span>All organisations</span>
                   <span className="text-xs text-muted-foreground tabular-nums ml-auto">
                     {visibleByStatus.length}
                   </span>
                 </span>
               </SelectItem>
-              {ipos.map(ipo => {
-                const count = ipoCounts.get(ipo.id) ?? 0
-                return (
-                  <SelectItem key={ipo.id} value={ipo.id}>
-                    <span className="flex items-center gap-1.5 w-full">
-                      <span
-                        className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: ipo.color_hex ?? 'var(--muted-foreground)' }}
-                      />
-                      <span className="flex-1">{ipo.name}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums ml-2">
-                        {count}
+              {/* Orgs with nothing on the public calendar are left out */}
+              {groupOrgsByType(ipos.filter(ipo => (ipoCounts.get(ipo.id) ?? 0) > 0)).map(group => (
+                <SelectGroup key={group.type}>
+                  <SelectLabel>{group.label}</SelectLabel>
+                  {group.items.map(ipo => (
+                    <SelectItem key={ipo.id} value={ipo.id} title={orgFullLabel(ipo)}>
+                      <span className="flex items-center gap-1.5 w-full">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: ipo.color_hex ?? 'var(--muted-foreground)' }}
+                        />
+                        <span className="flex-1">{ipo.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums ml-2">
+                          {ipoCounts.get(ipo.id) ?? 0}
+                        </span>
                       </span>
-                    </span>
-                  </SelectItem>
-                )
-              })}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -282,7 +288,7 @@ export default function CalendarView({ events, ipos }: Props) {
                 <DialogTitle className="leading-snug">{selected.title}</DialogTitle>
               </div>
               {selectedIpo_ && (
-                <DialogDescription>{selectedIpo_.name}</DialogDescription>
+                <DialogDescription>{orgFullLabel(selectedIpo_)}</DialogDescription>
               )}
             </DialogHeader>
 

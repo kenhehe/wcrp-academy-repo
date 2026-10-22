@@ -37,6 +37,7 @@ A feature that needs to reach both `academy_admin` and a `can_approve` IPO accou
   - `createClient()` from `lib/supabase/server.ts` → reads the user session. Use for data fetching in Server Components.
   - `createAdminClient()` from `lib/supabase/admin.ts` → service role, bypasses RLS. Use for mutations in Server Actions ONLY. Never import in client components.
 - **Mutations go in `actions.ts`** — always call `revalidatePath()` after mutating.
+- **Org names:** `ipos.name` is the short label (an acronym: `CliC`, `DE`, `MCR`, `SLC`…) used in dropdowns, charts and tables; `ipos.full_name` is the long form, shown on hover or where there's room (`orgFullLabel()`). Every org dropdown groups IPOs / Lighthouse Activities / Secretariat with `groupOrgsByType()` from `lib/data/org-groups.ts` — don't hand-roll the grouping.
 - **Any read that can return more than 1,000 rows goes through `fetchAllRows()`** (`lib/supabase/fetch-all.ts`), ordered by a unique column at the end. PostgREST cuts every response at 1,000 rows without an error; when the Lighthouse import took approved events past 1,000, the public homepage and API quietly lost every upcoming event.
 - **Skeletons are mandatory** for dynamic data. Use `@/components/ui/skeleton`.
 - **`cn()` for class merging.** No hardcoded hex colors — use CSS variables.
@@ -84,7 +85,7 @@ lib/
   data/event-duplicates.ts       Plain helper (no 'use server'): setAcademyStatus() keeps a duplicate pair's coverage status in sync
   actions/event-duplicates.ts    'use server': linkDuplicate, unlinkDuplicate, dismissDuplicate, searchDuplicateCandidates —
                                   shared across academy/duplicates and ipo/duplicates instead of a per-route actions.ts (see note below)
-  data/admin-events.ts           Plain helpers: insert / update / delete any org's event (core fields only), similar-event lookup
+  data/admin-events.ts           Plain helpers: insert / update / delete any org's event (core fields + publication flags), similar-event lookup
   actions/admin-events.ts        'use server': createEventForOrg, updateAnyEvent, deleteAnyEvent — academy_admin or can_approve,
                                   shared across academy/event-registry and ipo/event-registry; new events start pending
 

@@ -8,13 +8,13 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-type IPORow = { id: string; name: string; color_hex: string | null }
+type IPORow = { id: string; name: string; full_name: string | null; type: string; color_hex: string | null }
 
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
   const [{ data: ipos }, calEvents] = await Promise.all([
-    supabase.from('ipos').select('id, name, color_hex').order('name'),
+    supabase.from('ipos').select('id, name, full_name, type, color_hex').order('name'),
     // Approved events are past the 1000-row cap, so read every page
     fetchAllRows('approved events query', (from, to) => supabase
       .from('events')

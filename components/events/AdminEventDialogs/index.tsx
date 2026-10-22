@@ -16,12 +16,10 @@ import type { EventRow } from '@/components/events/EventForm/types'
 import OrgDot from '@/components/base/OrgDot'
 import { createEventForOrg, deleteAnyEvent, updateAnyEvent } from '@/lib/actions/admin-events'
 import { HAND_ENTERED_SOURCES } from '@/lib/data/admin-events'
+import { groupOrgsByType, orgFullLabel } from '@/lib/data/org-groups'
 import type { AddEventButtonProps, RegistryRowActionsProps } from './types'
 
-const GROUPS = [
-  { type: 'ipo',        label: 'IPOs' },
-  { type: 'lighthouse', label: 'Lighthouse Activities' },
-]
+const PUBLICATION_HINT = 'Optional. Ticked channels put this event on the Publication Requests list.'
 
 const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
@@ -72,11 +70,11 @@ export function AddEventButton({ orgs }: AddEventButtonProps) {
                   <SelectValue placeholder="Choose an IPO or Lighthouse programme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GROUPS.map(group => (
+                  {groupOrgsByType(orgs).map(group => (
                     <SelectGroup key={group.type}>
                       <SelectLabel>{group.label}</SelectLabel>
-                      {orgs.filter(org => org.type === group.type).map(org => (
-                        <SelectItem key={org.id} value={org.id}>
+                      {group.items.map(org => (
+                        <SelectItem key={org.id} value={org.id} title={orgFullLabel(org)}>
                           <OrgDot color={org.color_hex} />
                           {org.name}
                         </SelectItem>
@@ -86,7 +84,7 @@ export function AddEventButton({ orgs }: AddEventButtonProps) {
                 </SelectContent>
               </Select>
             </div>
-            <EventForm registryFields={[]} showPublicationFlags={false} showCustomFields={false} />
+            <EventForm registryFields={[]} publicationHint={PUBLICATION_HINT} showCustomFields={false} />
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={pending}>{pending ? 'Adding…' : 'Add event'}</Button>
@@ -155,11 +153,11 @@ export function RegistryRowActions({ event, org }: RegistryRowActionsProps) {
               <DialogTitle>Edit event</DialogTitle>
               <DialogDescription className="flex items-center gap-2">
                 <OrgDot color={org?.color_hex ?? null} />
-                {orgName}. Its approval status and publication requests stay as they are.
+                {orgName}. Its approval status stays as it is.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleUpdate}>
-              <EventForm event={formEvent} registryFields={[]} showPublicationFlags={false} showCustomFields={false} />
+              <EventForm event={formEvent} registryFields={[]} publicationHint={PUBLICATION_HINT} showCustomFields={false} />
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setMode(null)}>Cancel</Button>
                 <Button type="submit" disabled={pending}>{pending ? 'Saving…' : 'Save changes'}</Button>

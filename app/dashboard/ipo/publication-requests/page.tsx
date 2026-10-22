@@ -43,7 +43,7 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
   const [{ data: flagged, count }, { data: ipos }] = await Promise.all([
     query,
     // Unfiltered by type — unlike Approvals, this page spans both IPOs and LHAs
-    db.from('ipos').select('id,name,color_hex').order('name'),
+    db.from('ipos').select('id,name,full_name,type,color_hex').order('name'),
   ])
 
   const ipoMap = new Map((ipos ?? []).map(i => [i.id, i]))
@@ -74,7 +74,7 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
 
       <div className="flex items-center justify-between">
         <PublicationRequestFiltersBar
-          ipos={(ipos ?? []).map(i => ({ id: i.id, name: i.name }))}
+          ipos={(ipos ?? []).map(i => ({ id: i.id, name: i.name, full_name: i.full_name, type: i.type }))}
           activeChannel={channelFilter}
           activeIpo={ipoFilter}
         />

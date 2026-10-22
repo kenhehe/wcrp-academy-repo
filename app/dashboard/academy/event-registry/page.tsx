@@ -23,7 +23,7 @@ export default async function AcademyEventRegistryPage({ searchParams }: PagePro
 
   const db = createAdminClient()
   const [{ data: orgs }, yearsRaw] = await Promise.all([
-    db.from('ipos').select('id,name,color_hex,type').order('name'),
+    db.from('ipos').select('id,name,full_name,color_hex,type').order('name'),
     // Every event, so page past the 1000-row cap or the newest years go missing
     fetchAllRows<{ year: number | null }>('event years query', (from, to) => db.from('events').select('year').order('id').range(from, to)),
   ])

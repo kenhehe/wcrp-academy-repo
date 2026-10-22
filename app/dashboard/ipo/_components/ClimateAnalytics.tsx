@@ -114,7 +114,12 @@ export default async function ClimateAnalytics() {
                 <li key={org.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                   <span className="flex min-w-0 items-center gap-2">
                     <OrgDot color={org.color} />
-                    <span className="truncate">{org.name}</span>
+                    <span className="min-w-0">
+                      <span className="block font-medium">{org.name}</span>
+                      {org.fullName && org.fullName !== org.name && (
+                        <span className="block truncate text-xs text-muted-foreground">{org.fullName}</span>
+                      )}
+                    </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2 text-xs">
                     {pending > 0 && <StatusBadge tone="warning" icon={Clock}>{pending} pending</StatusBadge>}
