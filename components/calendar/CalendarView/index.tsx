@@ -15,6 +15,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/base/StatusBadge'
+import type { StatusTone } from '@/components/base/StatusBadge/types'
 import { ExternalLinkIcon, MapPinIcon, CalendarIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 
 export interface CalendarEvent {
@@ -48,12 +50,12 @@ const localizer = dateFnsLocalizer({
   locales: { 'en-US': enUS },
 })
 
-const STATUS_COLOR: Record<string, string> = {
-  Upcoming:  '#2563eb',
-  Ongoing:   '#16a34a',
-  Past:      '#94a3b8',
-  Cancelled: '#ef4444',
-  Postponed: '#f97316',
+const STATUS_TONE: Record<string, StatusTone> = {
+  Upcoming:  'info',
+  Ongoing:   'success',
+  Past:      'neutral',
+  Cancelled: 'danger',
+  Postponed: 'warning',
 }
 
 const INACTIVE_STATUSES = new Set(['Past', 'Cancelled', 'Postponed'])
@@ -169,7 +171,7 @@ export default function CalendarView({ events, ipos }: Props) {
                     <span className="flex items-center gap-1.5 w-full">
                       <span
                         className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: ipo.color_hex ?? '#94a3b8' }}
+                        style={{ backgroundColor: ipo.color_hex ?? 'var(--muted-foreground)' }}
                       />
                       <span className="flex-1">{ipo.name}</span>
                       <span className="text-xs text-muted-foreground tabular-nums ml-2">
@@ -198,13 +200,13 @@ export default function CalendarView({ events, ipos }: Props) {
             eventPropGetter={e => {
               const ev  = e.resource as CalendarEvent
               const ipo = ipoMap.get(ev.ipo_id)
-              const bg  = ipo?.color_hex ?? STATUS_COLOR[ev.status] ?? '#2563eb'
+              const bg  = ipo?.color_hex ?? 'var(--primary)'
               const isPast = INACTIVE_STATUSES.has(ev.status)
               return {
                 style: {
                   backgroundColor: bg,
                   borderColor: bg,
-                  color: '#fff',
+                  color: 'white',
                   borderRadius: '5px',
                   fontSize: '11px',
                   fontWeight: 500,
@@ -221,7 +223,7 @@ export default function CalendarView({ events, ipos }: Props) {
                 date.getMonth()    === today.getMonth()    &&
                 date.getDate()     === today.getDate()
               return isToday
-                ? { style: { backgroundColor: 'hsl(var(--accent) / 0.12)' } }
+                ? { style: { backgroundColor: 'color-mix(in oklab, var(--accent) 12%, transparent)' } }
                 : {}
             }}
           />
@@ -250,21 +252,12 @@ export default function CalendarView({ events, ipos }: Props) {
                   >
                     <div className="flex items-start gap-2">
                       {ipo && (
-                        <span className="mt-1 h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: ipo.color_hex ?? '#94a3b8' }} />
+                        <span className="mt-1 h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: ipo.color_hex ?? 'var(--muted-foreground)' }} />
                       )}
                       <p className="text-sm font-medium leading-snug">{ev.title}</p>
                     </div>
                     <div className="flex items-center gap-2 pl-4">
-                      <Badge
-                        variant="secondary"
-                        className="text-xs"
-                        style={{
-                          backgroundColor: (STATUS_COLOR[ev.status] ?? '#94a3b8') + '22',
-                          color:            STATUS_COLOR[ev.status] ?? '#94a3b8',
-                        }}
-                      >
-                        {ev.status}
-                      </Badge>
+                      <StatusBadge tone={STATUS_TONE[ev.status] ?? 'neutral'}>{ev.status}</StatusBadge>
                       {ipo && <span className="text-xs text-muted-foreground">{ipo.name}</span>}
                     </div>
                   </div>
@@ -283,7 +276,7 @@ export default function CalendarView({ events, ipos }: Props) {
                 {selectedIpo_ && (
                   <span
                     className="mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: selectedIpo_.color_hex ?? '#94a3b8' }}
+                    style={{ backgroundColor: selectedIpo_.color_hex ?? 'var(--muted-foreground)' }}
                   />
                 )}
                 <DialogTitle className="leading-snug">{selected.title}</DialogTitle>
@@ -294,17 +287,7 @@ export default function CalendarView({ events, ipos }: Props) {
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
-              <Badge
-                variant="secondary"
-                style={{
-                  backgroundColor: (STATUS_COLOR[selected.status] ?? '#94a3b8') + '22',
-                  color:            STATUS_COLOR[selected.status] ?? '#94a3b8',
-                  borderColor:     (STATUS_COLOR[selected.status] ?? '#94a3b8') + '44',
-                }}
-                className="border"
-              >
-                {selected.status}
-              </Badge>
+              <StatusBadge tone={STATUS_TONE[selected.status] ?? 'neutral'}>{selected.status}</StatusBadge>
 
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -330,7 +313,7 @@ export default function CalendarView({ events, ipos }: Props) {
                   href={selected.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-blue-500 hover:underline"
+                  className="flex items-center gap-1.5 text-primary hover:underline"
                 >
                   <ExternalLinkIcon className="h-3.5 w-3.5" />
                   View event

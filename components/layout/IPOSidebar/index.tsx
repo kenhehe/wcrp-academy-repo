@@ -62,7 +62,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
       }
       triggerBadge={
         canApprove && pendingCount > 0 ? (
-          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-semibold text-white">
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-semibold text-background">
             {pendingCount > 99 ? '99+' : pendingCount}
           </span>
         ) : undefined
@@ -72,7 +72,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
           <div className="relative flex-shrink-0">
             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colorHex }} />
             {ipoType === 'lighthouse' && (
-              <Sparkles className="absolute -top-1.5 -right-2 h-3 w-3 text-amber-500" />
+              <Sparkles className="absolute -top-1.5 -right-2 h-3 w-3 text-warning" />
             )}
           </div>
           <div className="min-w-0">
@@ -122,7 +122,7 @@ export default function IPOSidebar({ ipoName, ipoId, colorHex, userEmail, ipoTyp
               <Icon className="h-4 w-4 flex-shrink-0" />
               <span className="flex-1">{label}</span>
               {badge > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-[10px] font-semibold text-background">
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}

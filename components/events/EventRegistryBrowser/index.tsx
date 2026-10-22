@@ -5,6 +5,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PublicationFlags from '@/components/events/PublicationFlags'
+import StatusBadge from '@/components/base/StatusBadge'
+import type { StatusTone } from '@/components/base/StatusBadge/types'
 import { PAGE_SIZE } from './types'
 import type { RegistryOrg } from './types'
 
@@ -16,9 +18,9 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   Postponed: 'outline',
 }
 
-const APPROVAL_BADGE: Record<string, { label: string; className: string }> = {
-  pending:  { label: 'Pending',  className: 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30' },
-  approved: { label: 'Approved', className: 'text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' },
+const APPROVAL_BADGE: Record<string, { label: string; tone: StatusTone }> = {
+  pending:  { label: 'Pending',  tone: 'warning' },
+  approved: { label: 'Approved', tone: 'success' },
 }
 
 interface Props {
@@ -98,10 +100,10 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: org?.color_hex ?? '#6b7280' }} />
+                        <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: org?.color_hex ?? 'var(--muted-foreground)' }} />
                         <span className="text-sm text-muted-foreground">{org?.name ?? event.ipo_id}</span>
                         {org?.type === 'lighthouse' && (
-                          <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                          <Sparkles className="h-3 w-3 text-warning flex-shrink-0" />
                         )}
                       </div>
                     </td>
@@ -121,9 +123,7 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
                     </td>
                     <td className="px-4 py-3">
                       {approval ? (
-                        <Badge variant="outline" className={`text-xs ${approval.className}`}>
-                          {approval.label}
-                        </Badge>
+                        <StatusBadge tone={approval.tone}>{approval.label}</StatusBadge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

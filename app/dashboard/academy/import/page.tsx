@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, AlertCircle } from 'lucide-react'
@@ -51,15 +51,11 @@ export default async function AcademyImportPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Import / Export</h1>
-          <PageInfo>Sync the Academy catalogue from WordPress or export events for offline review. Use Force Sync to pull fresh data regardless of cache, or export to CSV/Excel for sharing.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage Academy event data — sync from WordPress or export to spreadsheet
-        </p>
-      </div>
+      <PageHeader
+        title="Import / Export"
+        info="Sync the Academy catalogue from WordPress or export events for offline review. Use Force Sync to pull fresh data regardless of cache, or export to CSV/Excel for sharing."
+        description="Manage Academy event data — sync from WordPress or export to spreadsheet"
+      />
 
       {/* WordPress sync status banner */}
       <Card className="border-border bg-muted/20">
@@ -117,9 +113,9 @@ export default async function AcademyImportPage() {
         </TabsContent>
 
         <TabsContent value="import" className="mt-6 space-y-4">
-          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/20">
-            <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-amber-800 dark:text-amber-300">
+          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-sm">
+            <AlertCircle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
+            <p className="text-foreground">
               <span className="font-medium">Manual import is a fallback only.</span>{' '}
               For events managed on the Academy WordPress site, use the automatic sync instead.
               This import is useful for one-off additions or events not on the Academy site.

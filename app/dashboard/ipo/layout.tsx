@@ -45,7 +45,7 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
       <IPOSidebar
         ipoId={ipo.id}
         ipoName={ipo.name}
-        colorHex={ipo.color_hex ?? '#6b7280'}
+        colorHex={ipo.color_hex ?? 'var(--muted-foreground)'}
         userEmail={user.email ?? ''}
         ipoType={ipo.type === 'lighthouse' ? 'lighthouse' : 'ipo'}
         canApprove={canApprove}

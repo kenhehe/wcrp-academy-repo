@@ -3,7 +3,7 @@
 import { useTransition } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, Loader2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/base/StatusBadge'
 import { approveEvent } from '../actions'
 
 interface PendingEvent {
@@ -40,7 +40,7 @@ function ApproveButton({ eventId }: { eventId: string }) {
     <button
       onClick={handleApprove}
       disabled={isPending}
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50/50 px-2.5 py-1 text-xs font-medium text-emerald-700 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-100 active:bg-emerald-200 disabled:opacity-50 dark:bg-emerald-950/30 dark:text-emerald-400"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-success/40 bg-success-soft px-2.5 py-1 text-xs font-medium text-success shadow-sm transition-colors hover:border-success/70 hover:bg-success/15 active:bg-success/25 disabled:opacity-50"
     >
       {isPending
         ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -95,9 +95,7 @@ export default function ApprovalsTable({ events }: Props) {
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
-                    Pending
-                  </Badge>
+                  <StatusBadge tone="warning">Pending</StatusBadge>
                   <ApproveButton eventId={event.id} />
                 </div>
               </td>

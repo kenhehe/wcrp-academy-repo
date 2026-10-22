@@ -7,6 +7,7 @@ import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Search, Loader2 } from
 import { createEvent, updateEvent, deleteEvent } from '@/app/dashboard/ipo/events/actions'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/base/StatusBadge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -285,15 +286,10 @@ export default function EventsTable({
                 </TableCell>
                 {isLighthouse && (
                   <TableCell>
-                    {event.approval_status === 'approved' ? (
-                      <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
-                        Approved
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
-                        Pending
-                      </Badge>
-                    )}
+                    {event.approval_status === 'approved'
+                      ? <StatusBadge tone="success">Approved</StatusBadge>
+                      : <StatusBadge tone="warning">Pending</StatusBadge>
+                    }
                   </TableCell>
                 )}
                 <TableCell className="text-sm text-muted-foreground">{event.location ?? '—'}</TableCell>

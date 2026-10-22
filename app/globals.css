@@ -8,9 +8,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,6 +40,19 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-run-found: var(--run-found);
+  --color-run-same: var(--run-same);
+  --color-run-stuck: var(--run-stuck);
+  --color-run-failed: var(--run-failed);
+  --color-run-none: var(--run-none);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -47,6 +60,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@theme {
+  --animate-strip-grow: strip-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes strip-grow {
+    from { transform: scaleY(0.1); opacity: 0; }
+  }
 }
 
 /* WCRP palette
@@ -64,10 +85,25 @@
   --secondary:             #EEF7FD;
   --secondary-foreground:  #232C3D;
   --muted:                 #EEF7FD;
-  --muted-foreground:      #5A7A96;
+  --muted-foreground:      #4E6B85;
   --accent:                #D4EEFC;
   --accent-foreground:     #232C3D;
   --destructive:           oklch(0.577 0.245 27.325);
+  /* Status tones: text color + soft background, all pairs >= 4.5:1 */
+  --info:                  #1A5A8F;
+  --info-soft:             #EAF5FC;
+  --success:               #17663A;
+  --success-soft:          #E6F6EC;
+  --warning:               #8A5300;
+  --warning-soft:          #FFF3D6;
+  --danger:                #B42318;
+  --danger-soft:           #FDECEA;
+  /* Scrape-run marks (System Health strip) */
+  --run-found:             #1C68A5;
+  --run-same:              #8CC8EE;
+  --run-stuck:             #E0A100;
+  --run-failed:            #D03B3B;
+  --run-none:              #E9F1F7;
   --border:                #D0E8F5;
   --input:                 #D0E8F5;
   --ring:                  #1C68A5;
@@ -89,20 +125,33 @@
 
 .dark {
   --background:            #232C3D;
-  --foreground:            #A1D9F8;
+  --foreground:            #E3EEF6;
   --card:                  #2B3550;
-  --card-foreground:       #A1D9F8;
+  --card-foreground:       #E3EEF6;
   --popover:               #2B3550;
-  --popover-foreground:    #A1D9F8;
+  --popover-foreground:    #E3EEF6;
   --primary:               #A1D9F8;
   --primary-foreground:    #232C3D;
   --secondary:             #1C3A5C;
-  --secondary-foreground:  #A1D9F8;
+  --secondary-foreground:  #E3EEF6;
   --muted:                 #1C3A5C;
-  --muted-foreground:      #7BAAC8;
-  --accent:                #1C68A5;
-  --accent-foreground:     #FFFFFF;
+  --muted-foreground:      #9DBBD3;
+  --accent:                #24456A;
+  --accent-foreground:     #E3EEF6;
   --destructive:           oklch(0.704 0.191 22.216);
+  --info:                  #A1D9F8;
+  --info-soft:             #1C3A5C;
+  --success:               #85E885;
+  --success-soft:          #1F3A2C;
+  --warning:               #F5C451;
+  --warning-soft:          #3A3320;
+  --danger:                #FF9A9A;
+  --danger-soft:           #4A2630;
+  --run-found:             #A1D9F8;
+  --run-same:              #3F6E99;
+  --run-stuck:             #E0A100;
+  --run-failed:            #E66767;
+  --run-none:              #33405E;
   --border:                rgba(161, 217, 248, 0.15);
   --input:                 rgba(161, 217, 248, 0.12);
   --ring:                  #A1D9F8;
@@ -112,7 +161,7 @@
   --chart-4:               #1C68A5;
   --chart-5:               #F2EAA4;
   --sidebar:               #1E2A3B;
-  --sidebar-foreground:    #A1D9F8;
+  --sidebar-foreground:    #E3EEF6;
   --sidebar-primary:       #1C68A5;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent:        #1C3A5C;
@@ -133,7 +182,7 @@
   }
 }
 
-/* react-big-calendar theme overrides */
+/* react-big-calendar overrides. Tokens are hex, so hsl(var(--x)) is invalid: use var() or color-mix() */
 .rbc-wrapper {
   .rbc-calendar {
     font-family: inherit;
@@ -143,28 +192,28 @@
     font-size: 11px;
     font-weight: 500;
     padding: 6px 4px;
-    border-color: hsl(var(--border) / 0.3);
-    color: hsl(var(--muted-foreground));
+    color: var(--muted-foreground);
   }
   .rbc-month-view,
   .rbc-day-bg,
   .rbc-header,
   .rbc-month-row {
-    border-color: hsl(var(--border) / 0.3);
+    border-color: var(--border);
   }
   .rbc-today {
-    background-color: hsl(var(--accent) / 0.15);
+    background-color: color-mix(in oklab, var(--accent) 15%, transparent);
   }
   .rbc-off-range-bg {
-    background-color: hsl(var(--muted) / 0.3);
-  }
-  .rbc-off-range {
-    color: hsl(var(--muted-foreground) / 0.5);
+    background-color: color-mix(in oklab, var(--muted) 30%, transparent);
   }
   .rbc-date-cell {
     font-size: 11px;
     padding: 3px 6px;
-    color: hsl(var(--foreground));
+    color: var(--foreground);
+  }
+  /* after .rbc-date-cell: off-range days carry both classes */
+  .rbc-off-range {
+    color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
   }
   .rbc-toolbar {
     margin-bottom: 12px;
@@ -175,19 +224,19 @@
     font-size: 12px;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid hsl(var(--border) / 0.4);
+    border: 1px solid var(--border);
     background: transparent;
-    color: hsl(var(--foreground));
+    color: var(--foreground);
     cursor: pointer;
     transition: background 0.15s;
   }
   .rbc-toolbar button:hover {
-    background: hsl(var(--accent) / 0.3);
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
   }
   .rbc-toolbar button.rbc-active {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border-color: hsl(var(--primary));
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
   }
   .rbc-toolbar-label {
     font-size: 14px;
@@ -195,7 +244,7 @@
   }
   .rbc-show-more {
     font-size: 11px;
-    color: hsl(var(--primary));
+    color: var(--primary);
     background: transparent;
   }
   .rbc-event {
@@ -205,8 +254,8 @@
     filter: brightness(0.9);
   }
   .rbc-overlay {
-    background: hsl(var(--popover));
-    border: 1px solid hsl(var(--border) / 0.4);
+    background: var(--popover);
+    border: 1px solid var(--border);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     padding: 8px;
@@ -214,9 +263,9 @@
   .rbc-overlay-header {
     font-size: 11px;
     font-weight: 600;
-    color: hsl(var(--muted-foreground));
+    color: var(--muted-foreground);
     margin-bottom: 4px;
     padding-bottom: 4px;
-    border-bottom: 1px solid hsl(var(--border) / 0.3);
+    border-bottom: 1px solid var(--border);
   }
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import PageHeader from '@/components/base/PageHeader'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createAcademyEventAction } from '../actions'
@@ -18,10 +19,7 @@ export default function NewAcademyEventPage() {
           <ChevronLeft className="h-4 w-4" />
           Back
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold">New Event</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Add a new event to the Academy catalogue</p>
-        </div>
+        <PageHeader title="New Event" description="Add a new event to the Academy catalogue" />
       </div>
 
       <AcademyEventForm

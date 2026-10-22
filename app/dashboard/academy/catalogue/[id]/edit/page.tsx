@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import PageHeader from '@/components/base/PageHeader'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getAcademyEvent } from '@/lib/data/academy-events'
@@ -34,10 +35,10 @@ export default async function EditAcademyEventPage({ params }: PageProps) {
           <ChevronLeft className="h-4 w-4" />
           Back
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold">Edit Event</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 max-w-xs truncate">{data.title}</p>
-        </div>
+        <PageHeader
+          title="Edit Event"
+          description={<span className="block max-w-xs truncate">{data.title}</span>}
+        />
       </div>
 
       <AcademyEventForm

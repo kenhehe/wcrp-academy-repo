@@ -3,13 +3,14 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import type { StatusDonutProps } from './types'
 
-// Chart-only color constants — not UI colors
+// Theme tokens, so segments follow light/dark. Validated for colorblind separation
+// across all segment pairs; Past deliberately recedes (pale in light, deep in dark).
 const COLORS = {
-  Upcoming:  '#2563eb',
-  Ongoing:   '#16a34a',
-  Past:      '#94a3b8',
-  Cancelled: '#ef4444',
-  Postponed: '#f97316',
+  Upcoming:  'var(--primary)',
+  Ongoing:   'var(--chart-2)',
+  Past:      'var(--chart-4)',
+  Cancelled: 'var(--run-failed)',
+  Postponed: 'var(--run-stuck)',
 }
 
 export default function StatusDonut({ upcoming, ongoing, past, cancelled, postponed }: StatusDonutProps) {

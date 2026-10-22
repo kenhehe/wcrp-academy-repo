@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import ApiKeysTable from './_components/ApiKeysTable'
 import type { ApiToken } from './_components/ApiKeysTable'
 
@@ -26,19 +26,17 @@ export default async function ApiKeysPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">API Keys</h1>
-          <PageInfo>
+      <PageHeader
+        title="API Keys"
+        info={
+          <>
             Generate tokens to allow external systems (e.g. the WCRP website) to read
             approved events via the REST API. Tokens are shown once on creation — store
             them securely. Revoke a token at any time to immediately cut off access.
-          </PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage access tokens for the public events API
-        </p>
-      </div>
+          </>
+        }
+        description="Manage access tokens for the public events API"
+      />
 
       <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm space-y-1">
         <p className="font-medium">API endpoint</p>

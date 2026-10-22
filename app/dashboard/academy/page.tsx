@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -125,13 +125,11 @@ export default async function AcademyOverviewPage() {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Global Overview</h1>
-          <PageInfo>High-level view of how the WCRP Academy covers events across all 7 IPOs. Charts show upcoming events, recent sync status, and which IPOs have gaps in Academy coverage.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">Coverage across all 7 IPOs</p>
-      </div>
+      <PageHeader
+        title="Global Overview"
+        info="High-level view of how the WCRP Academy covers events across all 7 IPOs. Charts show upcoming events, recent sync status, and which IPOs have gaps in Academy coverage."
+        description="Coverage across all 7 IPOs"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -192,7 +190,7 @@ export default async function AcademyOverviewPage() {
             <CardTitle className="text-sm font-medium">Events by month</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartBar data={monthData} color="hsl(var(--primary) / 0.7)" />
+            <ChartBar data={monthData} color="color-mix(in oklab, var(--primary) 70%, transparent)" />
           </CardContent>
         </Card>
       </div>
@@ -203,7 +201,7 @@ export default async function AcademyOverviewPage() {
           <CardTitle className="text-sm font-medium">Events by year</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartBar data={yearData} color="hsl(var(--primary) / 0.7)" height={220} />
+          <ChartBar data={yearData} color="color-mix(in oklab, var(--primary) 70%, transparent)" height={220} />
         </CardContent>
       </Card>
 
@@ -218,11 +216,11 @@ export default async function AcademyOverviewPage() {
           </div>
           <div className="flex items-center gap-3 text-xs">
             {totalPending > 0 && (
-              <span className="flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+              <span className="flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 font-medium text-warning">
                 {totalPending} pending
               </span>
             )}
-            <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400">
+            <span className="flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 font-medium text-success">
               {totalApproved} approved
             </span>
           </div>
@@ -237,12 +235,12 @@ export default async function AcademyOverviewPage() {
                   <span className="text-sm truncate">{row.name}</span>
                   <div className="flex items-center gap-3 text-xs shrink-0">
                     {row.pending > 0 && (
-                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                      <span className="text-warning font-medium">
                         {row.pending} pending
                       </span>
                     )}
                     {row.approved > 0 && (
-                      <span className="text-green-600 dark:text-green-400 font-medium">
+                      <span className="text-success font-medium">
                         {row.approved} approved
                       </span>
                     )}

@@ -80,7 +80,7 @@ export default function IPOCoverageChart({ data }: { data: IPOChartRow[] }) {
           tickLine={false}
           axisLine={false}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
         <Legend
           iconType="square"
           iconSize={10}

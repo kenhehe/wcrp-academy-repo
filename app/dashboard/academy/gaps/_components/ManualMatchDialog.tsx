@@ -149,7 +149,7 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
                 </Button>
               </div>
               {syncMsg && (
-                <p className={`text-xs font-medium ${syncMsg.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+                <p className={`text-xs font-medium ${syncMsg.ok ? 'text-success' : 'text-destructive'}`}>
                   {syncMsg.text}
                 </p>
               )}

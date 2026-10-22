@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import LighthouseAccountsTable from './_components/LighthouseAccountsTable'
 import type { LighthouseUser } from './_components/LighthouseAccountsTable'
 
@@ -47,18 +47,16 @@ export default async function LighthouseAccountsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">LHA Accounts</h1>
-          <PageInfo>
+      <PageHeader
+        title="LHA Accounts"
+        info={
+          <>
             Manage login credentials for each Lighthouse Activity programme.
             Each programme gets its own account so their team can submit events for approval.
-          </PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage access for Lighthouse Activity teams
-        </p>
-      </div>
+          </>
+        }
+        description="Manage access for Lighthouse Activity teams"
+      />
       <LighthouseAccountsTable users={users} />
     </div>
   )

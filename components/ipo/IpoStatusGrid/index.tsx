@@ -35,12 +35,12 @@ function fmtDate(iso: string) {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  success: 'bg-green-500',
-  partial: 'bg-yellow-500',
-  skipped: 'bg-gray-400',
-  running: 'bg-blue-500 animate-pulse',
-  queued:  'bg-blue-400 animate-pulse',
-  failed:  'bg-red-500',
+  success: 'bg-run-found',
+  partial: 'bg-run-stuck',
+  skipped: 'bg-run-same',
+  running: 'bg-info motion-safe:animate-pulse',
+  queued:  'bg-info motion-safe:animate-pulse',
+  failed:  'bg-run-failed',
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -66,7 +66,7 @@ export default function IpoStatusGrid({ ipoStats, scrapeRuns }: Props) {
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <span
                   className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: ipo.color_hex ?? 'hsl(var(--primary))' }}
+                  style={{ backgroundColor: ipo.color_hex ?? 'var(--primary)' }}
                 />
                 {ipo.name}
                 <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
@@ -92,7 +92,7 @@ export default function IpoStatusGrid({ ipoStats, scrapeRuns }: Props) {
 
               {/* Scrape status row */}
               <div className="flex items-center gap-1.5 pt-1 border-t">
-                <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${run ? (STATUS_DOT[run.status] ?? 'bg-gray-400') : 'bg-gray-300'}`} />
+                <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${run ? (STATUS_DOT[run.status] ?? 'bg-muted-foreground') : 'bg-run-none'}`} />
                 <span className="text-xs text-muted-foreground">
                   {run ? STATUS_LABEL[run.status] ?? run.status : 'Never synced'}
                 </span>
@@ -103,7 +103,7 @@ export default function IpoStatusGrid({ ipoStats, scrapeRuns }: Props) {
                 )}
                 {run?.status === 'failed' && run.error_message && (
                   <Popover>
-                    <PopoverTrigger className="ml-auto inline-flex items-center justify-center rounded p-0.5 text-red-500 hover:text-red-700 transition-colors">
+                    <PopoverTrigger className="ml-auto inline-flex items-center justify-center rounded p-0.5 text-danger hover:text-danger/80 transition-colors">
                       <Info className="h-3.5 w-3.5" />
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-3" align="end">

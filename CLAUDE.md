@@ -6,7 +6,7 @@
 
 ## What This Project Is
 
-A Next.js 15 App Router dashboard for WCRP (World Climate Research Programme). It scrapes events from 7 IPO websites and audits their presence in the WCRP Academy training catalogue.
+A Next.js 16 App Router dashboard for WCRP (World Climate Research Programme). It scrapes events from 7 IPO websites and audits their presence in the WCRP Academy training catalogue.
 
 Two core data tables:
 - `events` — scraped IPO events (source of truth for what IPOs publish)
@@ -39,6 +39,9 @@ A feature that needs to reach both `academy_admin` and a `can_approve` IPO accou
 - **Mutations go in `actions.ts`** — always call `revalidatePath()` after mutating.
 - **Skeletons are mandatory** for dynamic data. Use `@/components/ui/skeleton`.
 - **`cn()` for class merging.** No hardcoded hex colors — use CSS variables.
+- **Theme colors are hex variables** (`app/globals.css`). Reference them as `var(--primary)`; for transparency use `color-mix(in oklab, var(--border) 30%, transparent)`. Never `hsl(var(--x))` — that's the old shadcn HSL-triplet convention, invalid with hex values, and the browser drops it silently (borders fall back to the text color, chart/SVG fills to black).
+- **shadcn/ui here runs on Base UI, not Radix** (`components.json` style `base-nova`). Compose with the `render` prop (`<DialogClose render={<Button />}>`), not `asChild` — Radix-era snippets won't work as-is.
+- **Status colors and page chrome:** use the tone tokens (`text-warning bg-warning-soft`, …) or `components/base/StatusBadge`, and `components/base/PageHeader` for page titles — never raw Tailwind palette classes, which break dark mode. Details: `app/dashboard/CLAUDE.md` → Theme, tokens & dark mode.
 - **Type-check:** `npx tsc --noEmit` (there is no `npm run type-check`).
 
 ## Directory Map

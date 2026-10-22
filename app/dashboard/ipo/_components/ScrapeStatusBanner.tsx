@@ -8,7 +8,7 @@ const CONTACT_EMAIL = 'wcrp-academy@wcrp-climate.org'
 
 const WHITELIST_RULE = {
   label:       'Quick Fix',
-  labelColor:  'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  labelColor:  'bg-success-soft text-success',
   icon:        Zap,
   title:       'Whitelist our scraper bot',
   description: 'Ask your web admin to add a firewall rule allowing our bot by User-Agent. Takes ~2 minutes and fully restores automatic sync — no ongoing effort needed.',
@@ -18,14 +18,14 @@ const SOLUTIONS = [
   WHITELIST_RULE,
   {
     label:       'Best Long-Term',
-    labelColor:  'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+    labelColor:  'bg-info-soft text-info',
     icon:        Globe,
     title:       'Connect via REST API',
     description: 'Expose a simple API endpoint from your website so we can pull event data directly. Fully automated, real-time, and no bot-detection risk.',
   },
   {
     label:       'Alternative',
-    labelColor:  'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+    labelColor:  'bg-warning-soft text-warning',
     icon:        FileSpreadsheet,
     title:       'Send us a CSV / spreadsheet',
     description: 'Email us your events as a spreadsheet and we\'ll import them on your behalf. No technical knowledge required — just send us the file whenever you have new events.',
@@ -91,27 +91,27 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
   )
 
   return (
-    <div className="mx-6 mt-6 rounded-md border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+    <div className="mx-6 mt-6 rounded-md border border-warning/30 bg-warning-soft">
       {/* Main row */}
       <div className="flex items-start gap-3 p-4">
-        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+          <p className="text-sm font-semibold text-foreground">
             Your events couldn&apos;t be synced automatically
           </p>
-          <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+          <p className="text-xs text-warning mt-0.5">
             {reason} Last attempted {fmtDate(startedAt)}.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <a href="http://wcrp-academy.org/contact-us" target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/30">
+            <Button size="sm" variant="outline" className="h-7 text-xs border-warning/40 hover:bg-warning/15">
               Contact us
             </Button>
           </a>
           <button
             onClick={handleDismiss}
-            className="cursor-pointer text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 p-0.5 rounded"
+            className="cursor-pointer text-warning/70 hover:text-warning p-0.5 rounded"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />
@@ -120,10 +120,10 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
       </div>
 
       {/* Solutions toggle */}
-      <div className="border-t border-amber-200 dark:border-amber-800">
+      <div className="border-t border-warning/30">
         <button
           onClick={() => setExpanded(v => !v)}
-          className="cursor-pointer flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+          className="cursor-pointer flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-warning hover:text-foreground transition-colors"
         >
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           {expanded ? 'Hide solutions' : 'How to resolve this'}
@@ -132,7 +132,7 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
         {expanded && (
           <div className="px-4 pb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {SOLUTIONS.map(({ label, labelColor, icon: Icon, title, description }) => (
-              <div key={title} className="rounded-md border bg-white dark:bg-background p-3 space-y-1.5">
+              <div key={title} className="rounded-md border bg-background p-3 space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${labelColor}`}>
                     <Icon className="h-2.5 w-2.5" />
@@ -147,7 +147,7 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
                   <div className="mt-2 rounded border bg-muted/40 p-2.5 space-y-1.5 font-mono text-[11px] text-foreground">
                     <p><span className="text-muted-foreground">Rule name: </span>Allow WCRP Events Bot</p>
                     <p><span className="text-muted-foreground">If: </span>Header <span className="font-semibold">User-Agent</span> contains</p>
-                    <p className="pl-3 select-all font-semibold text-green-700 dark:text-green-400">WCRP-Events-Bot/1.0</p>
+                    <p className="pl-3 select-all font-semibold text-success">WCRP-Events-Bot/1.0</p>
                     <p><span className="text-muted-foreground">Then: </span>Skip → All Security Rules</p>
                     <p className="border-t pt-1.5 text-muted-foreground font-sans text-[10px]">
                       Full UA: <span className="select-all font-mono">Mozilla/5.0 (compatible; WCRP-Events-Bot/1.0; +https://wcrp-events.org)</span>

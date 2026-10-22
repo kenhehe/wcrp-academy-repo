@@ -388,7 +388,7 @@ function StepMap({
                       <span className="text-xs font-medium text-destructive">Required</span>
                     )}
                     {tier === 'recommended' && (
-                      <span className="text-xs text-amber-600 dark:text-amber-400">Key field</span>
+                      <span className="text-xs text-warning">Key field</span>
                     )}
                   </td>
                 </tr>

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -51,24 +51,22 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">Academy Catalogue</h1>
-            <PageInfo>A live mirror of the WCRP Academy event catalogue pulled from WordPress via the REST API. This view is read-only — to add or edit an event, update it directly on the Academy website.</PageInfo>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Live from WordPress · {mapped.length} events
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-lg">
-            Data is fetched directly from{' '}
-            <a href="https://wcrp-academy.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
-              wcrp-academy.org
-            </a>{' '}
-            via the WordPress REST API. Any changes made on the Academy website will reflect here automatically. This view is read-only — to edit an event, update it directly on the Academy site.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Academy Catalogue"
+        info="A live mirror of the WCRP Academy event catalogue pulled from WordPress via the REST API. This view is read-only — to add or edit an event, update it directly on the Academy website."
+        description={
+          <>
+            <p>Live from WordPress · {mapped.length} events</p>
+            <p className="text-xs mt-1 max-w-lg">
+              Data is fetched directly from{' '}
+              <a href="https://wcrp-academy.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                wcrp-academy.org
+              </a>{' '}
+              via the WordPress REST API. Any changes made on the Academy website will reflect here automatically. This view is read-only — to edit an event, update it directly on the Academy site.
+            </p>
+          </>
+        }
+      />
 
       <CatalogueFilters
         statusOptions={ALL_STATUSES}

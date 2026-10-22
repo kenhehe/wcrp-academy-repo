@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
 import { ExternalLink, Globe, Layers, Upload } from 'lucide-react'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import Link from 'next/link'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
 import ClimateAnalytics from './_components/ClimateAnalytics'
@@ -37,13 +37,11 @@ export default async function IPOOverviewPage() {
   if (canApprove) {
     return (
       <div className="p-8 space-y-8">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">Climate Analytics</h1>
-            <PageInfo>Cross-org view of all IPO scraped events and Lighthouse Activity submissions. No Academy catalogue data — for Academy coverage go to the Academy dashboard.</PageInfo>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">All IPO + LHA events at a glance</p>
-        </div>
+        <PageHeader
+          title="Climate Analytics"
+          info="Cross-org view of all IPO scraped events and Lighthouse Activity submissions. No Academy catalogue data — for Academy coverage go to the Academy dashboard."
+          description="All IPO + LHA events at a glance"
+        />
         <ClimateAnalytics />
       </div>
     )
@@ -131,20 +129,18 @@ export default async function IPOOverviewPage() {
                                       <Globe className="h-4 w-4" />
 
   const sourceBadgeClass =
-    source?.type === 'third_party' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400' :
+    source?.type === 'third_party' ? 'bg-info-soft text-info border-info/30' :
     source?.type === 'blocked' && !scraperWorking
-                                   ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' :
-                                     'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400'
+                                   ? 'bg-warning-soft text-warning border-warning/30' :
+                                     'bg-muted text-muted-foreground border-border'
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Overview</h1>
-          <PageInfo>Your IPO event catalogue scraped from your official website. Monitor upcoming events, review sync history, and track coverage stats across all your listings.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">Your event catalogue at a glance</p>
-      </div>
+      <PageHeader
+        title="Overview"
+        info="Your IPO event catalogue scraped from your official website. Monitor upcoming events, review sync history, and track coverage stats across all your listings."
+        description="Your event catalogue at a glance"
+      />
 
       {/* IPO scraper source banner — hidden for lighthouses and when sync failure banner is already visible */}
       {!isLighthouse && source && lastRun?.status !== 'failed' && (

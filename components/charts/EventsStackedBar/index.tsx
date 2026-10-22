@@ -76,14 +76,14 @@ function CustomTooltip({ active, payload, label }: {
         <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 2 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: p.fill, flexShrink: 0 }} />
-            <span style={{ color: 'hsl(var(--muted-foreground))' }}>{p.name}</span>
+            <span style={{ color: 'var(--muted-foreground)' }}>{p.name}</span>
           </span>
           <span style={{ fontWeight: 500 }}>{p.value}</span>
         </div>
       ))}
       {visible.length > 1 && (
         <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'hsl(var(--muted-foreground))' }}>Total</span>
+          <span style={{ color: 'var(--muted-foreground)' }}>Total</span>
           <span style={{ fontWeight: 600 }}>{total}</span>
         </div>
       )}
@@ -150,19 +150,19 @@ export default function EventsStackedBar({ orgs, events, height = 220 }: EventsS
           <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
             />
             <Tooltip
               content={<CustomTooltip />}
-              cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
+              cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
             />
             {orgs.map(org => (
               <Bar

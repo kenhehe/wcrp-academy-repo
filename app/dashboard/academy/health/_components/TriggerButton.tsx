@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ScrapePreviewDialog from './ScrapePreviewDialog'
 
@@ -14,13 +15,9 @@ export default function TriggerButton({ ipoId, ipoName }: Props) {
 
   return (
     <>
-      <Button
-        onClick={() => setOpen(true)}
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs"
-      >
-        Trigger
+      <Button onClick={() => setOpen(true)} variant="ghost" size="sm">
+        <Eye />
+        Preview
       </Button>
 
       <ScrapePreviewDialog

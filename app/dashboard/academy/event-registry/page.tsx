@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import EventRegistryFiltersBar from '@/components/events/EventRegistryFiltersBar'
 import EventRegistryBrowser from '@/components/events/EventRegistryBrowser'
 import EventRegistryBrowserSkeleton from '@/components/events/EventRegistryBrowserSkeleton'
@@ -29,19 +29,17 @@ export default async function AcademyEventRegistryPage({ searchParams }: PagePro
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Event Registry</h1>
-          <PageInfo>
+      <PageHeader
+        title="Event Registry"
+        info={
+          <>
             Every event across every IPO and Lighthouse Activity in one place — search, filter, and
             browse regardless of approval status. Read-only: to edit an event, go to that org&rsquo;s
             own Events page.
-          </PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Browse every event across all orgs
-        </p>
-      </div>
+          </>
+        }
+        description="Browse every event across all orgs"
+      />
 
       <EventRegistryFiltersBar
         orgs={orgs ?? []}

@@ -113,7 +113,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                         <p className="truncate font-medium">{row.title}</p>
                       )}
                       {match && (() => {
-                        const scoreColor = match.score >= 0.6 ? 'text-green-600' : match.score >= 0.35 ? 'text-amber-600' : 'text-muted-foreground'
+                        const scoreColor = match.score >= 0.6 ? 'text-success' : match.score >= 0.35 ? 'text-warning' : 'text-muted-foreground'
                         return (
                           <p className={`truncate text-xs mt-0.5 ${scoreColor}`}>
                             {'\u2248'}{' '}
@@ -149,7 +149,7 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
                             <input type="hidden" name="academy_event_id" value={match.academy_event_id} />
                             <button
                               type="submit"
-                              className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50/50 px-2.5 py-1 text-xs font-medium text-amber-700 shadow-sm transition-colors hover:border-amber-500 hover:bg-amber-100 active:bg-amber-200"
+                              className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning-soft px-2.5 py-1 text-xs font-medium text-warning shadow-sm transition-colors hover:border-warning/70 hover:bg-warning/15 active:bg-warning/25"
                             >
                               <LinkIcon className="h-3 w-3" />
                               Yes, same event

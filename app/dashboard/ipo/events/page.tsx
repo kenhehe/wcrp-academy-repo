@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import EventsTable from '@/components/events/EventsTable'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import type { ActiveFilters } from '@/components/events/EventsTable/types'
 import { PAGE_SIZE } from '@/components/events/EventsTable/types'
 
@@ -81,18 +81,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-8 space-y-2">
-      <div className="mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Events</h1>
-          <PageInfo>The full list of events scraped from your IPO&apos;s website. Filter by status or date, search by title, and export your catalogue to a spreadsheet for offline use.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {count ?? 0} total events in your catalogue
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        title="Events"
+        info="The full list of events scraped from your IPO's website. Filter by status or date, search by title, and export your catalogue to a spreadsheet for offline use."
+        description={`${count ?? 0} total events in your catalogue`}
+      />
 
       {ipoType === 'lighthouse' && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
           <span className="text-base">🏠</span>
           <div>
             <span className="font-medium">Lighthouse Activity — </span>

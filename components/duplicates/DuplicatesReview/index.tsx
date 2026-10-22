@@ -89,7 +89,7 @@ export default async function DuplicatesReview({ ipoFilter, page, ipos, sp }: Pr
           </div>
         ) : (
           pairs.map(pair => {
-            const scoreColor = pair.score >= 0.6 ? 'text-green-600 bg-green-50 border-green-200' : 'text-amber-600 bg-amber-50 border-amber-200'
+            const scoreColor = pair.score >= 0.6 ? 'text-success bg-success-soft border-success/30' : 'text-warning bg-warning-soft border-warning/30'
             return (
               <div key={`${pair.event_id}-${pair.duplicate_event_id}`} className="rounded-lg border bg-background p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -120,7 +120,7 @@ export default async function DuplicatesReview({ ipoFilter, page, ipos, sp }: Pr
                     <input type="hidden" name="duplicate_of_event_id" value={pair.duplicate_event_id} />
                     <button
                       type="submit"
-                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-green-300 bg-green-50/50 px-3 py-1.5 text-xs font-medium text-green-700 shadow-sm transition-colors hover:border-green-500 hover:bg-green-100 active:bg-green-200"
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-success/40 bg-success-soft px-3 py-1.5 text-xs font-medium text-success shadow-sm transition-colors hover:border-success/70 hover:bg-success/15 active:bg-success/25"
                     >
                       <LinkIcon className="h-3 w-3" />
                       Same event

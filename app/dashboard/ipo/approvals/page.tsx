@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import ApprovalsTable from './_components/ApprovalsTable'
 
 export const dynamic = 'force-dynamic'
@@ -34,27 +34,26 @@ export default async function ApprovalsPage() {
     return {
       ...e,
       ipoName:  ipo?.name  ?? e.ipo_id,
-      ipoColor: ipo?.color_hex ?? '#6b7280',
+      ipoColor: ipo?.color_hex ?? 'var(--muted-foreground)',
     }
   })
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Approvals</h1>
-          <PageInfo>
+      <PageHeader
+        title="Approvals"
+        info={
+          <>
             Events awaiting your review before they appear on the WCRP community calendar —
             from IPO websites and Lighthouse Activity submissions alike.
-          </PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {events.length === 0
+          </>
+        }
+        description={
+          events.length === 0
             ? 'No pending submissions'
             : `${events.length} event${events.length !== 1 ? 's' : ''} awaiting approval`
-          }
-        </p>
-      </div>
+        }
+      />
 
       <ApprovalsTable events={events} />
     </div>

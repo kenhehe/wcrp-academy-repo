@@ -27,7 +27,7 @@ export default function RunAllButton() {
       {isPending ? (
         <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Queuing…</>
       ) : fired !== null ? (
-        <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-green-600" />{fired} scrapers queued</>
+        <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-success" />{fired} scrapers queued</>
       ) : (
         <><RefreshCw className="mr-1.5 h-3.5 w-3.5" />Run all scrapers</>
       )}

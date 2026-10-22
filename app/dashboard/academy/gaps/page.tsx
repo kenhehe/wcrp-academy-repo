@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
@@ -48,15 +48,11 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Gap Analysis</h1>
-          <PageInfo>Shows IPO-scraped events that have not yet been added to the WCRP Academy catalogue. Use this to identify upcoming events that need manual review before publishing to the Academy website.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          IPO events not yet present in the Academy catalogue
-        </p>
-      </div>
+      <PageHeader
+        title="Gap Analysis"
+        info="Shows IPO-scraped events that have not yet been added to the WCRP Academy catalogue. Use this to identify upcoming events that need manual review before publishing to the Academy website."
+        description="IPO events not yet present in the Academy catalogue"
+      />
 
       {/* Per-IPO coverage chart */}
       {(() => {
@@ -108,13 +104,13 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
                     Sometimes the system finds a possible match in the catalogue — it will show the suggested title below the event name with a colour-coded confidence score:
                   </p>
                   <ul className="space-y-1 pl-3">
-                    <li><span className="font-medium text-green-600">Green (60%+)</span> — Very likely the same event</li>
-                    <li><span className="font-medium text-amber-600">Amber (35–59%)</span> — Might be the same, worth a look</li>
+                    <li><span className="font-medium text-success">Green (60%+)</span> — Very likely the same event</li>
+                    <li><span className="font-medium text-warning">Amber (35–59%)</span> — Might be the same, worth a look</li>
                     <li><span className="font-medium">Gray (below 35%)</span> — Probably not the same event</li>
                   </ul>
                   <p>Click the suggested title to open the Academy catalogue page and check. Then choose:</p>
                   <ul className="space-y-1 pl-3">
-                    <li><span className="font-medium text-amber-600">Yes, same event</span> — Use this when the suggestion is correct. It properly links the two records together.</li>
+                    <li><span className="font-medium text-warning">Yes, same event</span> — Use this when the suggestion is correct. It properly links the two records together.</li>
                     <li><span className="font-medium">Already in Academy</span> — Use this when you know the event is in the catalogue but the suggestion is wrong or missing. It marks it as covered without creating a link.</li>
                   </ul>
                 </PopoverDescription>

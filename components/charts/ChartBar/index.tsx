@@ -12,7 +12,7 @@ interface ActiveBar {
 
 export default function ChartBar({
   data:   dataProp,
-  color  = 'hsl(var(--primary))',
+  color  = 'var(--primary)',
   height = 180,
 }: ChartBarProps) {
   const data = dataProp ?? []
@@ -45,12 +45,12 @@ export default function ChartBar({
         <BarChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}
@@ -91,7 +91,7 @@ export default function ChartBar({
           }}
         >
           <p style={{ fontWeight: 500, marginBottom: 2 }}>{activeBar.label}</p>
-          <p style={{ color: 'hsl(var(--muted-foreground))' }}>{activeBar.value} events</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>{activeBar.value} events</p>
         </div>,
         document.body
       )}

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/base/StatusBadge'
 import { Progress } from '@/components/ui/progress'
 import EventsStackedBar from '@/components/charts/EventsStackedBar'
 import { ClipboardCheck } from 'lucide-react'
@@ -86,7 +86,7 @@ export default async function ClimateAnalytics() {
   const ipoOrgs = (ipos ?? []).map(i => ({
     id:    i.id,
     name:  i.name,
-    color: i.color_hex ?? '#6b7280',
+    color: i.color_hex ?? 'var(--muted-foreground)',
   }))
 
   const lhaOrgs = (lighthouses ?? []).map((i, idx) => ({
@@ -123,7 +123,7 @@ export default async function ClimateAnalytics() {
               <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className={`text-2xl font-semibold ${label === 'LHA · Pending Approval' && value > 0 ? 'text-amber-600' : ''}`}>
+              <p className={`text-2xl font-semibold ${label === 'LHA · Pending Approval' && value > 0 ? 'text-warning' : ''}`}>
                 {value}
               </p>
             </CardContent>
@@ -190,11 +190,11 @@ export default async function ClimateAnalytics() {
             </div>
             <div className="flex items-center gap-2 text-xs">
               {totalPending > 0 && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                <span className="rounded-full bg-warning-soft px-2.5 py-1 font-medium text-warning">
                   {totalPending} pending
                 </span>
               )}
-              <span className="rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400">
+              <span className="rounded-full bg-success-soft px-2.5 py-1 font-medium text-success">
                 {totalApproved} approved
               </span>
             </div>
@@ -212,10 +212,10 @@ export default async function ClimateAnalytics() {
                       <span className="text-sm truncate">{lha.name}</span>
                       <div className="flex items-center gap-3 text-xs shrink-0">
                         {pending > 0 && (
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">{pending} pending</span>
+                          <span className="text-warning font-medium">{pending} pending</span>
                         )}
                         {approved > 0 && (
-                          <span className="text-green-600 dark:text-green-400 font-medium">{approved} approved</span>
+                          <span className="text-success font-medium">{approved} approved</span>
                         )}
                         {pending === 0 && approved === 0 && (
                           <span className="text-muted-foreground">no events</span>
@@ -258,12 +258,7 @@ export default async function ClimateAnalytics() {
                         <span className="ml-2">{lhaNameMap.get(event.ipo_id) ?? event.ipo_id}</span>
                       </p>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-xs shrink-0 border-amber-300 text-amber-700 dark:text-amber-400"
-                    >
-                      pending
-                    </Badge>
+                    <StatusBadge tone="warning" className="shrink-0">pending</StatusBadge>
                   </div>
                 ))}
                 {totalPending > 8 && (

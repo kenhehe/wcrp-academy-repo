@@ -44,6 +44,14 @@ The Secretariat account's pending-approvals count shows both inline on the Appro
 
 Used on `ipo/events` (`components/events/EventsTable`) and `academy/event-registry` / `ipo/event-registry` (`components/events/EventRegistryFiltersBar`): a debounced (300ms) text input updates the URL's `?q=` param via `router.replace`, wrapped in `startTransition()`. While that transition is pending, the existing results stay mounted and get dimmed (`opacity-60 pointer-events-none`) with a small spinner, instead of a Suspense-skeleton swap on every keystroke. `EventsTable` uses a *second*, separate `useTransition` from the one already used for the create/edit/delete modals, so typing in the search box never gets confused with a form submitting. New instances of "search inside a filtered table" should reuse this exact pattern rather than inventing another one.
 
+## Theme, tokens & dark mode
+
+- **Tokens live in `app/globals.css`** (WCRP palette, hex values). Status tones for text, badges and banners: `text-info bg-info-soft`, and the same for `success`, `warning`, `danger` — every pair is ≥ 4.5:1 in light and dark. Neutral is the existing `text-muted-foreground bg-muted`. Scrape-run marks (strips, dots): `bg-run-found | run-same | run-stuck | run-failed | run-none`.
+- **Never use raw Tailwind palette classes** (`text-amber-600`, `bg-emerald-50`): they don't follow dark mode. The only exceptions are org identity colors (`ipos.color_hex`, plus `ClimateAnalytics`' LHA fallback palette) and the drawer's `bg-black/40` backdrop.
+- **Dark mode follows the OS** (`next-themes` in `app/layout.tsx`, `defaultTheme="system"`) and each person can override it with `components/layout/ThemeToggle` (Light / Dark / System) — right end of `SidebarDrawer`'s top bar, and the public homepage header. Its icons swap with `dark:` classes so server and client markup match.
+- **Shared pieces** in `components/base/`: `PageHeader` (title + `PageInfo` + description + actions; every dashboard page uses it), `StatusBadge` (`tone` + icon + label — status is never color alone), `StatTile` (label / value / sub). Use these instead of hand-writing headers and badges.
+- New chart or status colors get checked with the dataviz validator and a contrast check before use. `components/charts/StatusDonut`'s note explains the one known compromise (five statuses exceed what an all-pairs chart can separate; the donut is due for a redesign).
+
 ## When to Use `'use client'`
 
 Add it only when the component needs:
@@ -102,11 +110,13 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 
 ## Page-by-Page Reference
 
-### `academy/health`
-- Reads `scrape_runs` table for history
-- `TriggerButton` fires a Server Action → calls the Supabase Edge Function via `fetch()`
-- `ScrapePreviewDialog` opens a dialog, calls the Edge Function with `{ dry_run: true }`, reads the NDJSON response stream live
-- `RealtimeHealthSync` subscribes to `scrape_runs` via Supabase Realtime and refreshes the page when a run completes
+### `academy/health` (System Health)
+- Data comes from `lib/data/health.ts` (plain module, loaders wrapped in React `cache()`, admin client, query errors thrown): `getHealthOverview()` loads the IPO list (`type='ipo'`), the last 60 days of `scrape_runs` in one query (it throws if the API row cap truncates it), and each IPO's latest run and last success; `getRunLog(filter, page)` loads the paginated log plus a count per `?result=` filter (`failed` / `unfinished` / `manual`).
+- Outcome rules (`runOutcome`): `success`/`partial` → found events; `skipped` → no change (the freshness check found the first listed event already saved); `failed`; a `queued`/`running` row older than 15 minutes → **didn't finish** (the Edge Function was killed before recording a result). Each day in the 60-day strip shows that day's worst outcome.
+- "Needs attention" (`attentionFor`): the latest finished run failed (with the failure streak and last error), no run in 26 hours, or ≥ 3 unfinished runs in 14 days — combined into one message per IPO.
+- `lib/data/scrape-schedule.ts` mirrors the `pg_cron` schedule in UTC for the Schedule popover and the next-run countdown; update it whenever a cron job changes. All times on the page are UTC.
+- Per IPO: **Preview** (`TriggerButton` → `ScrapePreviewDialog`: dry run first, then an optional forced run) and **Run now** (`RunNowButton` → `triggerScrape(ipoId, true)`).
+- `RealtimeHealthSync` subscribes to `scrape_runs` and calls `router.refresh()`, so new runs show up without a reload (the "Live" pill on the run log).
 
 ### `academy/events` (Academy Coverage)
 - Source: `academy_events` table
@@ -178,7 +188,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 ## Adding a New Page
 
 1. Create `app/dashboard/academy/newpage/page.tsx`
-2. Add `export const dynamic = 'force-dynamic'` at the top
+2. Add `export const dynamic = 'force-dynamic'` at the top, and start the page with `<PageHeader>` (`components/base/PageHeader`)
 3. Create `loading.tsx` with a skeleton
 4. Create `error.tsx` with `'use client'` (Next.js requires this)
 5. If mutations needed, create `actions.ts` with `'use server'`

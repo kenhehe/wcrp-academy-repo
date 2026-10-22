@@ -132,6 +132,10 @@ supabase functions deploy sync-academy-wp
 
 **New cron jobs should authenticate via Supabase Vault**, not a hardcoded key in the migration (`20261001_add_clivar_cron.sql` is the template — references `vault.decrypted_secrets where name = 'service_role_key'` instead of embedding the literal JWT). The existing `clic` job still hardcodes its key; that's a pre-existing exception, not the pattern to copy going forward.
 
+**A missing or wrong Vault secret fails silently** — this kept CLIVAR from running for three weeks after its job was added. `cron.job_run_details` still says `succeeded` (pg_net only queues the request), the Edge Function gateway then rejects the call with 401 before the function starts, and nothing ever reaches `scrape_runs`. Check the stored key without revealing it: `select length(decrypted_secret), left(decrypted_secret, 3) = 'eyJ' from vault.decrypted_secrets where name = 'service_role_key';` — the length should match the service-role JWT in `.env.local`, and a JWT starts with `eyJ`.
+
+**The app keeps a copy of the schedule** in `lib/data/scrape-schedule.ts` (System Health's Schedule popover and next-run countdown). Change it together with any cron job.
+
 ## How to Add a New Scraper
 
 1. **Create `supabase/functions/scrape-newipo/index.ts`** — copy `scrape-gewex/index.ts` as template.

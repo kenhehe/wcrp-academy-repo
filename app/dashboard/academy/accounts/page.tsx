@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import AccountsTable from '@/components/accounts/AccountsTable'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import type { IPOUser } from '@/components/accounts/AccountsTable/types'
 import { IPO_OPTIONS } from '@/components/accounts/AccountsTable/types'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
@@ -37,15 +37,11 @@ export default async function AccountsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">IPO Accounts</h1>
-          <PageInfo>Manage login credentials for each IPO team. Each IPO gets its own account with access limited to their own event catalogue. Use this page to invite new users or reset access.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage login access for each IPO team
-        </p>
-      </div>
+      <PageHeader
+        title="IPO Accounts"
+        info="Manage login credentials for each IPO team. Each IPO gets its own account with access limited to their own event catalogue. Use this page to invite new users or reset access."
+        description="Manage login access for each IPO team"
+      />
       <AccountsTable users={ipoUsers} />
     </div>
   )

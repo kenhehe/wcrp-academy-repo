@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -49,6 +50,9 @@ export default function SidebarDrawer({ topBar, triggerBadge, header, footer, ch
           )}
         </button>
         {topBar}
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Backdrop */}

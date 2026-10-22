@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import PublicationRequestFiltersBar from './_components/PublicationRequestFiltersBar'
 import PublicationRequestsTable from './_components/PublicationRequestsTable'
 
@@ -52,7 +52,7 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
     return {
       ...e,
       ipoName:  ipo?.name  ?? e.ipo_id,
-      ipoColor: ipo?.color_hex ?? '#6b7280',
+      ipoColor: ipo?.color_hex ?? 'var(--muted-foreground)',
     }
   })
 
@@ -60,19 +60,17 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Publication Requests</h1>
-          <PageInfo>
+      <PageHeader
+        title="Publication Requests"
+        info={
+          <>
             Every event where the organizer asked to be considered for social media, a website
             article, or the newsletter — across all IPOs and Lighthouse Activities, regardless of
             approval status. Purely informational: use it to prioritize what to communicate.
-          </PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {count ?? 0} flagged event{count === 1 ? '' : 's'}
-        </p>
-      </div>
+          </>
+        }
+        description={`${count ?? 0} flagged event${count === 1 ? '' : 's'}`}
+      />
 
       <div className="flex items-center justify-between">
         <PublicationRequestFiltersBar

@@ -109,20 +109,20 @@ export default function AccountsTable({ users }: { users: IPOUser[] }) {
                       {user.org_label}
                     </Badge>
                     {user.org_group === 'Lighthouse' && (
-                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">LHA</span>
+                      <span className="text-[10px] font-medium text-warning">LHA</span>
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   {user.source_type ? (
                     <div className="flex items-center gap-1.5">
-                      {user.source_type === 'third_party' && <Layers className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
-                      {user.source_type === 'blocked'     && <Upload className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
-                      {user.source_type === 'html'        && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
+                      {user.source_type === 'third_party' && <Layers className="h-3.5 w-3.5 text-info shrink-0" />}
+                      {user.source_type === 'blocked'     && <Upload className="h-3.5 w-3.5 text-warning shrink-0" />}
+                      {user.source_type === 'html'        && <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                       <span className={`text-xs font-medium ${
-                        user.source_type === 'third_party' ? 'text-purple-700 dark:text-purple-400' :
-                        user.source_type === 'blocked'     ? 'text-orange-700 dark:text-orange-400' :
-                                                             'text-blue-700 dark:text-blue-400'
+                        user.source_type === 'third_party' ? 'text-info' :
+                        user.source_type === 'blocked'     ? 'text-warning' :
+                                                             'text-muted-foreground'
                       }`}>
                         {user.source_label}
                       </span>

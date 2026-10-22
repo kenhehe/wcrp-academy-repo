@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import PageInfo from '@/components/base/PageInfo'
+import PageHeader from '@/components/base/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
@@ -96,15 +96,11 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Academy Coverage</h1>
-          <PageInfo>Shows every WCRP Academy event and whether it traces back to one of the 7 IPO sources. Use the coverage % to track progress — click the info icon beside &ldquo;Catalogue&rdquo; below for a full explanation of each status.</PageInfo>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Which events in the Academy catalogue are linked to an IPO source
-        </p>
-      </div>
+      <PageHeader
+        title="Academy Coverage"
+        info="Shows every WCRP Academy event and whether it traces back to one of the 7 IPO sources. Use the coverage % to track progress — click the info icon beside “Catalogue” below for a full explanation of each status."
+        description="Which events in the Academy catalogue are linked to an IPO source"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -160,11 +156,11 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                   </p>
                   <ul className="space-y-1.5 pl-3">
                     <li>
-                      <span className="font-medium text-emerald-600">Matched</span> — This event
+                      <span className="font-medium text-success">Matched</span> — This event
                       has been linked to a record from one of the 7 IPOs.
                     </li>
                     <li>
-                      <span className="font-medium text-amber-600">Needs review</span> — No IPO
+                      <span className="font-medium text-warning">Needs review</span> — No IPO
                       match has been found yet. It may exist in an IPO catalogue — check the
                       Gap Analysis page to resolve it.
                     </li>
@@ -252,17 +248,17 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
                             <span>Not an IPO event</span>
                           </div>
                         ) : isMatched ? (
-                          <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                          <div className="flex items-center gap-1.5 text-xs text-success">
                             <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
                             <span>Matched</span>
                             {ipoName && (
-                              <span className="ml-1 rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950/30 dark:text-emerald-400">
+                              <span className="ml-1 rounded px-1.5 py-0.5 bg-success-soft text-success font-medium">
                                 {ipoName}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                          <div className="flex items-center gap-1.5 text-xs text-warning">
                             <XCircle className="h-3.5 w-3.5 flex-shrink-0" />
                             <span>Needs review</span>
                           </div>

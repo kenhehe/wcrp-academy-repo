@@ -162,7 +162,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
                       {isFailed
                         ? <AlertCircle className="h-4 w-4 text-destructive" />
                         : isDone
-                          ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ? <CheckCircle2 className="h-4 w-4 text-success" />
                           : isActive
                             ? <Loader2 className="h-4 w-4 animate-spin text-foreground" />
                             : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
@@ -195,7 +195,7 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
 
           {/* Confirmed */}
           {confirmed && (
-            <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/20 dark:text-green-300">
+            <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               Scrape is running in the background — refresh System Health to see the result.
             </div>
