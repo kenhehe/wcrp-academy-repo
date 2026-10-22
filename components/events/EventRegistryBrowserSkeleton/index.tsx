@@ -9,6 +9,7 @@ export default function EventRegistryBrowserSkeleton() {
             {['Event', 'Org', 'Dates', 'Location', 'Status', 'Approval', 'Wants'].map(h => (
               <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
             ))}
+            <th className="px-4 py-3"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -21,6 +22,12 @@ export default function EventRegistryBrowserSkeleton() {
               <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
               <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
               <td className="px-4 py-3"><Skeleton className="h-4 w-10" /></td>
+              <td className="px-2 py-1.5">
+                <div className="flex justify-end gap-1">
+                  <Skeleton className="size-7" />
+                  <Skeleton className="size-7" />
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

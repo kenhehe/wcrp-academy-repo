@@ -9,9 +9,12 @@ import type { EventRow, RegistryField } from './types'
 interface EventFormProps {
   event?: EventRow
   registryFields: RegistryField[]
+  // Off when the Academy or Secretariat edits another org's event: those are the org's own requests and fields
+  showPublicationFlags?: boolean
+  showCustomFields?:     boolean
 }
 
-export default function EventForm({ event, registryFields }: EventFormProps) {
+export default function EventForm({ event, registryFields, showPublicationFlags = true, showCustomFields = true }: EventFormProps) {
   return (
     <div className="space-y-4">
       {event && <input type="hidden" name="event_id" value={event.id} />}
@@ -95,6 +98,7 @@ export default function EventForm({ event, registryFields }: EventFormProps) {
         </div>
       </div>
 
+      {showPublicationFlags && (<>
       <Separator />
       <div className="space-y-2">
         <Label>Consider for publication</Label>
@@ -118,9 +122,10 @@ export default function EventForm({ event, registryFields }: EventFormProps) {
           </label>
         </div>
       </div>
+      </>)}
 
       {/* Dynamic extra fields from ipo_field_registry */}
-      {registryFields.length > 0 && (
+      {showCustomFields && registryFields.length > 0 && (
         <>
           <Separator />
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

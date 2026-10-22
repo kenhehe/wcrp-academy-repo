@@ -4,9 +4,12 @@ import EventRegistryBrowserSkeleton from '@/components/events/EventRegistryBrows
 export default function AcademyEventRegistryLoading() {
   return (
     <div className="p-8 space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-4 w-64" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-8 w-28" />
       </div>
       <div className="flex gap-3">
         <Skeleton className="h-8 w-56" />

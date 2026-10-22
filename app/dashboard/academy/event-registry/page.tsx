@@ -5,6 +5,7 @@ import PageHeader from '@/components/base/PageHeader'
 import EventRegistryFiltersBar from '@/components/events/EventRegistryFiltersBar'
 import EventRegistryBrowser from '@/components/events/EventRegistryBrowser'
 import EventRegistryBrowserSkeleton from '@/components/events/EventRegistryBrowserSkeleton'
+import { AddEventButton } from '@/components/events/AdminEventDialogs'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,11 +37,12 @@ export default async function AcademyEventRegistryPage({ searchParams }: PagePro
         info={
           <>
             Every event across every IPO and Lighthouse Activity in one place — search, filter, and
-            browse regardless of approval status. Read-only: to edit an event, go to that org&rsquo;s
-            own Events page.
+            browse regardless of approval status. Add an event for any org, or edit and delete any
+            event from the row buttons. New events wait in Approvals before they reach the public calendar.
           </>
         }
-        description="Browse every event across all orgs"
+        description="Browse, add and edit events across all orgs"
+        actions={<AddEventButton orgs={(orgs ?? []).filter(o => o.type === 'ipo' || o.type === 'lighthouse')} />}
       />
 
       <EventRegistryFiltersBar

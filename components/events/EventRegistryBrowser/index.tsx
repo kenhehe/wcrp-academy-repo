@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PublicationFlags from '@/components/events/PublicationFlags'
+import { RegistryRowActions } from '@/components/events/AdminEventDialogs'
 import StatusBadge from '@/components/base/StatusBadge'
 import type { StatusTone } from '@/components/base/StatusBadge/types'
 import { PAGE_SIZE } from './types'
@@ -39,7 +40,7 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
 
   let query = db
     .from('events')
-    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,approval_status,wants_social_media,wants_website_article,wants_newsletter', { count: 'exact' })
+    .select('id,ipo_id,title,start_date,end_date,status,location,country,url,source,approval_status,wants_social_media,wants_website_article,wants_newsletter', { count: 'exact' })
     .order('start_date', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
 
@@ -51,7 +52,8 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
     query = query.gte('start_date', `${y}-01-01`).lte('start_date', `${y}-12-31`)
   }
 
-  const { data: events, count } = await query
+  const { data: events, count, error } = await query
+  if (error) throw new Error(`Event Registry query failed: ${error.message}`)
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   const orgMap = new Map(orgs.map(o => [o.id, o]))
@@ -69,12 +71,13 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
               <th className="px-4 py-3 text-left font-medium">Status</th>
               <th className="px-4 py-3 text-left font-medium">Approval</th>
               <th className="px-4 py-3 text-left font-medium">Wants</th>
+              <th className="px-4 py-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {(events ?? []).length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   No events found{(queryText || ipoFilter || statusFilter || yearFilter) && ' for the selected filters'}
                 </td>
               </tr>
@@ -134,6 +137,9 @@ export default async function EventRegistryBrowser({ queryText, ipoFilter, statu
                         wants_website_article={event.wants_website_article}
                         wants_newsletter={event.wants_newsletter}
                       />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <RegistryRowActions event={event} org={org} />
                     </td>
                   </tr>
                 )

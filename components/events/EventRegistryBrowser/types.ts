@@ -15,6 +15,7 @@ export interface RegistryEventRow {
   location:               string | null
   country:                string | null
   url:                    string | null
+  source:                 string | null
   approval_status:        string | null
   wants_social_media:     boolean
   wants_website_article:  boolean

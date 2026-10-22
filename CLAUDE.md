@@ -84,6 +84,9 @@ lib/
   data/event-duplicates.ts       Plain helper (no 'use server'): setAcademyStatus() keeps a duplicate pair's coverage status in sync
   actions/event-duplicates.ts    'use server': linkDuplicate, unlinkDuplicate, dismissDuplicate, searchDuplicateCandidates —
                                   shared across academy/duplicates and ipo/duplicates instead of a per-route actions.ts (see note below)
+  data/admin-events.ts           Plain helpers: insert / update / delete any org's event (core fields only), similar-event lookup
+  actions/admin-events.ts        'use server': createEventForOrg, updateAnyEvent, deleteAnyEvent — academy_admin or can_approve,
+                                  shared across academy/event-registry and ipo/event-registry; new events start pending
 
 supabase/functions/
   _shared/utils.ts      All scraper helpers: parseDateRange, upsertEvents, dryRunStream, etc.
