@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 // Hash a raw token with SHA-256 — same function used when storing tokens
 async function sha256(token: string): Promise<string> {
@@ -45,18 +46,22 @@ export async function GET(req: NextRequest) {
 
   const ipoMap = new Map((ipos ?? []).map(i => [i.id, { name: i.name, type: i.type }]))
 
-  let query = db
-    .from('events')
-    .select('id,title,start_date,end_date,status,location,country,url,ipo_id')
-    .eq('approval_status', 'approved')
-    .order('start_date', { ascending: true })
-
-  if (status) query = query.eq('status', status)
-  if (ipoId)  query = query.eq('ipo_id', ipoId)
-
-  const { data: events, error: eventsError } = await query
-
-  if (eventsError) {
+  // Approved events are past the 1000-row cap, so read every page
+  let events: { id: string; title: string; start_date: string; end_date: string | null; status: string; location: string | null; country: string | null; url: string | null; ipo_id: string }[]
+  try {
+    events = await fetchAllRows('events query', (from, to) => {
+      let query = db
+        .from('events')
+        .select('id,title,start_date,end_date,status,location,country,url,ipo_id')
+        .eq('approval_status', 'approved')
+        .order('start_date', { ascending: true })
+        .order('id')
+      if (status) query = query.eq('status', status)
+      if (ipoId)  query = query.eq('ipo_id', ipoId)
+      return query.range(from, to)
+    })
+  } catch (err) {
+    console.error('[api/v1/events]', err)
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
   }
 

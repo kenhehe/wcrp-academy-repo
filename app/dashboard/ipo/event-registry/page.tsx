@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import PageHeader from '@/components/base/PageHeader'
 import EventRegistryFiltersBar from '@/components/events/EventRegistryFiltersBar'
 import EventRegistryBrowser from '@/components/events/EventRegistryBrowser'
@@ -28,12 +29,13 @@ export default async function IPOEventRegistryPage({ searchParams }: PageProps) 
 
   // Admin client — pending/cross-org data spans multiple orgs, same reasoning as Approvals
   const db = createAdminClient()
-  const [{ data: orgs }, { data: yearsRaw }] = await Promise.all([
+  const [{ data: orgs }, yearsRaw] = await Promise.all([
     db.from('ipos').select('id,name,color_hex,type').order('name'),
-    db.from('events').select('year'),
+    // Every event, so page past the 1000-row cap or the newest years go missing
+    fetchAllRows<{ year: number | null }>('event years query', (from, to) => db.from('events').select('year').order('id').range(from, to)),
   ])
 
-  const years = [...new Set((yearsRaw ?? []).map(r => r.year).filter(Boolean))].sort((a, b) => b - a) as number[]
+  const years = [...new Set(yearsRaw.map(r => r.year).filter((y): y is number => y != null))].sort((a, b) => b - a)
 
   return (
     <div className="p-8 space-y-6">

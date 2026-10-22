@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -5,9 +6,13 @@ import StatusDonut from '@/components/charts/StatusDonut'
 import ChartBar from '@/components/charts/ChartBar'
 import { ExternalLink, Globe, Layers, Upload } from 'lucide-react'
 import PageHeader from '@/components/base/PageHeader'
+import StatTile from '@/components/base/StatTile'
 import Link from 'next/link'
 import { IPO_SOURCES } from '@/lib/ipo-sources'
+import { buildTrends, formatDay, todayUtc } from '@/lib/data/event-trends'
 import ClimateAnalytics from './_components/ClimateAnalytics'
+import ClimateAnalyticsSkeleton from './_components/ClimateAnalyticsSkeleton'
+import TrendTiles from './_components/TrendTiles'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,14 +40,18 @@ export default async function IPOOverviewPage() {
 
   // Carlos (can_approve) gets a cross-org analytics view instead of the single-IPO overview
   if (canApprove) {
+    const todayLabel = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date())
     return (
       <div className="p-8 space-y-8">
         <PageHeader
+          eyebrow={todayLabel}
           title="Climate Analytics"
-          info="Cross-org view of all IPO scraped events and Lighthouse Activity submissions. No Academy catalogue data — for Academy coverage go to the Academy dashboard."
-          description="All IPO + LHA events at a glance"
+          info="Cross-org view of all IPO scraped events and Lighthouse Activity events. Event counts go by start date, in UTC. No Academy catalogue data — for Academy coverage go to the Academy dashboard."
+          description="All IPO and Lighthouse events at a glance"
         />
-        <ClimateAnalytics />
+        <Suspense fallback={<ClimateAnalyticsSkeleton />}>
+          <ClimateAnalytics />
+        </Suspense>
       </div>
     )
   }
@@ -59,7 +68,7 @@ export default async function IPOOverviewPage() {
     // Lightweight fetch for all aggregations
     supabase
       .from('events')
-      .select('year,status,country,duration_days')
+      .select('year,status,country,start_date')
       .eq('ipo_id', orgId),
     // Next upcoming events
     supabase
@@ -96,23 +105,15 @@ export default async function IPOOverviewPage() {
   const cancelled  = all.filter(e => e.status === 'Cancelled').length
   const postponed  = all.filter(e => e.status === 'Postponed').length
 
-  const durations = all.map(e => e.duration_days).filter((d): d is number => d != null)
-  const avgDuration = durations.length > 0
-    ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length)
-    : null
-
   const yearData = groupCount(all as never, 'year')
   const countryData = groupCount(all as never, 'country')
     .sort((a, b) => b.value - a.value)
     .slice(0, 6)
 
-  const stats = [
-    { label: 'Total Events',  value: total },
-    { label: 'Upcoming',      value: upcoming },
-    { label: 'Ongoing',       value: ongoing },
-    { label: 'Past',          value: past },
-    { label: 'Avg Duration',  value: avgDuration != null ? `${avgDuration} days` : '—' },
-  ]
+  const dated     = all.filter((e): e is typeof e & { start_date: string } => !!e.start_date)
+  const trends    = buildTrends(dated, todayUtc())
+  const firstYear = dated.reduce<string | null>((min, e) => (min === null || e.start_date < min ? e.start_date : min), null)?.slice(0, 4)
+  const nextEvent = upcomingList?.[0]
 
   const source = IPO_SOURCES[orgId] ?? null
 
@@ -168,18 +169,11 @@ export default async function IPOOverviewPage() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {stats.map(({ label, value }) => (
-          <Card key={label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <TrendTiles
+        trends={trends}
+        nextLabel={nextEvent?.start_date ? formatDay(nextEvent.start_date, false) : null}
+        leading={<StatTile label="Total events" value={total} sub={firstYear ? `since ${firstYear}` : 'None yet'} />}
+      />
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

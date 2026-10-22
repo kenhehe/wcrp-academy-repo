@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { cache } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import CalendarView, { type CalendarEvent } from '@/components/calendar/CalendarView'
@@ -12,18 +13,21 @@ type IPORow = { id: string; name: string; color_hex: string | null }
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
-  const [{ data: ipos }, { data: calEvents }] = await Promise.all([
+  const [{ data: ipos }, calEvents] = await Promise.all([
     supabase.from('ipos').select('id, name, color_hex').order('name'),
-    supabase
+    // Approved events are past the 1000-row cap, so read every page
+    fetchAllRows('approved events query', (from, to) => supabase
       .from('events')
       .select('id, ipo_id, title, start_date, end_date, status, location, country, url')
       .eq('approval_status', 'approved')
-      .order('start_date'),
+      .order('start_date')
+      .order('id')
+      .range(from, to)),
   ])
 
   return {
-    ipos:      (ipos      ?? []) as IPORow[],
-    calEvents: (calEvents ?? []) as CalendarEvent[],
+    ipos:      (ipos ?? []) as IPORow[],
+    calEvents: calEvents as CalendarEvent[],
   }
 })
 
@@ -38,9 +42,9 @@ export default async function HomePage() {
   const postponedCount = calEvents.filter(e => e.status === 'Postponed').length
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-canvas">
       {/* Header */}
-      <header className="border-b px-8 py-4 flex items-center justify-between">
+      <header className="border-b bg-background px-8 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">WCRP Events</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Public event catalogue across all IPOs</p>

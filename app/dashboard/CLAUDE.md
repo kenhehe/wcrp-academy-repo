@@ -47,9 +47,11 @@ Used on `ipo/events` (`components/events/EventsTable`) and `academy/event-regist
 ## Theme, tokens & dark mode
 
 - **Tokens live in `app/globals.css`** (WCRP palette, hex values). Status tones for text, badges and banners: `text-info bg-info-soft`, and the same for `success`, `warning`, `danger` — every pair is ≥ 4.5:1 in light and dark. Neutral is the existing `text-muted-foreground bg-muted`. Scrape-run marks (strips, dots): `bg-run-found | run-same | run-stuck | run-failed | run-none`.
-- **Never use raw Tailwind palette classes** (`text-amber-600`, `bg-emerald-50`): they don't follow dark mode. The only exceptions are org identity colors (`ipos.color_hex`, plus `ClimateAnalytics`' LHA fallback palette) and the drawer's `bg-black/40` backdrop.
+- **Page ground vs surfaces**: dashboard `<main>` areas and the public homepage sit on `bg-canvas` (a soft blue-grey in light mode, so the page isn't glaring white); cards, the top bar and the sidebar stay on `bg-background`/`bg-card`. Muted text on the canvas is 4.9:1.
+- **Never use raw Tailwind palette classes** (`text-amber-600`, `bg-emerald-50`): they don't follow dark mode. The only exceptions are org identity colors (`ipos.color_hex`, drawn with `components/base/OrgDot`) and the drawer's `bg-black/40` backdrop.
 - **Dark mode follows the OS** (`next-themes` in `app/layout.tsx`, `defaultTheme="system"`) and each person can override it with `components/layout/ThemeToggle` (Light / Dark / System) — right end of `SidebarDrawer`'s top bar, and the public homepage header. Its icons swap with `dark:` classes so server and client markup match.
-- **Shared pieces** in `components/base/`: `PageHeader` (title + `PageInfo` + description + actions; every dashboard page uses it), `StatusBadge` (`tone` + icon + label — status is never color alone), `StatTile` (label / value / sub). Use these instead of hand-writing headers and badges.
+- **Shared pieces** in `components/base/`: `PageHeader` (optional eyebrow + title + `PageInfo` + description + actions; every dashboard page uses it), `StatusBadge` (`tone` + icon + label — status is never color alone), `StatTile` (label / value / sub, plus optional `change` and `aside`). Use these instead of hand-writing headers and badges.
+- **Change chips** (`StatTile`'s `change`): up is green with an up arrow, down is red with a down arrow, flat is neutral; the arrow means direction never depends on color. Build them with `describeChange()` in `lib/data/event-trends.ts`, which shows a plain difference ("2 fewer") instead of a percentage when the earlier figure is under 10. `aside` takes `components/charts/Sparkline` (history in a primary tint, latest step and end dot in full primary) or `components/charts/MiniColumns`.
 - New chart or status colors get checked with the dataviz validator and a contrast check before use. `components/charts/StatusDonut`'s note explains the one known compromise (five statuses exceed what an all-pairs chart can separate; the donut is due for a redesign).
 
 ## When to Use `'use client'`
@@ -149,6 +151,13 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - Full CRUD for `academy_events`
 - `AcademyEventForm` is a large form component — edit it in `_components/AcademyEventForm.tsx`
 - Uses `AcademyEventInput` type from `lib/data/academy-events.types.ts`
+
+### `ipo` overview (Climate Analytics, and each org's own overview)
+
+`app/dashboard/ipo/page.tsx` renders one of two pages:
+- **`can_approve` accounts get Climate Analytics** (`_components/ClimateAnalytics.tsx`, inside a Suspense boundary with `_components/ClimateAnalyticsSkeleton.tsx`). Data comes from `getClimateAnalytics()` in `lib/data/climate-analytics.ts`: every IPO and Lighthouse event (not `wcrp`), read with the service role in 1,000-row pages. Types the client chart imports live in `lib/data/climate-analytics.types.ts`. Top to bottom: trend tiles plus "Awaiting approval" (pending events from every org), `_components/EventActivity.tsx` (client: per-year columns you click to pick a year, a breakdown by organisation and by month, a Chart/Table toggle, opens on the current year), then "Coming up" and a Lighthouse Activities summary.
+- **Every other account gets its own org's overview**, scoped by RLS through the session client. Its tile row is "Total events" plus the same trend tiles.
+- **The trend tiles** (`_components/TrendTiles.tsx`) are "Events so far this year" (1 Jan to today, vs the same date last year, 12-year sparkline), "Events this month" (vs the same month last year, 12-month sparkline) and "Upcoming" (mini columns for the next 12 months). They're built from `buildTrends()` in `lib/data/event-trends.ts`, which works on `start_date` in UTC.
 
 ### `ipo/events`
 - Source: `events` table, **scoped to the logged-in org's own `ipo_id` only** (`.eq('ipo_id', orgId)`) — this is intentionally single-org and must stay that way for every account type, including `can_approve` ones (see `ipo/event-registry` below for the cross-org equivalent).

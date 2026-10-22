@@ -2,10 +2,11 @@ import PageInfo from '@/components/base/PageInfo'
 import { cn } from '@/lib/utils'
 import type { PageHeaderProps } from './types'
 
-export default function PageHeader({ title, info, description, actions, className }: PageHeaderProps) {
+export default function PageHeader({ title, eyebrow, info, description, actions, className }: PageHeaderProps) {
   return (
     <div className={cn('flex flex-wrap items-start justify-between gap-4', className)}>
       <div className="min-w-0 space-y-1">
+        {eyebrow && <p className="text-xs font-medium text-muted-foreground">{eyebrow}</p>}
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{title}</h1>
           {info && <PageInfo>{info}</PageInfo>}

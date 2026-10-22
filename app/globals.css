@@ -53,6 +53,7 @@
   --color-run-stuck: var(--run-stuck);
   --color-run-failed: var(--run-failed);
   --color-run-none: var(--run-none);
+  --color-canvas: var(--canvas);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -75,6 +76,7 @@
    Atmo   #F2EAA4  Land   #85E885                  */
 :root {
   --background:            #FFFFFF;
+  --canvas:                #EAF0F6;   /* page ground behind cards; muted text on it is 4.9:1 */
   --foreground:            #232C3D;
   --card:                  #FFFFFF;
   --card-foreground:       #232C3D;
@@ -125,6 +127,7 @@
 
 .dark {
   --background:            #232C3D;
+  --canvas:                #222F43;
   --foreground:            #E3EEF6;
   --card:                  #2B3550;
   --card-foreground:       #E3EEF6;

@@ -14,7 +14,7 @@ export default async function AcademyLayout({ children }: { children: React.Reac
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <AcademySidebar userEmail={user.email ?? ''} />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
+      <main className="flex-1 overflow-y-auto bg-canvas">
         {children}
       </main>
     </div>

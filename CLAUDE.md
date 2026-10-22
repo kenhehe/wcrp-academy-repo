@@ -37,6 +37,7 @@ A feature that needs to reach both `academy_admin` and a `can_approve` IPO accou
   - `createClient()` from `lib/supabase/server.ts` → reads the user session. Use for data fetching in Server Components.
   - `createAdminClient()` from `lib/supabase/admin.ts` → service role, bypasses RLS. Use for mutations in Server Actions ONLY. Never import in client components.
 - **Mutations go in `actions.ts`** — always call `revalidatePath()` after mutating.
+- **Any read that can return more than 1,000 rows goes through `fetchAllRows()`** (`lib/supabase/fetch-all.ts`), ordered by a unique column at the end. PostgREST cuts every response at 1,000 rows without an error; when the Lighthouse import took approved events past 1,000, the public homepage and API quietly lost every upcoming event.
 - **Skeletons are mandatory** for dynamic data. Use `@/components/ui/skeleton`.
 - **`cn()` for class merging.** No hardcoded hex colors — use CSS variables.
 - **Theme colors are hex variables** (`app/globals.css`). Reference them as `var(--primary)`; for transparency use `color-mix(in oklab, var(--border) 30%, transparent)`. Never `hsl(var(--x))` — that's the old shadcn HSL-triplet convention, invalid with hex values, and the browser drops it silently (borders fall back to the text color, chart/SVG fills to black).

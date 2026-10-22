@@ -51,7 +51,7 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
         canApprove={canApprove}
         pendingCount={pendingCount ?? 0}
       />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
+      <main className="flex-1 overflow-y-auto bg-canvas">
         {failedRun && (
           <ScrapeStatusBanner
             runId={failedRun.id}
