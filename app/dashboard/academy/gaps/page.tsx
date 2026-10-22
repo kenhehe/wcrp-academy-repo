@@ -1,14 +1,15 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import PageHeader from '@/components/base/PageHeader'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import StatTile from '@/components/base/StatTile'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
 import GapFiltersBar from '@/components/gaps/GapFiltersBar'
 import { InfoIcon } from 'lucide-react'
+import { getCoverageRows } from '@/lib/data/coverage'
+import { coveragePct, formatPct, sumCoverage } from '@/lib/data/coverage.types'
 import GapsTable from './_components/GapsTable'
 import GapsTableSkeleton from './_components/GapsTableSkeleton'
-import IPOCoverageChart from './_components/IPOCoverageChart'
-import type { IPOChartRow } from './_components/IPOCoverageChart'
+import CoverageTable from './_components/CoverageTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,27 +25,14 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   const statusFilter = typeof sp.status === 'string' ? sp.status : undefined
   const page         = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
-  const { data: ipos } = await supabase
-    .from('ipos').select('id,name').eq('type', 'ipo').order('name')
-
-  const ipoIds = (ipos ?? []).map(i => i.id)
-
-  const [{ data: coverage }, { data: missingRaw }] = await Promise.all([
-    supabase.from('ipo_coverage_stats').select('*').order('coverage_pct', { ascending: true }),
-    supabase.from('events').select('ipo_id,status').eq('in_academy', false).is('duplicate_of_event_id', null).in('ipo_id', ipoIds),
+  const [{ data: ipos }, coverage] = await Promise.all([
+    supabase.from('ipos').select('id,name').eq('type', 'ipo').order('name'),
+    getCoverageRows(),
   ])
 
-  type StatusBreakdown = { Upcoming: number; Ongoing: number; Past: number }
-  const missingBreakdown = new Map<string, StatusBreakdown>()
-  for (const e of missingRaw ?? []) {
-    if (!missingBreakdown.has(e.ipo_id)) {
-      missingBreakdown.set(e.ipo_id, { Upcoming: 0, Ongoing: 0, Past: 0 })
-    }
-    const b = missingBreakdown.get(e.ipo_id)!
-    if (e.status === 'Upcoming')      b.Upcoming++
-    else if (e.status === 'Ongoing')  b.Ongoing++
-    else if (e.status === 'Past')     b.Past++
-  }
+  const totals        = sumCoverage(coverage)
+  const upToDate      = coverage.filter(r => r.upcoming === 0)
+  const withUpcoming  = coverage.length - upToDate.length
 
   return (
     <div className="p-8 space-y-8">
@@ -54,37 +42,30 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
         description="IPO events not yet present in the Academy catalogue"
       />
 
-      {/* Per-IPO coverage chart */}
-      {(() => {
-        const chartData: IPOChartRow[] = (coverage ?? [])
-          .sort((a, b) => (b.missing_from_academy ?? 0) - (a.missing_from_academy ?? 0))
-          .map(row => {
-            const bd = missingBreakdown.get(row.ipo_id) ?? { Upcoming: 0, Ongoing: 0, Past: 0 }
-            return {
-              name:            row.name,
-              inAcademy:       row.in_academy       ?? 0,
-              missingUpcoming: bd.Upcoming,
-              missingOngoing:  bd.Ongoing,
-              missingPast:     bd.Past,
-            }
-          })
-        return (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Academy coverage by IPO</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Sorted by most events still missing · amber = upcoming (primary focus)
-              </p>
-            </CardHeader>
-            <CardContent>
-              <IPOCoverageChart data={chartData} />
-            </CardContent>
-          </Card>
-        )
-      })()}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatTile
+          label="Upcoming events missing"
+          value={totals.upcoming}
+          sub={withUpcoming === 0
+            ? 'Every upcoming IPO event is in the Academy'
+            : `across ${withUpcoming} IPO${withUpcoming === 1 ? '' : 's'}, the ones to add first`}
+        />
+        <StatTile
+          label="Academy coverage"
+          value={formatPct(coveragePct(totals))}
+          sub={`${totals.inAcademy} of ${totals.total} IPO events are in the Academy`}
+        />
+        <StatTile
+          label="IPOs with nothing upcoming missing"
+          value={`${upToDate.length} of ${coverage.length}`}
+          sub={upToDate.length > 0 ? upToDate.map(r => r.name).join(', ') : 'None yet'}
+        />
+      </div>
+
+      <CoverageTable rows={coverage} />
 
       {/* Missing events table */}
-      <div className="space-y-4">
+      <div id="missing" className="space-y-4 scroll-mt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold">Missing events</h2>

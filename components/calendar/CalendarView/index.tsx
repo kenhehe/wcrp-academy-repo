@@ -146,8 +146,8 @@ export default function CalendarView({ events, ipos }: Props) {
             onClick={() => setShowPast(p => !p)}
           >
             {showPast
-              ? <><EyeOffIcon className="h-3 w-3" /> Hide inactive</>
-              : <><EyeIcon    className="h-3 w-3" /> Show inactive</>
+              ? <><EyeOffIcon className="h-3 w-3" /> Hide past events</>
+              : <><EyeIcon    className="h-3 w-3" /> Show past events</>
             }
           </Button>
 

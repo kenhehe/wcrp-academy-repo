@@ -127,6 +127,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 
 ### `academy/gaps` (Gap Analysis)
 - Source: `events` table where `in_academy = false` and `duplicate_of_event_id is null` (a confirmed cross-IPO duplicate doesn't show as a second, redundant gap — see `academy/duplicates` below)
+- Top of the page: three `StatTile`s and `_components/CoverageTable` (one row per IPO: coverage meter + %, upcoming / ongoing / past missing, a Review link that filters the table below to that IPO's upcoming gaps). Data comes from `getCoverageRows()` in `lib/data/coverage.ts` (`ipo_coverage_stats` for totals — it has `total_events`, `in_academy`, `coverage_pct`, nothing else — plus the missing events counted by status, read in 1,000-row pages because PostgREST caps each request). Pure helpers and the row type live in `lib/data/coverage.types.ts` so the client table can import them. Sorting is client-side: upcoming missing first, or lowest coverage.
 - Fuzzy suggestions come from `find_fuzzy_matches` PostgreSQL RPC (`pg_trgm`) — **not committed as a migration**, lives only in the live DB; treat it as a black box, don't assume its SQL body without pulling it first
 - Threshold: 0.35 (raised from 0.15 to reduce noise)
 - Rows sorted by fuzzy score descending (high confidence first)
