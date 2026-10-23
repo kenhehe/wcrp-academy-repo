@@ -1,11 +1,14 @@
 'use server'
 
+import { must } from '@/lib/supabase/must'
+import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { setAcademyStatus } from '@/lib/data/event-duplicates'
 
 export async function markInAcademy(formData: FormData) {
+  await requireAcademyAdmin()
   const id = formData.get('id') as string
   if (!id) return
 
@@ -19,6 +22,7 @@ export async function markInAcademy(formData: FormData) {
 // Awaits the sync response (unlike scraper triggers which fire-and-forget).
 // Safe to await here — sync-academy-wp is fast (WP API fetch + DB upsert, ~3–10s).
 export async function triggerAcademySync(): Promise<{ ok: boolean; message: string }> {
+  await requireAcademyAdmin()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceKey) return { ok: false, message: 'Missing Supabase env vars' }
@@ -37,18 +41,20 @@ export async function triggerAcademySync(): Promise<{ ok: boolean; message: stri
 }
 
 export async function searchAcademyEvents(query: string): Promise<{ id: string; title: string; start_date: string | null; status: string | null }[]> {
+  await requireAcademyAdmin()
   if (!query.trim()) return []
   const supabase = await createClient()
-  const { data } = await supabase
+  const data = must('catalogue search', await supabase
     .from('academy_events')
     .select('id,title,start_date,status')
     .ilike('title', `%${query.trim()}%`)
     .order('start_date', { ascending: false })
-    .limit(10)
+    .limit(10))
   return data ?? []
 }
 
 export async function confirmMatch(formData: FormData) {
+  await requireAcademyAdmin()
   const eventId        = formData.get('event_id')        as string
   const academyEventId = formData.get('academy_event_id') as string
   if (!eventId || !academyEventId) return

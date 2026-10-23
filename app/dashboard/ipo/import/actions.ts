@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { revalidatePath } from 'next/cache'
 
 export interface MappedRow {
@@ -30,11 +31,11 @@ export async function importEvents(rows: MappedRow[]): Promise<ImportResult> {
 
   // Fetch existing events matching any of the imported titles (batch lookup)
   const titles = [...new Set(rows.map(r => r.title))]
-  const { data: existing } = await supabase
+  const existing = must('existing events query', await supabase
     .from('events')
     .select('id,title,start_date')
     .eq('ipo_id', orgId)
-    .in('title', titles)
+    .in('title', titles))
 
   const existingMap = new Map(
     (existing ?? []).map(e => [`${e.title}||${e.start_date}`, e.id])
@@ -107,12 +108,13 @@ export async function importEvents(rows: MappedRow[]): Promise<ImportResult> {
   }
 
   for (const [fieldKey, vals] of extraKeysMap) {
-    const { data: reg } = await supabase
+    // maybeSingle: a field seen for the first time has no registry row yet
+    const reg = must('field registry query', await supabase
       .from('ipo_field_registry')
       .select('values')
       .eq('ipo_id', orgId)
       .eq('field_key', fieldKey)
-      .single()
+      .maybeSingle())
 
     const merged = [...new Set([...(reg?.values ?? []), ...vals])]
 
@@ -159,11 +161,11 @@ export async function getExportYears(): Promise<number[]> {
   if (!user) throw new Error('Not authenticated')
   const orgId = user.app_metadata?.org_id as string
 
-  const { data } = await supabase
+  const data = must('event years query', await supabase
     .from('events')
     .select('year')
     .eq('ipo_id', orgId)
-    .order('year', { ascending: false })
+    .order('year', { ascending: false }))
 
   return [...new Set((data ?? []).map(r => r.year).filter(Boolean))] as number[]
 }

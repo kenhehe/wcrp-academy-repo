@@ -21,14 +21,10 @@ export interface LighthouseUser {
   created_at: string
 }
 
-const LIGHTHOUSE_OPTIONS = [
-  { value: 'de',    label: 'Digital Earths' },
-  { value: 'epesc', label: 'EPESC — Explaining & Predicting ESC' },
-  { value: 'gpex',  label: 'GPEX — Global Precipitation EXperiment' },
-  { value: 'mcr',   label: 'My Climate Risk' },
-  { value: 'rci',   label: 'RCI — Research on Climate Intervention' },
-  { value: 'slc',   label: 'Safe Landing Climates' },
-] as const
+export interface ProgrammeOption {
+  value: string   // ipos.id
+  label: string   // "MCR · My Climate Risk"
+}
 
 type Modal =
   | { type: 'create' }
@@ -36,7 +32,8 @@ type Modal =
   | { type: 'delete'; user: LighthouseUser }
   | null
 
-export default function LighthouseAccountsTable({ users }: { users: LighthouseUser[] }) {
+export default function LighthouseAccountsTable({ users, programmes }: { users: LighthouseUser[]; programmes: ProgrammeOption[] }) {
+  const programmeLabels = Object.fromEntries(programmes.map(p => [p.value, p.label]))
   const [modal, setModal]           = useState<Modal>(null)
   const [pending, startTransition]  = useTransition()
 
@@ -162,12 +159,12 @@ export default function LighthouseAccountsTable({ users }: { users: LighthouseUs
             </div>
             <div className="space-y-2">
               <Label htmlFor="c-org">Programme</Label>
-              <Select name="org_id" required>
+              <Select name="org_id" items={programmeLabels} required>
                 <SelectTrigger id="c-org">
                   <SelectValue placeholder="Select programme…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LIGHTHOUSE_OPTIONS.map(o => (
+                  {programmes.map(o => (
                     <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -202,12 +199,12 @@ export default function LighthouseAccountsTable({ users }: { users: LighthouseUs
               </div>
               <div className="space-y-2">
                 <Label htmlFor="e-org">Programme</Label>
-                <Select name="org_id" defaultValue={modal.user.org_id}>
+                <Select name="org_id" items={programmeLabels} defaultValue={modal.user.org_id}>
                   <SelectTrigger id="e-org">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {LIGHTHOUSE_OPTIONS.map(o => (
+                    {programmes.map(o => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>

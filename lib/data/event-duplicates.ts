@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { must } from '@/lib/supabase/must'
 
 // Updates in_academy/academy_event_id on an event AND keeps its whole
 // duplicate cluster (canonical row + every row linked to it) in sync, so two
@@ -9,16 +10,16 @@ export async function setAcademyStatus(
   inAcademy: boolean,
   academyEventId: string | null,
 ) {
-  const { data: row } = await supabase
+  const row = must('event query', await supabase
     .from('events')
     .select('duplicate_of_event_id')
     .eq('id', eventId)
-    .single()
+    .single())
 
   const rootId = row?.duplicate_of_event_id ?? eventId
 
-  await supabase
+  must('academy status update', await supabase
     .from('events')
     .update({ in_academy: inAcademy, academy_event_id: academyEventId })
-    .or(`id.eq.${rootId},duplicate_of_event_id.eq.${rootId}`)
+    .or(`id.eq.${rootId},duplicate_of_event_id.eq.${rootId}`))
 }

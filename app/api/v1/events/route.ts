@@ -40,9 +40,13 @@ export async function GET(req: NextRequest) {
   const ipoId  = sp.get('ipo')      // gewex | cordex | … | de | mcr | …
 
   // --- Query ---
-  const { data: ipos } = await db
+  const { data: ipos, error: iposError } = await db
     .from('ipos')
     .select('id, name, type')
+  if (iposError) {
+    console.error('[api/v1/events] ipos query failed:', iposError.message)
+    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
+  }
 
   const ipoMap = new Map((ipos ?? []).map(i => [i.id, { name: i.name, type: i.type }]))
 

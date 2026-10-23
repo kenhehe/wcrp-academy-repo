@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import EventsTable from '@/components/events/EventsTable'
 import PageHeader from '@/components/base/PageHeader'
 import type { ActiveFilters } from '@/components/events/EventsTable/types'
@@ -62,11 +63,13 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   const [
     { data: events, count, error: eventsError },
-    { data: yearsRaw },
-    { data: registry },
+    yearsRes,
+    registryRes,
   ] = await Promise.all([query, yearsQuery, registryQuery])
 
   if (eventsError) throw new Error(eventsError.message)
+  const yearsRaw = must('event years query', yearsRes)
+  const registry = must('field registry query', registryRes)
 
   const availableYears = [...new Set((yearsRaw ?? []).map(r => r.year).filter(Boolean))] as number[]
 

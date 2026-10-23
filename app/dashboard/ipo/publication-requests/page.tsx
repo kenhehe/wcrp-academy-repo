@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PageHeader from '@/components/base/PageHeader'
 import PublicationRequestFiltersBar from './_components/PublicationRequestFiltersBar'
@@ -40,11 +41,14 @@ export default async function PublicationRequestsPage({ searchParams }: PageProp
 
   if (ipoFilter) query = query.eq('ipo_id', ipoFilter)
 
-  const [{ data: flagged, count }, { data: ipos }] = await Promise.all([
+  const [flaggedRes, iposRes] = await Promise.all([
     query,
     // Unfiltered by type — unlike Approvals, this page spans both IPOs and LHAs
     db.from('ipos').select('id,name,full_name,type,color_hex').order('name'),
   ])
+  const flagged = must('publication requests query', flaggedRes)
+  const count   = flaggedRes.count
+  const ipos    = must('orgs query', iposRes)
 
   const ipoMap = new Map((ipos ?? []).map(i => [i.id, i]))
   const events = (flagged ?? []).map(e => {

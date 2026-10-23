@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import PageHeader from '@/components/base/PageHeader'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -26,27 +28,32 @@ export default async function AcademyOverviewPage() {
 
   // Fetch org lists first — needed to correctly scope all event queries by ipo_id
   // (approval_status is no longer a reliable discriminator after the bulk-approve migration)
-  const [{ data: ipos }, { data: lighthouses }] = await Promise.all([
+  const [iposRes, lighthousesRes] = await Promise.all([
     supabase.from('ipos').select('id,name').eq('type', 'ipo'),
     supabase.from('ipos').select('id,name').eq('type', 'lighthouse'),
   ])
+  const ipos        = must('ipos query', iposRes)
+  const lighthouses = must('lighthouse orgs query', lighthousesRes)
 
   const ipoIds = (ipos ?? []).map(i => i.id)
   const lhaIds = (lighthouses ?? []).map(i => i.id)
 
   const [
-    { data: coverage },
-    { data: eventsRaw },
-    { data: upcomingGaps },
-    { data: recentRuns },
-    { data: lhaPending },
-    { data: lhaApproved },
+    coverageRes,
+    eventsRaw,
+    upcomingGapsRes,
+    recentRunsRes,
+    lhaPending,
+    lhaApproved,
   ] = await Promise.all([
     supabase.from('ipo_coverage_stats').select('*'),
     // IPO events only — scoped by ipo_id, not approval_status.
     // duplicate_of_event_id filter avoids double-counting a confirmed cross-IPO
     // duplicate as two events in the grand totals below.
-    supabase.from('events').select('month,year,status,in_academy').in('ipo_id', ipoIds).is('duplicate_of_event_id', null),
+    // ~1,000 rows and growing, so page past the PostgREST cap or the totals silently fall short
+    fetchAllRows<{ month: number | null; year: number | null; status: string; in_academy: boolean }>('IPO events query', (from, to) => supabase
+      .from('events').select('month,year,status,in_academy').in('ipo_id', ipoIds).is('duplicate_of_event_id', null)
+      .order('id').range(from, to)),
     // Next 5 upcoming IPO events not in academy
     supabase
       .from('events')
@@ -63,12 +70,17 @@ export default async function AcademyOverviewPage() {
       .order('started_at', { ascending: false })
       .limit(6),
     // LHA pending submissions — scoped to lighthouse org IDs
-    supabase.from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'pending'),
+    fetchAllRows<{ ipo_id: string }>('LHA pending events query', (from, to) => supabase
+      .from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'pending').order('id').range(from, to)),
     // LHA approved events — scoped to lighthouse org IDs
-    supabase.from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'approved'),
+    fetchAllRows<{ ipo_id: string }>('LHA approved events query', (from, to) => supabase
+      .from('events').select('ipo_id').in('ipo_id', lhaIds).eq('approval_status', 'approved').order('id').range(from, to)),
   ])
+  const coverage     = must('coverage stats query', coverageRes)
+  const upcomingGaps = must('upcoming gaps query', upcomingGapsRes)
+  const recentRuns   = must('recent runs query', recentRunsRes)
 
-  const all           = eventsRaw ?? []
+  const all           = eventsRaw
   const totalEvents   = all.length
   const inAcademy     = all.filter(e => e.in_academy).length
   const missing       = totalEvents - inAcademy
@@ -101,19 +113,18 @@ export default async function AcademyOverviewPage() {
   const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
 
   // LHA breakdown by programme
-  const lhaNameMap = new Map((lighthouses ?? []).map(i => [i.id, i.name]))
   const lhaPendingByOrg  = new Map<string, number>()
   const lhaApprovedByOrg = new Map<string, number>()
-  for (const e of lhaPending  ?? []) lhaPendingByOrg.set(e.ipo_id,  (lhaPendingByOrg.get(e.ipo_id)  ?? 0) + 1)
-  for (const e of lhaApproved ?? []) lhaApprovedByOrg.set(e.ipo_id, (lhaApprovedByOrg.get(e.ipo_id) ?? 0) + 1)
+  for (const e of lhaPending)  lhaPendingByOrg.set(e.ipo_id,  (lhaPendingByOrg.get(e.ipo_id)  ?? 0) + 1)
+  for (const e of lhaApproved) lhaApprovedByOrg.set(e.ipo_id, (lhaApprovedByOrg.get(e.ipo_id) ?? 0) + 1)
   const lhaRows = (lighthouses ?? []).map(i => ({
     id:       i.id,
     name:     i.name,
     pending:  lhaPendingByOrg.get(i.id)  ?? 0,
     approved: lhaApprovedByOrg.get(i.id) ?? 0,
   })).filter(r => r.pending > 0 || r.approved > 0)
-  const totalPending  = (lhaPending  ?? []).length
-  const totalApproved = (lhaApproved ?? []).length
+  const totalPending  = lhaPending.length
+  const totalApproved = lhaApproved.length
 
   const summaryStats = [
     { label: 'Total IPO Events',    value: totalEvents },

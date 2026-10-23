@@ -1,16 +1,8 @@
 'use server'
 
+import { requireCanApprove } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-async function assertCanApprove() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-  if (!user.app_metadata?.can_approve) throw new Error('Not authorised to manage API keys')
-  return user
-}
 
 async function sha256(token: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
@@ -19,7 +11,7 @@ async function sha256(token: string): Promise<string> {
 
 // Returns the raw token once — it is never stored and cannot be retrieved again
 export async function generateApiToken(formData: FormData): Promise<{ rawToken: string }> {
-  const user = await assertCanApprove()
+  const user = await requireCanApprove()
   const name = (formData.get('name') as string)?.trim()
   if (!name) throw new Error('Token name is required')
 
@@ -42,7 +34,7 @@ export async function generateApiToken(formData: FormData): Promise<{ rawToken: 
 }
 
 export async function revokeApiToken(tokenId: string) {
-  await assertCanApprove()
+  await requireCanApprove()
   if (!tokenId) throw new Error('token id is required')
 
   const db = createAdminClient()

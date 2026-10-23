@@ -1,12 +1,17 @@
 'use server'
 
+import { must } from '@/lib/supabase/must'
+import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const IPO_IDS = ['cmip', 'clivar', 'esmo', 'rifs', 'cordex', 'clic', 'gewex', 'wcrp', 'de', 'epesc', 'gpex', 'mcr', 'rci', 'slc'] as const
-type IpoId = typeof IPO_IDS[number]
+// Any org in the ipos table (IPO, Lighthouse programme or the Secretariat)
+async function assertOrgId(orgId: string) {
+  const org = must('org lookup', await createAdminClient().from('ipos').select('id').eq('id', orgId).maybeSingle())
+  if (!org) throw new Error(`Invalid org_id: ${orgId}`)
+}
 
-function buildAppMeta(orgId: IpoId) {
+function buildAppMeta(orgId: string) {
   return {
     provider: 'email',
     providers: ['email'],
@@ -16,12 +21,13 @@ function buildAppMeta(orgId: IpoId) {
 }
 
 export async function createIPOUser(formData: FormData) {
+  await requireAcademyAdmin()
   const email   = formData.get('email') as string
   const password = formData.get('password') as string
-  const orgId   = formData.get('org_id') as IpoId
+  const orgId   = formData.get('org_id') as string
 
   if (!email || !password || !orgId) throw new Error('email, password and org_id are required')
-  if (!IPO_IDS.includes(orgId)) throw new Error(`Invalid org_id: ${orgId}`)
+  await assertOrgId(orgId)
 
   const admin = createAdminClient()
   const { error } = await admin.auth.admin.createUser({
@@ -36,13 +42,14 @@ export async function createIPOUser(formData: FormData) {
 }
 
 export async function updateIPOUser(formData: FormData) {
+  await requireAcademyAdmin()
   const userId  = formData.get('user_id') as string
   const email   = formData.get('email') as string | null
   const password = formData.get('password') as string | null
-  const orgId   = formData.get('org_id') as IpoId
+  const orgId   = formData.get('org_id') as string | null
 
   if (!userId) throw new Error('user_id is required')
-  if (orgId && !IPO_IDS.includes(orgId)) throw new Error(`Invalid org_id: ${orgId}`)
+  if (orgId) await assertOrgId(orgId)
 
   const admin = createAdminClient()
   const updates: Record<string, unknown> = {}
@@ -58,6 +65,7 @@ export async function updateIPOUser(formData: FormData) {
 }
 
 export async function deleteIPOUser(userId: string) {
+  await requireAcademyAdmin()
   if (!userId) throw new Error('user_id is required')
 
   const admin = createAdminClient()

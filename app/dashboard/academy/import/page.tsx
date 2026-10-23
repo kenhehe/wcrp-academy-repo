@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/base/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,8 +21,8 @@ export default async function AcademyImportPage() {
   const supabase = await createClient()
 
   const [
-    { data: meta },
-    { data: syncMeta },
+    metaRes,
+    syncMetaRes,
   ] = await Promise.all([
     supabase.from('academy_events').select('start_date,training_type,status'),
     supabase
@@ -29,8 +30,10 @@ export default async function AcademyImportPage() {
       .select('updated_at')
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
   ])
+  const meta     = must('catalogue query', metaRes)
+  const syncMeta = must('last sync query', syncMetaRes)   // null before the first sync
 
   const availableYears = [...new Set(
     (meta ?? [])

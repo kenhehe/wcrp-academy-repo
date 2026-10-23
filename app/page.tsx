@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { cache } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +14,7 @@ type IPORow = { id: string; name: string; full_name: string | null; type: string
 const fetchSummary = cache(async () => {
   const supabase = await createClient()
 
-  const [{ data: ipos }, calEvents] = await Promise.all([
+  const [iposRes, calEvents] = await Promise.all([
     supabase.from('ipos').select('id, name, full_name, type, color_hex').order('name'),
     // Approved events are past the 1000-row cap, so read every page
     fetchAllRows('approved events query', (from, to) => supabase
@@ -26,7 +27,7 @@ const fetchSummary = cache(async () => {
   ])
 
   return {
-    ipos:      (ipos ?? []) as IPORow[],
+    ipos:      (must('ipos query', iposRes) ?? []) as IPORow[],
     calEvents: calEvents as CalendarEvent[],
   }
 })

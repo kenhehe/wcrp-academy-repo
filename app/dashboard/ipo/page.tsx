@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import StatusDonut from '@/components/charts/StatusDonut'
@@ -56,14 +57,14 @@ export default async function IPOOverviewPage() {
     )
   }
 
-  const { data: ipoMeta } = await supabase.from('ipos').select('type').eq('id', orgId).single()
+  const ipoMeta = must('org type query', await supabase.from('ipos').select('type').eq('id', orgId).single())
   const isLighthouse = ipoMeta?.type === 'lighthouse'
 
   const [
-    { data: events },
-    { data: upcomingList },
-    { data: lastSuccessfulRun },
-    { data: lastRun },
+    eventsRes,
+    upcomingRes,
+    lastSuccessRes,
+    lastRunRes,
   ] = await Promise.all([
     // Lightweight fetch for all aggregations
     supabase
@@ -96,6 +97,10 @@ export default async function IPOOverviewPage() {
       .limit(1)
       .maybeSingle(),
   ])
+  const events            = must('events query', eventsRes)
+  const upcomingList      = must('upcoming events query', upcomingRes)
+  const lastSuccessfulRun = must('last successful run query', lastSuccessRes)
+  const lastRun           = must('latest run query', lastRunRes)
 
   const all        = events ?? []
   const total      = all.length

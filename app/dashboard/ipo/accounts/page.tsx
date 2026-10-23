@@ -2,21 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PageHeader from '@/components/base/PageHeader'
+import { getLighthouseOrgs } from '@/lib/data/lighthouses'
+import { orgFullLabel } from '@/lib/data/org-groups'
 import LighthouseAccountsTable from './_components/LighthouseAccountsTable'
 import type { LighthouseUser } from './_components/LighthouseAccountsTable'
 
 export const dynamic = 'force-dynamic'
-
-const LIGHTHOUSE_IDS = ['de', 'epesc', 'gpex', 'mcr', 'rci', 'slc']
-
-const LIGHTHOUSE_NAMES: Record<string, string> = {
-  de:    'Digital Earths',
-  epesc: 'EPESC — Explaining & Predicting ESC',
-  gpex:  'GPEX — Global Precipitation EXperiment',
-  mcr:   'My Climate Risk',
-  rci:   'RCI — Research on Climate Intervention',
-  slc:   'Safe Landing Climates',
-}
 
 export default async function LighthouseAccountsPage() {
   const supabase = await createClient()
@@ -25,13 +16,14 @@ export default async function LighthouseAccountsPage() {
   if (!user?.app_metadata?.can_approve) redirect('/dashboard/ipo')
 
   const admin = createAdminClient()
-  const { data, error } = await admin.auth.admin.listUsers()
+  const [{ data, error }, programmes] = await Promise.all([admin.auth.admin.listUsers(), getLighthouseOrgs()])
   if (error) throw new Error(error.message)
+  const labels = new Map(programmes.map(p => [p.id, orgFullLabel(p)]))
 
   const users: LighthouseUser[] = data.users
     .filter(u =>
       u.app_metadata?.role === 'ipo_user' &&
-      LIGHTHOUSE_IDS.includes(u.app_metadata?.org_id)
+      labels.has(u.app_metadata?.org_id)
     )
     .map(u => {
       const orgId = u.app_metadata?.org_id as string
@@ -39,7 +31,7 @@ export default async function LighthouseAccountsPage() {
         id:         u.id,
         email:      u.email ?? '',
         org_id:     orgId,
-        org_name:   LIGHTHOUSE_NAMES[orgId] ?? orgId,
+        org_name:   labels.get(orgId) ?? orgId,
         created_at: u.created_at,
       }
     })
@@ -57,7 +49,7 @@ export default async function LighthouseAccountsPage() {
         }
         description="Manage access for Lighthouse Activity teams"
       />
-      <LighthouseAccountsTable users={users} />
+      <LighthouseAccountsTable users={users} programmes={programmes.map(p => ({ value: p.id, label: orgFullLabel(p) }))} />
     </div>
   )
 }

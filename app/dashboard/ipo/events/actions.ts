@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const REVALIDATE = '/dashboard/ipo/events'
@@ -33,13 +34,13 @@ export async function createEvent(formData: FormData) {
 
   // Exact-match check, scoped to this org only — cross-IPO duplicates are
   // expected and handled separately by the Duplicates feature.
-  const { data: existing } = await db
+  const existing = must('duplicate check', await db
     .from('events')
     .select('id,title')
     .eq('ipo_id', orgId)
     .eq('start_date', startDate)
     .ilike('title', title) // no wildcards -> case-insensitive equality
-    .limit(1)
+    .limit(1))
 
   if (existing && existing.length > 0) {
     throw new Error(`An event with this title and date already exists: "${existing[0].title}". Edit the existing event instead, or use a different title/date.`)

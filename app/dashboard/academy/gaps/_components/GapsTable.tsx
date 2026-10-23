@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, LinkIcon } from 'lucide-react'
@@ -52,12 +53,13 @@ export default async function GapsTable({ ipoFilter, statusFilter, page, ipos, s
   if (ipoFilter)    gapsQuery = gapsQuery.eq('ipo_id', ipoFilter)
   if (statusFilter) gapsQuery = gapsQuery.eq('status', statusFilter)
 
-  const { data: gaps, count } = await gapsQuery
+  const { data: gaps, count, error: gapsError } = await gapsQuery
+  if (gapsError) throw new Error(`missing events query failed: ${gapsError.message}`)
 
   const gapIds = (gaps ?? []).map(g => g.id)
-  const { data: fuzzyRaw } = gapIds.length > 0
-    ? await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds, threshold: 0.35 })
-    : { data: [] }
+  const fuzzyRaw = gapIds.length > 0
+    ? must('fuzzy match query', await supabase.rpc('find_fuzzy_matches', { event_ids: gapIds, threshold: 0.35 }))
+    : []
 
   const matchMap = new Map<string, FuzzyMatch>(
     (fuzzyRaw ?? []).map((m: FuzzyMatch) => [m.event_id, m])

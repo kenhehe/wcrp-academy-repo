@@ -106,7 +106,8 @@ export default function ScrapePreviewDialog({ ipoId, ipoName, open, onClose }: P
               lastStageAt = Date.now()
             } else if (msg.done) {
               await new Promise(r => setTimeout(r, MIN_STAGE_MS))
-              const { done: _d, ...rest } = msg
+              const rest: Record<string, unknown> = { ...msg }
+              delete rest.done
               setPreview(rest as unknown as PreviewData)
             } else if (msg.error) {
               await new Promise(r => setTimeout(r, MIN_STAGE_MS))

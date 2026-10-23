@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/base/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,11 +13,11 @@ export default async function ImportExportPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const orgId = user?.app_metadata?.org_id as string
 
-  const { data: yearsRaw } = await supabase
+  const yearsRaw = must('event years query', await supabase
     .from('events')
     .select('year')
     .eq('ipo_id', orgId)
-    .order('year', { ascending: false })
+    .order('year', { ascending: false }))
 
   const availableYears = [...new Set((yearsRaw ?? []).map(r => r.year).filter(Boolean))] as number[]
 

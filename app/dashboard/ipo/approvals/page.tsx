@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PageHeader from '@/components/base/PageHeader'
 import ApprovalsTable from './_components/ApprovalsTable'
@@ -15,7 +16,7 @@ export default async function ApprovalsPage() {
   // Use admin client so RLS doesn't restrict cross-org visibility
   const db = createAdminClient()
 
-  const [{ data: pending }, { data: allOrgs }] = await Promise.all([
+  const [pendingRes, allOrgsRes] = await Promise.all([
     db
       .from('events')
       .select('id,title,start_date,end_date,location,country,ipo_id')
@@ -26,6 +27,8 @@ export default async function ApprovalsPage() {
       .from('ipos')
       .select('id,name,color_hex'),
   ])
+  const pending = must('pending events query', pendingRes)
+  const allOrgs = must('orgs query', allOrgsRes)
 
   const ipoMap = new Map((allOrgs ?? []).map(i => [i.id, i]))
 

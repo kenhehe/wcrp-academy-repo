@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import PageHeader from '@/components/base/PageHeader'
 import DuplicateFiltersBar from '@/components/duplicates/DuplicateFiltersBar'
 import DuplicatesReview from '@/components/duplicates/DuplicatesReview'
@@ -18,8 +19,8 @@ export default async function AcademyDuplicatesPage({ searchParams }: PageProps)
   const ipoFilter = typeof sp.ipo  === 'string' ? sp.ipo  : undefined
   const page       = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
-  const { data: ipos } = await supabase
-    .from('ipos').select('id,name').eq('type', 'ipo').order('name')
+  const ipos = must('ipos query', await supabase
+    .from('ipos').select('id,name').eq('type', 'ipo').order('name'))
 
   return (
     <div className="p-8 space-y-8">

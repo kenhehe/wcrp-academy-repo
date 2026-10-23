@@ -1,7 +1,9 @@
 'use server'
 
+import { requireAcademyAdminOrApprover } from '@/lib/auth/guards'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { must } from '@/lib/supabase/must'
 import { setAcademyStatus } from '@/lib/data/event-duplicates'
 
 function revalidateDuplicateViews() {
@@ -12,6 +14,7 @@ function revalidateDuplicateViews() {
 }
 
 export async function linkDuplicate(formData: FormData) {
+  await requireAcademyAdminOrApprover()
   const eventId            = formData.get('event_id') as string
   const duplicateOfEventId = formData.get('duplicate_of_event_id') as string
   if (!eventId || !duplicateOfEventId) return
@@ -20,38 +23,42 @@ export async function linkDuplicate(formData: FormData) {
 
   // Reconcile status once, at link time, in case either side was already
   // matched to the Academy catalogue before this link existed.
-  const [{ data: a }, { data: b }] = await Promise.all([
+  const [aRes, bRes] = await Promise.all([
     supabase.from('events').select('in_academy,academy_event_id').eq('id', eventId).single(),
     supabase.from('events').select('in_academy,academy_event_id').eq('id', duplicateOfEventId).single(),
   ])
+  const a = must('event query', aRes)
+  const b = must('linked event query', bRes)
   const inAcademy      = Boolean(a?.in_academy || b?.in_academy)
   const academyEventId = a?.academy_event_id ?? b?.academy_event_id ?? null
 
-  await supabase.from('events').update({ duplicate_of_event_id: duplicateOfEventId }).eq('id', eventId)
+  must('duplicate link', await supabase.from('events').update({ duplicate_of_event_id: duplicateOfEventId }).eq('id', eventId))
   await setAcademyStatus(supabase, duplicateOfEventId, inAcademy, academyEventId)
 
   revalidateDuplicateViews()
 }
 
 export async function unlinkDuplicate(formData: FormData) {
+  await requireAcademyAdminOrApprover()
   const eventId = formData.get('event_id') as string
   if (!eventId) return
 
   const supabase = createAdminClient()
-  await supabase.from('events').update({ duplicate_of_event_id: null }).eq('id', eventId)
+  must('duplicate unlink', await supabase.from('events').update({ duplicate_of_event_id: null }).eq('id', eventId))
 
   revalidateDuplicateViews()
 }
 
 export async function dismissDuplicate(formData: FormData) {
+  await requireAcademyAdminOrApprover()
   const eventId          = formData.get('event_id') as string
   const duplicateEventId = formData.get('duplicate_event_id') as string
   if (!eventId || !duplicateEventId) return
 
   const supabase = createAdminClient()
-  await supabase
+  must('duplicate dismissal', await supabase
     .from('duplicate_dismissals')
-    .upsert({ event_id: eventId, duplicate_event_id: duplicateEventId }, { onConflict: 'event_id,duplicate_event_id' })
+    .upsert({ event_id: eventId, duplicate_event_id: duplicateEventId }, { onConflict: 'event_id,duplicate_event_id' }))
 
   revalidateDuplicateViews()
 }
@@ -61,6 +68,7 @@ export async function searchDuplicateCandidates(
   excludeEventId?: string,
   excludeIpoId?: string,
 ): Promise<{ id: string; ipo_id: string; title: string; start_date: string | null; status: string | null }[]> {
+  await requireAcademyAdminOrApprover()
   if (!query.trim()) return []
   // Admin client — same reasoning as ipo/approvals: a plain org session's RLS
   // won't show other IPOs' events, and this needs to search across all of them.
@@ -74,8 +82,8 @@ export async function searchDuplicateCandidates(
   if (excludeEventId) queryBuilder = queryBuilder.neq('id', excludeEventId)
   if (excludeIpoId)   queryBuilder = queryBuilder.neq('ipo_id', excludeIpoId)
 
-  const { data } = await queryBuilder
+  const data = must('duplicate candidate search', await queryBuilder
     .order('start_date', { ascending: false })
-    .limit(10)
+    .limit(10))
   return data ?? []
 }

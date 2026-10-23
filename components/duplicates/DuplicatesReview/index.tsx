@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { must } from '@/lib/supabase/must'
 import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, LinkIcon, ThumbsDown, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -48,7 +49,7 @@ export default async function DuplicatesReview({ ipoFilter, page, ipos, sp }: Pr
   const ipoIds = ipos.map(i => i.id)
   const ipoNameMap = new Map(ipos.map(i => [i.id, i.name]))
 
-  const [{ data: pairsRaw }, { data: confirmedRaw }] = await Promise.all([
+  const [pairsRes, confirmedRes] = await Promise.all([
     supabase.rpc('find_cross_ipo_duplicate_pairs', {
       threshold:     0.35,
       p_ipo_id:      ipoFilter ?? null,
@@ -64,15 +65,17 @@ export default async function DuplicatesReview({ ipoFilter, page, ipos, sp }: Pr
       .limit(50),
   ])
 
+  const pairsRaw     = must('duplicate pairs query', pairsRes)
+  const confirmedRaw = must('confirmed duplicates query', confirmedRes)
   const pairs = (pairsRaw ?? []) as DuplicatePair[]
   const totalCount = pairs[0]?.total_count ?? 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   // Resolve canonical row titles/ipo for the confirmed-duplicates list
   const canonicalIds = [...new Set((confirmedRaw ?? []).map(r => r.duplicate_of_event_id))]
-  const { data: canonicalRows } = canonicalIds.length > 0
-    ? await supabase.from('events').select('id,ipo_id,title').in('id', canonicalIds)
-    : { data: [] }
+  const canonicalRows = canonicalIds.length > 0
+    ? must('canonical events query', await supabase.from('events').select('id,ipo_id,title').in('id', canonicalIds))
+    : []
   const canonicalMap = new Map((canonicalRows ?? []).map(r => [r.id, r]))
 
   return (

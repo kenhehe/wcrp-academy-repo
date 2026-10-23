@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import PageHeader from '@/components/base/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
@@ -28,11 +29,14 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
   const page        = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
   // Fetch stats data, matched links, and IPO names in parallel
-  const [{ data: allMeta }, { data: matchedLinks }, { data: ipos }] = await Promise.all([
+  const [allMetaRes, matchedLinksRes, iposRes] = await Promise.all([
     supabase.from('academy_events').select('id,is_external,start_date'),
     supabase.from('events').select('academy_event_id,ipo_id').not('academy_event_id', 'is', null),
     supabase.from('ipos').select('id,name'),
   ])
+  const allMeta      = must('catalogue query', allMetaRes)
+  const matchedLinks = must('matched events query', matchedLinksRes)
+  const ipos         = must('ipos query', iposRes)
 
   const ipoNameMap = new Map((ipos ?? []).map(i => [i.id, i.name]))
 
@@ -84,7 +88,8 @@ export default async function AcademyCoveragePage({ searchParams }: PageProps) {
       .lte('start_date', `${y}-12-31`)
   }
 
-  const { data: events, count } = await mainQuery
+  const { data: events, count, error: eventsError } = await mainQuery
+  if (eventsError) throw new Error(`catalogue page query failed: ${eventsError.message}`)
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   const stats = [

@@ -21,6 +21,8 @@ export async function POST(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Only System Health (Academy) previews scrapers; org accounts have no reason to run them
+  if (user.app_metadata?.role !== 'academy_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { ipoId } = await params
   const fnName    = FUNCTION_MAP[ipoId]

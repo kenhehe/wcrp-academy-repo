@@ -36,15 +36,18 @@ export async function proxy(request: NextRequest) {
     user = data.user
   } catch (err) {
     console.error('[proxy] Supabase error:', err)
-    // Fail open — let the page handle missing session
+    // user stays null: protected paths redirect to /login below (fails closed); /, /login
+    // and the token-authenticated public API still load
   }
 
   const isLoginRoute   = pathname === '/login'
   const isIpoRoute     = pathname.startsWith('/dashboard/ipo')
   const isAcademyRoute = pathname.startsWith('/dashboard/academy')
+  // The public events API authenticates with its own Bearer token (api_tokens), not a session
+  const isPublicApi    = pathname.startsWith('/api/v1/')
 
   // No session → force login (/ is the public summary board — allow through)
-  if (!user && !isLoginRoute && pathname !== '/') {
+  if (!user && !isLoginRoute && pathname !== '/' && !isPublicApi) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

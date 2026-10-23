@@ -154,7 +154,11 @@ export default function CalendarView({ events, ipos }: Props) {
             }
           </Button>
 
-          <Select value={selectedIpo} onValueChange={v => setSelectedIpo(v ?? 'all')}>
+          <Select
+            value={selectedIpo}
+            onValueChange={v => setSelectedIpo(v ?? 'all')}
+            items={{ all: 'All organisations', ...Object.fromEntries(ipos.map(ipo => [ipo.id, ipo.name])) }}
+          >
             <SelectTrigger size="sm" className="w-48">
               <SelectValue placeholder="All organisations" />
             </SelectTrigger>

@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import PageHeader from '@/components/base/PageHeader'
 import StatTile from '@/components/base/StatTile'
 import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle, PopoverDescription } from '@/components/ui/popover'
@@ -25,10 +26,11 @@ export default async function GapAnalysisPage({ searchParams }: PageProps) {
   const statusFilter = typeof sp.status === 'string' ? sp.status : undefined
   const page         = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
-  const [{ data: ipos }, coverage] = await Promise.all([
+  const [iposRes, coverage] = await Promise.all([
     supabase.from('ipos').select('id,name').eq('type', 'ipo').order('name'),
     getCoverageRows(),
   ])
+  const ipos = must('ipos query', iposRes)
 
   const totals        = sumCoverage(coverage)
   const upToDate      = coverage.filter(r => r.upcoming === 0)

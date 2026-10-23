@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 import { AlertCircle, ChevronDown, ChevronUp, X, Zap, Globe, FileSpreadsheet, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const CONTACT_EMAIL = 'wcrp-academy@wcrp-climate.org'
-
 const WHITELIST_RULE = {
   label:       'Quick Fix',
   labelColor:  'bg-success-soft text-success',
@@ -63,10 +61,9 @@ interface Props {
   runId:        string
   startedAt:    string
   errorMessage: string | null
-  ipoName:      string
 }
 
-export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipoName }: Props) {
+export default function ScrapeStatusBanner({ runId, startedAt, errorMessage }: Props) {
   const [dismissed, setDismissed] = useState(false)
   const [expanded,  setExpanded]  = useState(false)
 
@@ -85,10 +82,6 @@ export default function ScrapeStatusBanner({ runId, startedAt, errorMessage, ipo
   }
 
   const reason  = friendlyReason(errorMessage)
-  const subject = encodeURIComponent(`Events sync issue — ${ipoName}`)
-  const body    = encodeURIComponent(
-    `Hi WCRP Academy team,\n\nWe noticed our events couldn't be synced automatically on ${fmtDate(startedAt)}.\n\nCould you help us resolve this?\n\nBest regards,\n${ipoName}`,
-  )
 
   return (
     <div className="mx-6 mt-6 rounded-md border border-warning/30 bg-warning-soft">

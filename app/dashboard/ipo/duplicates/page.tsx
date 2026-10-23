@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PageHeader from '@/components/base/PageHeader'
 import DuplicateFiltersBar from '@/components/duplicates/DuplicateFiltersBar'
@@ -25,8 +26,8 @@ export default async function IPODuplicatesPage({ searchParams }: PageProps) {
 
   // Admin client — pending events span multiple orgs, same reasoning as Approvals
   const db = createAdminClient()
-  const { data: ipos } = await db
-    .from('ipos').select('id,name').eq('type', 'ipo').order('name')
+  const ipos = must('ipos query', await db
+    .from('ipos').select('id,name').eq('type', 'ipo').order('name'))
 
   return (
     <div className="p-8 space-y-8">

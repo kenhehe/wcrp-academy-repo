@@ -4,26 +4,16 @@
 // app/dashboard/academy/event-registry and app/dashboard/ipo/event-registry (one feature,
 // two trees), so it lives here instead of a per-route actions.ts.
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAcademyAdminOrApprover } from '@/lib/auth/guards'
 import {
   deleteEventById,
   insertEventForOrg,
   updateEventCore,
-  type AdminEventSource,
   type EventCoreInput,
   type SimilarEvent,
 } from '@/lib/data/admin-events'
 import { STATUS_OPTIONS } from '@/components/events/EventForm/types'
-
-async function assertEventAdmin(): Promise<AdminEventSource> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-  if (user.app_metadata?.role === 'academy_admin') return 'academy'
-  if (user.app_metadata?.can_approve === true)    return 'secretariat'
-  throw new Error('Not allowed: only the Academy team and the Secretariat can change other organisations’ events')
-}
 
 function text(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -61,7 +51,7 @@ function revalidateEventViews() {
 }
 
 export async function createEventForOrg(formData: FormData): Promise<{ orgName: string; similar: SimilarEvent[] }> {
-  const source = await assertEventAdmin()
+  const source = await requireAcademyAdminOrApprover()
   const orgId  = text(formData, 'ipo_id')
   if (!orgId) throw new Error('Pick the organisation this event belongs to')
 
@@ -71,7 +61,7 @@ export async function createEventForOrg(formData: FormData): Promise<{ orgName: 
 }
 
 export async function updateAnyEvent(formData: FormData): Promise<void> {
-  await assertEventAdmin()
+  await requireAcademyAdminOrApprover()
   const eventId = text(formData, 'event_id')
   if (!eventId) throw new Error('event_id is required')
 
@@ -80,7 +70,7 @@ export async function updateAnyEvent(formData: FormData): Promise<void> {
 }
 
 export async function deleteAnyEvent(eventId: string): Promise<void> {
-  await assertEventAdmin()
+  await requireAcademyAdminOrApprover()
   if (!eventId) throw new Error('event_id is required')
 
   await deleteEventById(createAdminClient(), eventId)

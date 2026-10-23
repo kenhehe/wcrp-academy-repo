@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
@@ -14,15 +14,8 @@ const FUNCTION_MAP: Record<string, string> = {
   clivar: 'scrape-clivar',
 }
 
-async function assertAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-  return user
-}
-
 export async function triggerScrape(ipoId: string, force = false): Promise<void> {
-  await assertAuth()
+  await requireAcademyAdmin()
 
   const fnName = FUNCTION_MAP[ipoId]
   if (!fnName) throw new Error(`No scraper registered for IPO: ${ipoId}`)
@@ -50,7 +43,7 @@ export async function triggerScrape(ipoId: string, force = false): Promise<void>
 }
 
 export async function triggerAllScrapers(): Promise<{ fired: number }> {
-  await assertAuth()
+  await requireAcademyAdmin()
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -71,7 +64,7 @@ export async function triggerAllScrapers(): Promise<{ fired: number }> {
 }
 
 export async function deleteAllRuns(): Promise<void> {
-  await assertAuth()
+  await requireAcademyAdmin()
   const db = createAdminClient()
   // Delete every row — use a always-true filter since Supabase requires a filter
   const { error } = await db.from('scrape_runs').delete().gte('started_at', '2000-01-01')

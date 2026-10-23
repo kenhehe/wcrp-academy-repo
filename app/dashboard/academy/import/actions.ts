@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
@@ -101,10 +102,10 @@ export async function importAcademyEvents(rows: AcademyMappedRow[]): Promise<Aca
   // Rows without academy_id: dedup by title
   if (withoutId.length > 0) {
     const titles = [...new Set(withoutId.map(r => r.title))]
-    const { data: existing } = await supabase
+    const existing = must('existing catalogue query', await supabase
       .from('academy_events')
       .select('id,title')
-      .in('title', titles)
+      .in('title', titles))
 
     const existingMap = new Map((existing ?? []).map(e => [e.title, e.id]))
 

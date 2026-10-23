@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { must } from '@/lib/supabase/must'
 import { createAdminClient } from '@/lib/supabase/admin'
 import IPOSidebar from '@/components/layout/IPOSidebar'
 import ScrapeStatusBanner from './_components/ScrapeStatusBanner'
@@ -17,7 +18,7 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
 
   const admin = createAdminClient()
 
-  const [{ data: ipo, error }, { data: lastRun }, { count: pendingCount }] = await Promise.all([
+  const [{ data: ipo, error }, lastRunRes, pendingRes] = await Promise.all([
     supabase
       .from('ipos')
       .select('id, name, color_hex, type')
@@ -33,10 +34,13 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
     // Admin client needed — pending events span multiple lighthouse orgs
     canApprove
       ? admin.from('events').select('id', { count: 'exact', head: true }).eq('approval_status', 'pending')
-      : Promise.resolve({ count: 0 }),
+      : Promise.resolve({ count: 0, error: null }),
   ])
 
   if (error || !ipo) throw new Error(`IPO not found for org_id: ${orgId}`)
+  const lastRun = must('latest run query', lastRunRes)
+  if (pendingRes.error) throw new Error(`pending events count failed: ${pendingRes.error.message}`)
+  const pendingCount = pendingRes.count
 
   const failedRun = lastRun?.status === 'failed' ? lastRun : null
 
@@ -57,7 +61,6 @@ export default async function IPOLayout({ children }: { children: React.ReactNod
             runId={failedRun.id}
             startedAt={failedRun.started_at}
             errorMessage={failedRun.error_message}
-            ipoName={ipo.name}
           />
         )}
         {children}

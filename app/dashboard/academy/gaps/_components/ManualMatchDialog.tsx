@@ -34,9 +34,12 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
   const [syncMsg,   setSyncMsg]   = useState<{ ok: boolean; text: string } | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  // Results only count while there is a query; clearing the box hides them without a state reset
+  const shownResults = query.trim() ? results : []
+
   // Debounced search
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return }
+    if (!query.trim()) return
     const t = setTimeout(async () => {
       setSearching(true)
       const data = await searchAcademyEvents(query)
@@ -153,14 +156,14 @@ export default function ManualMatchDialog({ eventId, eventTitle }: Props) {
                   {syncMsg.text}
                 </p>
               )}
-              {syncMsg?.ok && results.length === 0 && (
+              {syncMsg?.ok && shownResults.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Still no match — this event may not be in the Academy catalogue yet.
                 </p>
               )}
             </div>
           ) : (
-            results.map(r => (
+            shownResults.map(r => (
               <button
                 key={r.id}
                 type="button"

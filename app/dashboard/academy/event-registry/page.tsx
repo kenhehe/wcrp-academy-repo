@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { must } from '@/lib/supabase/must'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import PageHeader from '@/components/base/PageHeader'
 import EventRegistryFiltersBar from '@/components/events/EventRegistryFiltersBar'
@@ -22,11 +23,12 @@ export default async function AcademyEventRegistryPage({ searchParams }: PagePro
   const page       = Math.max(1, parseInt(typeof sp.page === 'string' ? sp.page : '1'))
 
   const db = createAdminClient()
-  const [{ data: orgs }, yearsRaw] = await Promise.all([
+  const [orgsRes, yearsRaw] = await Promise.all([
     db.from('ipos').select('id,name,full_name,color_hex,type').order('name'),
     // Every event, so page past the 1000-row cap or the newest years go missing
     fetchAllRows<{ year: number | null }>('event years query', (from, to) => db.from('events').select('year').order('id').range(from, to)),
   ])
+  const orgs = must('orgs query', orgsRes)
 
   const years = [...new Set(yearsRaw.map(r => r.year).filter((y): y is number => y != null))].sort((a, b) => b - a)
 
