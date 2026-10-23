@@ -1,0 +1,32 @@
+# Lint, unit tests, type-check and a production build on every push and pull request.
+# Vercel builds too, but it doesn't lint or run tests, so problems there used to ship unnoticed.
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Placeholders: the build reads these but makes no requests with them
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # Route types live in .next/ (not committed); generate them before type-checking
+      - run: npx next typegen
+      - run: npx tsc --noEmit
+      - run: npm run build
