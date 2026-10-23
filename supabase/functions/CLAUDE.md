@@ -124,15 +124,17 @@ supabase functions deploy scrape-rifs scrape-esmo scrape-gewex scrape-cordex
 supabase functions deploy sync-academy-wp
 ```
 
-## Scheduling — `pg_cron`, not `vercel.json`
+## Scheduling — `pg_cron` only
 
-`vercel.json`'s cron (`/api/cron/scrape-all`, fires all 7 at once, daily) exists but isn't what actually drives the twice-daily schedule you'll see in `scrape_runs` — each scraper has its **own individual `pg_cron` job**, staggered ~15 minutes apart so they don't all hit their sites simultaneously (e.g. `scrape-clic-12h` at `45 1,13 * * *` — see `20260603_fix_clic_cron_key.sql`). These jobs live in Postgres, not in this repo — only ad-hoc fixes to one get committed as a migration, so the full set of 7 schedules can't be read from git alone. `cron.job` isn't exposed via the REST API (`Accept-Profile: cron` → `PGRST106`), so checking what's actually scheduled requires direct SQL access, not a script.
+The twice-daily schedule you'll see in `scrape_runs` comes from Postgres: each scraper has its **own individual `pg_cron` job**, staggered ~15 minutes apart so they don't all hit their sites simultaneously (e.g. `scrape-clic-12h` at `45 1,13 * * *` — see `20260603_fix_clic_cron_key.sql`). There used to be a second scheduler, a Vercel cron (`vercel.json` → `/api/cron/scrape-all`, all 7 at once at 02:00 UTC); it was removed on 2026-10-24 because it doubled up on these jobs without the stagger, didn't show in System Health's schedule, and its route was open to anyone whenever `CRON_SECRET` wasn't set. Don't add it back: schedule a new scraper with a `pg_cron` job (template below). These jobs live in Postgres, not in this repo — only ad-hoc fixes to one get committed as a migration, so the full set of 7 schedules can't be read from git alone. `cron.job` isn't exposed via the REST API (`Accept-Profile: cron` → `PGRST106`), so checking what's actually scheduled requires direct SQL access, not a script.
 
 **If a scraper silently stops running** (shows zero recent rows in `scrape_runs`, not even `failed` ones — confirmed this happened to `clivar` for ~4 months): check whether its `pg_cron` job still exists before assuming the code is broken. Dry-run it first (`{ dry_run: true }`, no DB writes) — if that finds real results, the scraper itself is fine and the fix is purely re-adding the schedule, not touching `parseEvents()`.
 
 **New cron jobs should authenticate via Supabase Vault**, not a hardcoded key in the migration (`20261001_add_clivar_cron.sql` is the template — references `vault.decrypted_secrets where name = 'service_role_key'` instead of embedding the literal JWT). The existing `clic` job still hardcodes its key; that's a pre-existing exception, not the pattern to copy going forward.
 
 **A missing or wrong Vault secret fails silently** — this kept CLIVAR from running for three weeks after its job was added. `cron.job_run_details` still says `succeeded` (pg_net only queues the request), the Edge Function gateway then rejects the call with 401 before the function starts, and nothing ever reaches `scrape_runs`. Check the stored key without revealing it: `select length(decrypted_secret), left(decrypted_secret, 3) = 'eyJ' from vault.decrypted_secrets where name = 'service_role_key';` — the length should match the service-role JWT in `.env.local`, and a JWT starts with `eyJ`.
+
+**Statuses of events a scraper no longer sees** (dropped off the site, or never scraped: Lighthouse, Academy, Secretariat) are rolled forward by the nightly `refresh_event_statuses()` job, not by the scrapers — see `supabase/migrations/20261024_refresh_event_statuses.sql`.
 
 **The app keeps a copy of the schedule** in `lib/data/scrape-schedule.ts` (System Health's Schedule popover and next-run countdown). Change it together with any cron job.
 

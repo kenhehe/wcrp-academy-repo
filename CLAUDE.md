@@ -9,7 +9,7 @@
 A Next.js 16 App Router dashboard for WCRP (World Climate Research Programme). It scrapes events from 7 IPO websites and audits their presence in the WCRP Academy training catalogue.
 
 Two core data tables:
-- `events` — scraped IPO events (source of truth for what IPOs publish)
+- `events` — every org's events: scraped from the IPO sites, plus Lighthouse events (a one-off import from wcrp-climate.org on 2026-10-22, then entered by hand); `source` says which (`manual`, `academy`, `secretariat`, `wcrp-climate.org`, or a scraper's site)
 - `academy_events` — synced from WordPress (the Academy training catalogue)
 
 Links:
@@ -22,7 +22,7 @@ Two disjoint account types, checked in each tree's root `layout.tsx` — a user 
 
 - **`academy_admin`** (`user.app_metadata.role === 'academy_admin'`) — full access to `/dashboard/academy/*` (gate: `app/dashboard/academy/layout.tsx`). Has no `org_id`; cannot enter `/dashboard/ipo/*` at all.
 - **IPO / Lighthouse org accounts** (`user.app_metadata.role === 'ipo_user'`, `org_id` set to an `ipos.id`) — access `/dashboard/ipo/*` (gate: `app/dashboard/ipo/layout.tsx`), normally scoped to their own `ipo_id` by RLS.
-  - `ipos.type` is `'ipo'` (one of the 7 real IPOs), `'lighthouse'` (an LHA programme, hardcoded id list in `app/dashboard/ipo/accounts/page.tsx`), or `'secretariat'` (just one row today: `id='wcrp'`, the Climate/Secretariat account's own org — see migration `20260903_reclassify_wcrp_org_type.sql`; it used to be `type='ipo'`, which silently polluted every "7 IPOs" query written before that row existed). Type affects terminology/UI and org-filter grouping, not access level.
+  - `ipos.type` is `'ipo'` (one of the 7 real IPOs), `'lighthouse'` (an LHA programme; the list comes from the `ipos` table via `getLighthouseOrgs()` in `lib/data/lighthouses.ts`, never a hardcoded id list), or `'secretariat'` (just one row today: `id='wcrp'`, the Climate/Secretariat account's own org — see migration `20260903_reclassify_wcrp_org_type.sql`; it used to be `type='ipo'`, which silently polluted every "7 IPOs" query written before that row existed). Type affects terminology/UI and org-filter grouping, not access level.
   - `user.app_metadata.can_approve` — an extra flag on select accounts (e.g. the Climate account, `org_id='wcrp'`) unlocking cross-org pages inside the `ipo/` tree: `approvals`, `event-registry`, `publication-requests`, `duplicates`, `accounts`, `api-keys`, plus the Climate Analytics view on the overview page. These pages use `createAdminClient()` for reads, since a plain org session's RLS won't show other orgs' data.
   - When writing a query meant to mean "the 7 real IPOs," `.eq('type', 'ipo')` is correct today (it now excludes `secretariat`) — but don't assume `type` only has two possible values; a query that means "every content-producing org" (not just IPOs) needs `type` unfiltered or explicitly listing `ipo`+`lighthouse`.
 
@@ -37,7 +37,9 @@ A feature that needs to reach both `academy_admin` and a `can_approve` IPO accou
   - `createClient()` from `lib/supabase/server.ts` → reads the user session. Use for data fetching in Server Components.
   - `createAdminClient()` from `lib/supabase/admin.ts` → service role, bypasses RLS. Use for mutations in Server Actions ONLY. Never import in client components.
 - **Mutations go in `actions.ts`** — always call `revalidatePath()` after mutating.
+- **Every server action starts with a role guard** from `lib/auth/guards.ts` (`requireAcademyAdmin`, `requireCanApprove`, `requireAcademyAdminOrApprover`, or `requireUser` for org-scoped actions that then use the session's `org_id`). A server action is a public POST endpoint: gating the page that shows its button does not gate the action.
 - **Org names:** `ipos.name` is the short label (an acronym: `CliC`, `DE`, `MCR`, `SLC`…) used in dropdowns, charts and tables; `ipos.full_name` is the long form, shown on hover or where there's room (`orgFullLabel()`). Every org dropdown groups IPOs / Lighthouse Activities / Secretariat with `groupOrgsByType()` from `lib/data/org-groups.ts` — don't hand-roll the grouping.
+- **Never drop a query error.** Unwrap results with `must(label, result)` from `lib/supabase/must.ts` (or check `error` and throw) — a swallowed error renders as "no data" and hides the failure. The public API is the one place that turns errors into a 500 JSON response instead of throwing.
 - **Any read that can return more than 1,000 rows goes through `fetchAllRows()`** (`lib/supabase/fetch-all.ts`), ordered by a unique column at the end. PostgREST cuts every response at 1,000 rows without an error; when the Lighthouse import took approved events past 1,000, the public homepage and API quietly lost every upcoming event.
 - **Skeletons are mandatory** for dynamic data. Use `@/components/ui/skeleton`.
 - **`cn()` for class merging.** No hardcoded hex colors — use CSS variables.
@@ -54,7 +56,7 @@ app/dashboard/academy/
   events/       Academy Coverage — audit of academy_events vs IPO sources
   gaps/         Gap Analysis — IPO events not in Academy (in_academy=false)
   duplicates/   Cross-IPO Duplicates — same event scraped from two IPO sites (academy_admin)
-  event-registry/ Read-only, searchable browse of every event across every org (IPO + LHA) — see note below
+  event-registry/ Searchable browse of every event across every org (IPO + LHA), plus add / edit / delete for any org
   catalogue/    CRUD editor for academy_events table
   accounts/     User management
   import/       Bulk CSV import
@@ -71,16 +73,22 @@ app/dashboard/ipo/
 
 components/
   ui/           shadcn/ui — CLI-managed, do NOT edit manually
-  base/         Project wrappers (PageInfo)
+  base/         Project atoms: PageHeader, PageInfo, StatusBadge, StatTile, OrgDot (see components/CLAUDE.md)
   layout/       AcademySidebar, IPOSidebar — both render into the shared SidebarDrawer
                 (hamburger trigger + slide-in overlay, grouped nav sections); see app/dashboard/CLAUDE.md
   duplicates/   Shared Duplicates review UI — rendered from BOTH academy/ and ipo/ trees, see below
+  charts/       Sparkline, MiniColumns, ChartBar, StatusDonut
   [feature]/    Domain components shared across pages — each is Component/index.tsx + types.ts
 
 lib/
   supabase/server.ts    createClient() — server-side, reads cookie session
   supabase/admin.ts     createAdminClient() — service role, server-only
   supabase/client.ts    Browser Supabase client (for Realtime only)
+  supabase/fetch-all.ts fetchAllRows() — pages past the 1,000-row cap
+  supabase/must.ts      must() — unwraps a query result, throws on error
+  auth/guards.ts        requireUser / requireAcademyAdmin / requireCanApprove / requireAcademyAdminOrApprover
+  data/*.ts             Loaders and pure helpers (health, coverage, climate-analytics, event-trends, org-groups,
+                        lighthouses, scrape-schedule…) — conventions in lib/CLAUDE.md
   data/academy-events.types.ts   AcademyEventRow interface, resolveStatus()
   data/event-duplicates.ts       Plain helper (no 'use server'): setAcademyStatus() keeps a duplicate pair's coverage status in sync
   actions/event-duplicates.ts    'use server': linkDuplicate, unlinkDuplicate, dismissDuplicate, searchDuplicateCandidates —
@@ -155,6 +163,7 @@ const { data, count } = await supabase
 ```bash
 npm run dev            # Start dev server
 npm run lint           # ESLint
+npm test               # Vitest unit tests (lib/**/*.test.ts, supabase/functions/**/*.test.ts)
 npx tsc --noEmit       # Type-check
 npx shadcn@latest add [comp]   # Add shadcn component
 
@@ -168,3 +177,12 @@ supabase functions deploy sync-academy-wp
 `gewex` | `cordex` | `esmo` | `rifs` | `cmip` | `clic` | `clivar`
 
 To add a new scraper: see `supabase/functions/CLAUDE.md`.
+
+## Folder guides
+
+- `app/dashboard/CLAUDE.md` — every dashboard route, theme tokens, sharing features across the two trees
+- `app/api/CLAUDE.md` — the public events API and the internal routes
+- `components/CLAUDE.md` — ui vs base vs charts vs feature folders, Base UI gotchas
+- `lib/CLAUDE.md` — data loaders, shared actions, query rules
+- `supabase/functions/CLAUDE.md` — scrapers and their schedule
+- `supabase/migrations/CLAUDE.md` — how schema and data changes get applied

@@ -197,7 +197,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 ### `ipo/approvals`, `ipo/accounts`, `ipo/api-keys` (all `can_approve`-gated)
 - Guard pattern: `if (!user?.app_metadata?.can_approve) redirect('/dashboard/ipo')` at the top of `page.tsx` — no shared layout-level check for this flag, each page repeats the one-liner (this is the precedent `ipo/duplicates` followed)
 - `approvals`: `events` where `approval_status = 'pending'`, **no org-type restriction** — covers every org, not just lighthouse (see the fuller `ipo/approvals` entry above); approve writes `approval_status`
-- `accounts`: manages LHA login credentials via `admin.auth.admin.listUsers()`, filtered to `role === 'ipo_user'` and a hardcoded `LIGHTHOUSE_IDS` list (`_components/LighthouseAccountsTable.tsx`) — not read from the `ipos` table
+- `accounts`: manages LHA login credentials via `admin.auth.admin.listUsers()`, filtered to `role === 'ipo_user'` and the Lighthouse programmes from the `ipos` table (`getLighthouseOrgs()` in `lib/data/lighthouses.ts`; the create/update actions validate `org_id` against the same list). Adding a programme needs only an `ipos` row with `type = 'lighthouse'`.
 - `api-keys`: CRUD for `api_tokens`, scoped to `created_by = user.id`; powers the public `/api/v1/events` REST endpoint
 
 ## Adding a New Page

@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase CLI cache (project ref, pooler URL, versions) — machine-local
+supabase/.temp/
+
+# personal Claude Code settings; the shared project ones stay in .claude/settings.json
+.claude/settings.local.json
+
+# obsidian vault config, if the repo is opened as a vault
+.obsidian/
