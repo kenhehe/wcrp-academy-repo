@@ -1,0 +1,220 @@
+// Pure helpers for creating and editing surveys: slugs, suggested windows, validation,
+// datetime-local conversion. Shared by the client forms and the server actions, which
+// re-run every check. Local-time helpers use the runtime's time zone, so call them in
+// the browser for the admin's own time.
+import type {
+  QuestionInput, QuestionStage, SubmissionStage, SurveyQuestionItem, SurveyTimesInput,
+} from './surveys.types'
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// 'CMIP Seminar Series 2026 #4' → 'cmip-seminar-series-2026-4'
+export function slugify(title: string): string {
+  return title
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '')
+}
+
+// base, then base-2, base-3… whichever isn't taken yet
+export function uniqueSlug(base: string, taken: Iterable<string>): string {
+  const used = new Set(taken)
+  const root = base || 'survey'
+  if (!used.has(root)) return root
+  for (let n = 2; ; n++) {
+    if (!used.has(`${root}-${n}`)) return `${root}-${n}`
+  }
+}
+
+// ─── datetime-local inputs (browser time zone) ────────────────────────────────
+
+// Date → 'YYYY-MM-DDTHH:MM' in local time, the value a datetime-local input takes
+export function toLocalInput(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+// 'YYYY-MM-DDTHH:MM' (local) → Date; null when empty or malformed
+export function fromLocalInput(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value)
+  if (!m) return null
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+// Catalogue dates are whole days ('2026-11-18'); start at 09:00 and end at 17:00 until
+// the admin types the real times
+export function catalogueDayToLocalInput(day: string | null, time: '09:00' | '17:00'): string {
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day}T${time}` : ''
+}
+
+export interface SuggestedWindows {
+  preOpensAt:   Date
+  preClosesAt:  Date
+  postOpensAt:  Date
+  postClosesAt: Date
+}
+
+// Before: opens a week ahead at 09:00, closes when the event starts.
+// After: opens when the event ends, closes 14 days later at 23:59. Local time.
+export function suggestWindows(eventStart: Date, eventEnd: Date): SuggestedWindows {
+  const preOpensAt = new Date(eventStart)
+  preOpensAt.setDate(preOpensAt.getDate() - 7)
+  preOpensAt.setHours(9, 0, 0, 0)
+  const postClosesAt = new Date(eventEnd)
+  postClosesAt.setDate(postClosesAt.getDate() + 14)
+  postClosesAt.setHours(23, 59, 0, 0)
+  return { preOpensAt, preClosesAt: new Date(eventStart), postOpensAt: new Date(eventEnd), postClosesAt }
+}
+
+export const WINDOW_KEYS = ['preOpensAt', 'preClosesAt', 'postOpensAt', 'postClosesAt'] as const
+export type WindowKey = typeof WINDOW_KEYS[number]
+
+// What the admin has typed, in datetime-local format. A window left out follows the suggestion.
+export interface LocalTimes {
+  eventStart: string
+  eventEnd:   string
+  windows:    Partial<Record<WindowKey, string>>
+}
+
+export interface ResolvedTimes {
+  windows: Record<WindowKey, string>   // typed or suggested, datetime-local format
+  edited:  boolean                     // the admin changed at least one window
+  iso:     SurveyTimesInput            // what the server action receives ('' where missing)
+}
+
+// Fills the windows the admin hasn't typed from the event dates, and converts everything to
+// ISO instants using the browser's time zone
+export function resolveSurveyTimes(t: LocalTimes): ResolvedTimes {
+  const start = fromLocalInput(t.eventStart), end = fromLocalInput(t.eventEnd)
+  const suggested = start && end && end >= start ? suggestWindows(start, end) : null
+  const windows = Object.fromEntries(
+    WINDOW_KEYS.map(k => [k, t.windows[k] ?? (suggested ? toLocalInput(suggested[k]) : '')]),
+  ) as Record<WindowKey, string>
+  const iso = (v: string) => fromLocalInput(v)?.toISOString() ?? ''
+  return {
+    windows,
+    edited: WINDOW_KEYS.some(k => t.windows[k] !== undefined),
+    iso: {
+      eventStartsAt: iso(t.eventStart),
+      eventEndsAt:   iso(t.eventEnd),
+      preOpensAt:    iso(windows.preOpensAt),
+      preClosesAt:   iso(windows.preClosesAt),
+      postOpensAt:   iso(windows.postOpensAt),
+      postClosesAt:  iso(windows.postClosesAt),
+    },
+  }
+}
+
+// ─── Time zone label ──────────────────────────────────────────────────────────
+
+// 480 → 'UTC+8', -210 → 'UTC−3:30', 0 → 'UTC'
+export function formatUtcOffset(minutesEast: number): string {
+  if (minutesEast === 0) return 'UTC'
+  const sign = minutesEast > 0 ? '+' : '−'
+  const abs = Math.abs(minutesEast)
+  const mins = abs % 60
+  return `UTC${sign}${Math.floor(abs / 60)}${mins ? `:${pad(mins)}` : ''}`
+}
+
+// ('Asia/Manila', 480) → 'Manila, UTC+8'
+export function describeTimeZone(timeZone: string, minutesEast: number): string {
+  const city = timeZone.split('/').pop()?.replace(/_/g, ' ')
+  const offset = formatUtcOffset(minutesEast)
+  return city && city !== 'UTC' ? `${city}, ${offset}` : offset
+}
+
+// ─── Validation (client and server) ───────────────────────────────────────────
+
+const time = (iso: string | null | undefined) => {
+  if (!iso) return null
+  const t = new Date(iso).getTime()
+  return Number.isNaN(t) ? null : t
+}
+
+// First problem with a survey's event dates and windows, or null when they're fine
+export function checkSurveyTimes(t: Partial<SurveyTimesInput>): string | null {
+  const eventStart = time(t.eventStartsAt), eventEnd = time(t.eventEndsAt)
+  const preOpen = time(t.preOpensAt), preClose = time(t.preClosesAt)
+  const postOpen = time(t.postOpensAt), postClose = time(t.postClosesAt)
+  if (eventStart === null || eventEnd === null) return 'Enter when the event starts and ends.'
+  if (eventEnd < eventStart) return 'The event ends before it starts.'
+  if (preOpen === null || preClose === null || postOpen === null || postClose === null) {
+    return 'Set when each survey opens and closes.'
+  }
+  if (preClose <= preOpen) return 'The before-survey closes before it opens.'
+  if (postClose <= postOpen) return 'The after-survey closes before it opens.'
+  if (postOpen < preOpen) return 'The after-survey opens before the before-survey.'
+  return null
+}
+
+export function checkTitle(title: string): string | null {
+  const t = title.trim()
+  if (!t) return 'Give the survey a name.'
+  if (t.length > 200) return 'Keep the name under 200 characters.'
+  return null
+}
+
+const CHOICE_TYPES = new Set(['single_choice', 'multi_choice'])
+
+// Trim everything, drop empty or repeated choices, clear fields the type doesn't use
+export function normalizeQuestionInput(q: QuestionInput): QuestionInput {
+  const isChoice = CHOICE_TYPES.has(q.type)
+  const options = isChoice
+    ? [...new Set(q.options.map(o => o.trim()).filter(Boolean))]
+    : []
+  return {
+    text:          q.text.trim(),
+    type:          q.type,
+    stage:         q.stage,
+    options,
+    scaleMinLabel: q.type === 'likert_5' ? q.scaleMinLabel.trim() : '',
+    scaleMaxLabel: q.type === 'likert_5' ? q.scaleMaxLabel.trim() : '',
+    isRequired:    q.isRequired,
+  }
+}
+
+// First problem with an event question, or null. Run it on normalised input.
+export function checkQuestionInput(q: QuestionInput): string | null {
+  if (!q.text) return 'Type the question.'
+  if (q.text.length > 300) return 'Keep the question under 300 characters.'
+  if (CHOICE_TYPES.has(q.type)) {
+    if (q.options.length < 2) return 'Give at least two choices.'
+    if (q.options.length > 12) return 'Keep it to 12 choices or fewer.'
+    if (q.options.some(o => o.length > 120)) return 'Keep each choice under 120 characters.'
+  }
+  if (q.scaleMinLabel.length > 40 || q.scaleMaxLabel.length > 40) return 'Keep the scale labels under 40 characters.'
+  return null
+}
+
+// ─── Is a stage open? ─────────────────────────────────────────────────────────
+
+export type StageWindow = 'not_open' | 'open' | 'closed'
+
+// Open only for an active survey, between its opening and closing time (inclusive)
+export function stageWindow(status: string, opensAt: string | null, closesAt: string | null, now: number): StageWindow {
+  if (status === 'closed') return 'closed'
+  if (status !== 'active' || !opensAt || !closesAt) return 'not_open'
+  if (now < new Date(opensAt).getTime()) return 'not_open'
+  if (now > new Date(closesAt).getTime()) return 'closed'
+  return 'open'
+}
+
+// ─── Questions per stage ──────────────────────────────────────────────────────
+
+export function asksAt(questionStage: QuestionStage, stage: SubmissionStage): boolean {
+  return questionStage === 'both' || questionStage === stage
+}
+
+// The questions one stage asks, in survey order
+export function questionsForStage<T extends Pick<SurveyQuestionItem, 'stage' | 'sortOrder'>>(items: T[], stage: SubmissionStage): T[] {
+  return items.filter(q => asksAt(q.stage, stage)).sort((a, b) => a.sortOrder - b.sortOrder)
+}
+
+// Rough answering time: ~10 s per scale or choice question, ~40 s per text answer
+export function estimateMinutes(items: Pick<SurveyQuestionItem, 'type'>[]): number {
+  const seconds = items.reduce((sum, q) => sum + (q.type === 'text' ? 40 : 10), 0)
+  return Math.max(1, Math.round(seconds / 60))
+}

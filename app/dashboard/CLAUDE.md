@@ -152,6 +152,17 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - `AcademyEventForm` is a large form component — edit it in `_components/AcademyEventForm.tsx`
 - Uses `AcademyEventInput` type from `lib/data/academy-events.types.ts`
 
+### `academy/surveys` (in progress on `feat/surveys`)
+- Pre/post surveys on Academy catalogue events; the plan, routes, phases and decisions are in `docs/surveys/PLAN.md`, the screens in the mockup linked there.
+- Survey tables (`survey_*`) have RLS on with **no policies** and privileges revoked from `anon`/`authenticated`, so the session client sees nothing: loaders read with `createAdminClient()` **after** `requireAcademyAdmin()`, and actions start with the same guard.
+- Results are anonymised: never put a participant's email next to their answers, in the UI or an export.
+- Pages: `surveys/` (list with status filter), `surveys/new` (`_components/NewSurveyForm`: catalogue picker, dates, own questions), `surveys/[slug]` with tabs `?tab=` Setup / Participants / Send / QR codes / Results / Export (one `_components/*Tab` each; the header's `SurveyStatusButton` opens, closes and reopens), `surveys/[slug]/preview?stage=pre|post`, and the CSV route `surveys/[slug]/export/[file]` (`answers.csv` with pseudonyms only, `participants.csv` with emails and statuses only).
+- Mutations: `surveys/actions.ts` (setup, status), `participant-actions.ts`, `send-actions.ts`. They return `{ ok: false, error }` for expected problems (shown as a toast) and throw on query failures. The participant and email work itself is in `lib/surveys/` as plain helpers taking a client, so scripts can test it.
+- Participant pages live outside the dashboard: `app/s/[slug]/[stage]` (and `app/s/[slug]/stop`), no login, actions in `app/s/actions.ts`; see the root `CLAUDE.md`.
+- Results charts are plain HTML in `_components/ResultsCharts.tsx` (server) and `ResultsInteractive.tsx` (client); the 1–5 scale uses the `--scale-1…5` tokens in `globals.css`.
+- **Times:** admins type local times (`datetime-local`), the browser converts them to ISO before calling an action, and pages show times with `components/surveys/LocalDateTime` (UTC on the server render, local after hydration). Inputs that depend on the time zone render only in the browser (`useIsClient`, `SurveyTimesFields`).
+- Questions lock once anyone has answered (`isSurveyLocked`); a survey's slug never changes, since links and QR codes use it.
+
 ### `ipo` overview (Climate Analytics, and each org's own overview)
 
 `app/dashboard/ipo/page.tsx` renders one of two pages:

@@ -1,0 +1,329 @@
+'use client'
+
+// New survey: (1) pick the Academy event, (2) dates, (3) questions, (4) the emails it will
+// send. Nothing is saved until "Create draft"; the server action re-checks everything.
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { AlertTriangle, Check, CircleCheck, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import StatusBadge from '@/components/base/StatusBadge'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  catalogueDayToLocalInput, checkSurveyTimes, checkTitle, questionsForStage, resolveSurveyTimes, type LocalTimes,
+} from '@/lib/data/survey-setup'
+import {
+  QUESTION_STAGE_LABELS, QUESTION_TYPE_LABELS,
+  type CatalogueOption, type QuestionInput, type SurveyQuestionItem,
+} from '@/lib/data/surveys.types'
+import { cn } from '@/lib/utils'
+import { createSurvey } from '../../actions'
+import QuestionDialog from '../../_components/QuestionDialog'
+import SurveyTimesFields from '../../_components/SurveyTimesFields'
+
+const MAX_LISTED = 100
+const EMPTY_TIMES: LocalTimes = { eventStart: '', eventEnd: '', windows: {} }
+
+const EMAILS: [string, string][] = [
+  ['Before-survey invite', 'when the before-survey opens'],
+  ['Before-survey reminder', '24 h before it closes, to people who haven\'t answered'],
+  ['Thank-you with the after-survey link', 'to people who answered the before-survey by QR code'],
+  ['After-survey invite', 'when the after-survey opens'],
+  ['After-survey reminders', '1 h and 24 h after it opens, and 24 h before it closes, to people who answered before but not after'],
+]
+
+// '2026-11-18' → '18 Nov 2026', the same on server and browser
+const day = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
+
+type OwnQuestion = QuestionInput & { id: string }
+
+interface Props {
+  catalogue: CatalogueOption[]
+  core:      SurveyQuestionItem[]
+}
+
+function Step({ n, title, children, description }: { n: number; title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2.5">
+          <span className="flex size-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary" aria-hidden="true">{n}</span>
+          {title}
+        </CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  )
+}
+
+export default function NewSurveyForm({ catalogue, core }: Props) {
+  const router = useRouter()
+  const [query, setQuery]       = useState('')
+  const [eventId, setEventId]   = useState<string | null>(null)
+  const [title, setTitle]       = useState<string | null>(null)   // null: use the event's title
+  const [times, setTimes]       = useState<LocalTimes>(EMPTY_TIMES)
+  const [showCore, setShowCore] = useState(false)
+  const [own, setOwn]           = useState<OwnQuestion[]>([])
+  const [dialog, setDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; id: string } | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  const selected = catalogue.find(e => e.id === eventId) ?? null
+  const name     = title ?? selected?.title ?? ''
+
+  const q = query.trim().toLowerCase()
+  const matches = q
+    ? catalogue.filter(e => [e.title, e.trainingType, e.organiser].some(v => v?.toLowerCase().includes(q)))
+    : catalogue
+  const listed = matches.slice(0, MAX_LISTED)
+
+  const resolved   = resolveSurveyTimes(times)
+  const timesIssue = checkSurveyTimes(resolved.iso)
+  const datesSet   = Boolean(resolved.iso.eventStartsAt && resolved.iso.eventEndsAt) && timesIssue !== 'The event ends before it starts.'
+
+  const preCount  = questionsForStage(core, 'pre').length  + own.filter(o => o.stage !== 'post').length
+  const postCount = questionsForStage(core, 'post').length + own.filter(o => o.stage !== 'pre').length
+  const corePre   = questionsForStage(core, 'pre').length
+  const corePost  = questionsForStage(core, 'post').length
+
+  const checks = [
+    { ok: Boolean(selected && !selected.hasSurvey), label: 'Academy event', detail: selected?.title ?? 'Pick one from the catalogue' },
+    { ok: !checkTitle(name), label: 'Survey name', detail: name.trim() || 'Give it a name' },
+    { ok: datesSet, label: 'Event dates', detail: datesSet ? 'Set' : 'When the event starts and ends' },
+    { ok: !timesIssue, label: 'Survey windows', detail: timesIssue ?? 'Suggested from the event dates' },
+    { ok: true, label: 'Questions', detail: `${preCount} before · ${postCount} after (${own.length} of your own)` },
+  ]
+  const ready = checks.every(c => c.ok)
+
+  function pick(e: CatalogueOption) {
+    setEventId(e.id)
+    setTitle(null)
+    setTimes({
+      eventStart: catalogueDayToLocalInput(e.startDate, '09:00'),
+      eventEnd:   catalogueDayToLocalInput(e.endDate ?? e.startDate, '17:00'),
+      windows:    {},
+    })
+  }
+
+  function saveQuestion(question: QuestionInput): null {
+    if (dialog?.mode === 'edit') {
+      setOwn(list => list.map(o => (o.id === dialog.id ? { ...question, id: o.id } : o)))
+    } else {
+      setOwn(list => [...list, { ...question, id: crypto.randomUUID() }])
+    }
+    setDialog(null)
+    return null
+  }
+
+  function handleCreate() {
+    if (!selected || !ready) return
+    startTransition(async () => {
+      try {
+        const result = await createSurvey({
+          academyEventId: selected.id,
+          title:          name,
+          ...resolved.iso,
+          questions:      own.map(o => ({
+            text: o.text, type: o.type, stage: o.stage, options: o.options,
+            scaleMinLabel: o.scaleMinLabel, scaleMaxLabel: o.scaleMaxLabel, isRequired: o.isRequired,
+          })),
+        })
+        if (!result.ok) { toast.error(result.error); return }
+        toast.success('Draft created', { description: 'Nothing is sent until you add participants and switch sending on.' })
+        router.push(`/dashboard/academy/surveys/${result.slug}`)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Could not create the survey')
+      }
+    })
+  }
+
+  const editing = dialog?.mode === 'edit' ? own.find(o => o.id === dialog.id) : undefined
+
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-6">
+        <Step n={1} title="Academy event" description="Only events in the Academy catalogue can have a survey, one survey each.">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search the Academy catalogue"
+              aria-label="Search the Academy catalogue"
+              className="pl-8"
+            />
+          </div>
+          <div role="radiogroup" aria-label="Academy events" className="max-h-80 overflow-y-auto rounded-lg border">
+            {listed.length === 0 && <p className="p-4 text-sm text-muted-foreground">No Academy event matches “{query}”.</p>}
+            {listed.map(e => {
+              const checked = e.id === eventId
+              return (
+                <label
+                  key={e.id}
+                  className={cn(
+                    'flex items-center gap-3 border-t px-3 py-2.5 first:border-t-0',
+                    e.hasSurvey ? 'cursor-default opacity-60' : 'cursor-pointer hover:bg-muted/50',
+                    checked && 'bg-accent hover:bg-accent',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="academy-event"
+                    checked={checked}
+                    disabled={e.hasSurvey}
+                    onChange={() => pick(e)}
+                    className="size-4 shrink-0 accent-primary"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{e.title}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {[e.trainingType, e.organiser, e.deliveryMode].filter(Boolean).join(' · ') || 'No details in the catalogue'}
+                    </span>
+                  </span>
+                  {e.hasSurvey
+                    ? <StatusBadge tone="info">Has a survey</StatusBadge>
+                    : e.startDate
+                      ? <span className="shrink-0 text-xs text-muted-foreground">{day(e.startDate)}</span>
+                      : <StatusBadge tone="warning">No date</StatusBadge>}
+                </label>
+              )
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
+            Missing an event? <Link href="/dashboard/academy/catalogue/new" className="underline underline-offset-4 hover:text-foreground">Add it to the catalogue</Link> first.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="s-name">Survey name</Label>
+            <Input id="s-name" value={name} onChange={e => setTitle(e.target.value)} maxLength={200} disabled={!selected} />
+            <p className="text-xs text-muted-foreground">Participants see this at the top of the survey and in emails.</p>
+          </div>
+        </Step>
+
+        <Step n={2} title="Dates">
+          {selected ? (
+            <SurveyTimesFields
+              value={times}
+              onChange={setTimes}
+              note={selected.startDate ? (
+                <p className="flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-sm">
+                  <Check className="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />
+                  Event dates filled in from the Academy catalogue, 09:00 to 17:00. Change the times if you know them.
+                </p>
+              ) : (
+                <p className="flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2.5 text-sm">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                  This event has no date in the Academy catalogue. Enter it here; it&apos;s only used to suggest when the surveys open and close.
+                </p>
+              )}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">Pick the Academy event first.</p>
+          )}
+        </Step>
+
+        <Step n={3} title="Questions">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
+            <span className="text-sm">
+              <span className="block font-medium">Core questions are included</span>
+              <span className="text-muted-foreground">{corePre} in the before-survey, {corePost} in the after-survey; the same in every survey, so results compare across events.</span>
+            </span>
+            <Button type="button" variant="outline" size="sm" aria-expanded={showCore} onClick={() => setShowCore(v => !v)}>
+              {showCore ? 'Hide core questions' : 'Show core questions'}
+            </Button>
+          </div>
+          {showCore && (
+            <ul className="divide-y text-sm">
+              {core.map(c => (
+                <li key={c.versionId} className="flex items-center justify-between gap-3 py-2">
+                  <span>{c.text}</span>
+                  <StatusBadge tone="neutral">{QUESTION_STAGE_LABELS[c.stage]}</StatusBadge>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="space-y-1 pt-2">
+            <p className="text-sm font-medium">This event&apos;s own questions</p>
+            <p className="text-xs text-muted-foreground">Optional. Ask the same question before and after to measure the change.</p>
+          </div>
+          {own.length > 0 && (
+            <ul className="divide-y rounded-lg border">
+              {own.map(o => (
+                <li key={o.id} className="flex items-center gap-3 px-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm">{o.text}</span>
+                    <span className="block text-xs text-muted-foreground">{QUESTION_TYPE_LABELS[o.type]} · {QUESTION_STAGE_LABELS[o.stage]}{o.isRequired ? '' : ' · optional'}</span>
+                  </span>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={`Edit "${o.text}"`} onClick={() => setDialog({ mode: 'edit', id: o.id })}>
+                    <Pencil aria-hidden="true" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove "${o.text}"`} onClick={() => setOwn(list => list.filter(x => x.id !== o.id))}>
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={() => setDialog({ mode: 'add' })}>
+            <Plus data-icon="inline-start" aria-hidden="true" />
+            Add a question
+          </Button>
+        </Step>
+
+        <Step n={4} title="Emails" description="Sent from WCRP Academy <office@wcrp-academy.org> to the people on the participant list.">
+          <ul className="divide-y text-sm">
+            {EMAILS.map(([what, when]) => (
+              <li key={what} className="py-2">
+                <span className="font-medium">{what}</span>
+                <span className="text-muted-foreground">: {when}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            You add participants after creating the survey. Nothing is sent from a draft; sending is switched on later, on the survey&apos;s Send tab.
+          </p>
+        </Step>
+      </div>
+
+      <Card className="lg:sticky lg:top-6">
+        <CardHeader>
+          <CardTitle>Ready to create?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ul className="divide-y">
+            {checks.map(c => (
+              <li key={c.label} className="flex items-start gap-2.5 py-2.5 first:pt-0">
+                {c.ok
+                  ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-success" aria-label="Done" />
+                  : <span className="mt-0.5 size-4 shrink-0 rounded-full border-[1.5px] border-dashed border-muted-foreground" aria-label="To do" />}
+                <span className="min-w-0 text-sm">
+                  <span className="block font-medium">{c.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{c.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Button type="button" className="w-full" disabled={!ready || pending} onClick={handleCreate}>
+            {pending ? 'Creating…' : 'Create draft'}
+          </Button>
+          <Link href="/dashboard/academy/surveys" className={cn(buttonVariants({ variant: 'ghost' }), 'w-full')}>Cancel</Link>
+          <p className="text-xs text-muted-foreground">It starts as a draft. Nothing is sent until you add participants and switch sending on.</p>
+        </CardContent>
+      </Card>
+
+      <QuestionDialog
+        open={dialog !== null}
+        onOpenChange={open => { if (!open) setDialog(null) }}
+        initial={editing}
+        title={dialog?.mode === 'edit' ? 'Edit question' : 'Add a question'}
+        onSave={saveQuestion}
+      />
+    </div>
+  )
+}

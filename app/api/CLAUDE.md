@@ -17,4 +17,9 @@ The only route used outside this app; changes here reach whoever consumes WCRP e
 - `scrape/preview/[ipoId]` (POST) — runs a scraper with `{ dry_run: true }` for the Preview dialog on System Health; `academy_admin` only (403 for org accounts); calls the Edge Function with the service-role key server-side.
 - `academy/events` and `academy/events/[id]` — read (any signed-in user) and create/update (`academy_admin`) the Academy catalogue. No page in this app calls them today; check for outside users before removing.
 
-There is no cron route any more: scraping is scheduled only by `pg_cron` (see `supabase/functions/CLAUDE.md`).
+Scraping has no cron route: it is scheduled only by `pg_cron` (see `supabase/functions/CLAUDE.md`).
+
+## `surveys/cron` — survey email sender
+
+- `POST`, called every 10 minutes by `pg_cron` (`supabase/migrations/20261026_survey_email_cron.sql`, not applied yet). Authenticates with `Authorization: Bearer <SURVEYS_CRON_SECRET>` (timing-safe compare); `proxy.ts` lets it through without a session (`isSurveyPublic`).
+- Runs `runDueJobs()` (`lib/surveys/email/send.ts`): sends due invites and reminders within the mailbox's daily limit, at most 50 per run, and returns `{ jobs, sent, failed, notes }`. Errors come back as a 500 with JSON and a `console.error`, like `v1/events`.

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, Database, Copy, Rows3 } from 'lucide-react'
+import { LayoutDashboard, SearchX, Activity, Users, LogOut, BookOpen, Upload, Database, Copy, Rows3, ClipboardList } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -23,6 +23,12 @@ const NAV_GROUPS = [
       { href: '/dashboard/academy/events',    label: 'Coverage',        icon: BookOpen },
       { href: '/dashboard/academy/catalogue', label: 'Catalogue',       icon: Database },
       { href: '/dashboard/academy/import',    label: 'Import / Export', icon: Upload },
+    ],
+  },
+  {
+    label: 'Impact',
+    items: [
+      { href: '/dashboard/academy/surveys', label: 'Surveys', icon: ClipboardList },
     ],
   },
   {

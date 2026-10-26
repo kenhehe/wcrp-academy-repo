@@ -12,6 +12,13 @@ supabase/   clients and query helpers
 auth/       guards.ts — role checks every server action starts with
 data/       loaders (server) and pure helpers (anywhere)
 actions/    'use server' actions shared by routes in BOTH dashboard trees
+hooks/      use-is-client.ts — false on the server render and hydration, true after (time-zone-dependent UI)
+surveys/    server-only survey internals, plain helpers taking a client (scripts can call them):
+  tokens.ts       personal-link tokens (HMAC of the participant id, SURVEYS_SECRET) + signed device cookie
+  base-url.ts     the site address in links / QR codes / emails (SURVEYS_BASE_URL, else the request host)
+  participants.ts import, remove, merge
+  respond.ts      the participant side: find the survey, recognise the person, save answers
+  email/          config (env), templates (pure, tested), send (SMTP, daily limit, jobs), overview (Send tab)
 wordpress/  WordPress REST client + mapper for the Academy catalogue sync
 ipo-sources.ts, geo.ts, utils.ts (cn())
 ```
@@ -41,3 +48,6 @@ ipo-sources.ts, geo.ts, utils.ts (cn())
 | `data/lighthouses.ts` | LHA Accounts page + actions | admin |
 | `data/academy-events.ts` | Academy catalogue | session |
 | `data/scrape-schedule.ts` | System Health schedule (mirror of the pg_cron jobs) | — |
+| `data/surveys.ts` | Surveys pages (each loader calls `requireAcademyAdmin()` first; survey tables have no RLS policies) | admin |
+
+Survey pure helpers, tested: `data/survey-setup.ts` (slugs, suggested windows, stage windows, validation shared by forms and actions, `datetime-local` conversion, time zone label), `data/survey-progress.ts` (participants / before / after / matched / match rate), `data/survey-participants.ts` (email lists, typo hints, statuses), `data/survey-answers.ts` (checking submitted answers), `data/survey-email-rules.ts` (when each email goes, to whom), `data/survey-results.ts` (results, small groups hidden) and `data/csv.ts` (CSV with formula-injection guard). Types and labels: `data/surveys.types.ts`.

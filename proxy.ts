@@ -45,9 +45,12 @@ export async function proxy(request: NextRequest) {
   const isAcademyRoute = pathname.startsWith('/dashboard/academy')
   // The public events API authenticates with its own Bearer token (api_tokens), not a session
   const isPublicApi    = pathname.startsWith('/api/v1/')
+  // Survey participants have no login: /s/… checks a personal-link token or a signed cookie,
+  // and the survey email cron route checks its own Bearer secret
+  const isSurveyPublic = pathname.startsWith('/s/') || pathname === '/api/surveys/cron'
 
   // No session → force login (/ is the public summary board — allow through)
-  if (!user && !isLoginRoute && pathname !== '/' && !isPublicApi) {
+  if (!user && !isLoginRoute && pathname !== '/' && !isPublicApi && !isSurveyPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

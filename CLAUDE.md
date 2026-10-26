@@ -16,6 +16,8 @@ Links:
 - `events.academy_event_id` → `academy_events.id` (set when matched to the Academy catalogue)
 - `events.duplicate_of_event_id` → `events.id` (set when two IPOs independently scraped the same real-world event — see `app/dashboard/academy/duplicates` / `app/dashboard/ipo/duplicates`). Both rows are kept for attribution; `in_academy`/`academy_event_id` stay in lockstep across a linked pair via `lib/data/event-duplicates.ts`'s `setAcademyStatus`.
 
+**In progress (`feat/surveys`): pre/post surveys** that measure an event's impact. A survey attaches to one `academy_events` row (`survey_events.academy_event_id`); its tables all start with `survey_` and are service-role only (RLS on, no policies, privileges revoked from `anon`/`authenticated`). Plan, phases and decisions: `docs/surveys/PLAN.md`.
+
 ## Account Types & Access
 
 Two disjoint account types, checked in each tree's root `layout.tsx` — a user is one or the other, never both:
@@ -60,6 +62,10 @@ app/dashboard/academy/
   catalogue/    CRUD editor for academy_events table
   accounts/     User management
   import/       Bulk CSV import
+  surveys/      Pre/post surveys on Academy events (Phases 1–7 built on feat/surveys) — see docs/surveys/PLAN.md
+
+app/s/[slug]/[stage]/   Participant survey pages, no login (proxy.ts `isSurveyPublic`); app/s/[slug]/stop = stop reminders
+app/api/surveys/cron/   Sends due survey emails; pg_cron calls it with a Bearer secret
 
 app/dashboard/ipo/
   events/                 Browse all scraped IPO events; Add/Edit modal has publication-preference checkboxes
@@ -186,3 +192,4 @@ To add a new scraper: see `supabase/functions/CLAUDE.md`.
 - `lib/CLAUDE.md` — data loaders, shared actions, query rules
 - `supabase/functions/CLAUDE.md` — scrapers and their schedule
 - `supabase/migrations/CLAUDE.md` — how schema and data changes get applied
+- `docs/surveys/PLAN.md` — the survey module: decisions, data model, emails, phases and their status

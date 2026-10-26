@@ -114,6 +114,19 @@
   --chart-3:               #F2EAA4;
   --chart-4:               #A1D9F8;
   --chart-5:               #232C3D;
+  /* Ordinal 1–5 answer scale (survey results): one blue hue, light → dark. Checked with the
+     dataviz validator (--ordinal) against --card: monotone, visible steps, step 1 at 2.11:1.
+     --scale-N-ink is the label colour inside that step. */
+  --scale-1:               #86B6EF;
+  --scale-2:               #5598E7;
+  --scale-3:               #2A78D6;
+  --scale-4:               #1C5CAB;
+  --scale-5:               #104281;
+  --scale-1-ink:           #232C3D;
+  --scale-2-ink:           #232C3D;
+  --scale-3-ink:           #FFFFFF;
+  --scale-4-ink:           #FFFFFF;
+  --scale-5-ink:           #FFFFFF;
   --radius:                0.625rem;
   --sidebar:               #F5FBFE;
   --sidebar-foreground:    #232C3D;
@@ -163,6 +176,17 @@
   --chart-3:               #F2EAA4;
   --chart-4:               #1C68A5;
   --chart-5:               #F2EAA4;
+  /* The 1–5 scale flips in dark mode (higher = lighter); step 1 at 2.75:1 against --card */
+  --scale-1:               #2A78D6;
+  --scale-2:               #5598E7;
+  --scale-3:               #86B6EF;
+  --scale-4:               #B7D3F6;
+  --scale-5:               #E6F0FD;
+  --scale-1-ink:           #FFFFFF;
+  --scale-2-ink:           #232C3D;
+  --scale-3-ink:           #232C3D;
+  --scale-4-ink:           #232C3D;
+  --scale-5-ink:           #232C3D;
   --sidebar:               #1E2A3B;
   --sidebar-foreground:    #E3EEF6;
   --sidebar-primary:       #1C68A5;
