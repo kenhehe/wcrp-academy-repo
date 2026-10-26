@@ -17,6 +17,7 @@ surveys/    server-only survey internals, plain helpers taking a client (scripts
   tokens.ts       personal-link tokens (HMAC of the participant id, SURVEYS_SECRET) + signed device cookie
   base-url.ts     the site address in links / QR codes / emails (SURVEYS_BASE_URL, else the request host)
   participants.ts import, remove, merge
+  core-questions.ts  the Core questions page: edit (in place or new version), add, retire, reorder
   respond.ts      the participant side: find the survey, recognise the person, save answers
   email/          config (env), templates (pure, tested), send (SMTP, daily limit, jobs), overview (Send tab)
 wordpress/  WordPress REST client + mapper for the Academy catalogue sync

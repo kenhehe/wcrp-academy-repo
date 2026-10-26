@@ -2,8 +2,8 @@
 -- questions in, and retiring a core question so new surveys stop asking it (surveys that
 -- already have it keep it). Until now the order lived in code (CORE_QUESTION_ORDER).
 --
--- NOT APPLIED YET. Apply before deploying the Core questions page: the New survey page reads
--- these columns. Safe to re-run.
+-- Applied 2026-10-27 by hand in the Supabase SQL editor, before the Core questions page was
+-- deployed (the New survey page reads these columns). Safe to re-run.
 
 alter table survey_questions add column if not exists core_order int;
 alter table survey_questions add column if not exists retired_at timestamptz;

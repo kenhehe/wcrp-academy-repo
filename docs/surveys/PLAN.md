@@ -140,7 +140,11 @@ The **email address** is the stable identity. Tokens and cookies are shortcuts t
 
 Seeded by `supabase/migrations/20261026_survey_core_questions.sql`. Keep demographic questions few: fewer identifying details protects anonymity.
 
-**Changing the wording:** while no real survey has collected answers, version 1 can be edited in place (a small migration file, so the change is on record). After that, a change is a new version, and new surveys pick it up.
+**Changing core questions:** on the **Core questions** page (`/dashboard/academy/core-questions`, logic in `lib/surveys/core-questions.ts`):
+- edit wording, choices, scale labels, required: a version nobody has answered is edited in place; once answered, saving creates the next version, and surveys nobody has answered yet move to it while answered surveys keep theirs
+- answer type and stage stay fixed (retire the question and add a new one instead)
+- add a core question (new surveys ask it), retire / restore (new surveys stop / start asking it), reorder
+- the order and retiring are columns on `survey_questions` (`core_order`, `retired_at`; `20261027_core_question_order.sql`)
 
 ---
 

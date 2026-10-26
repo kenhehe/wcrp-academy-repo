@@ -162,6 +162,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - Mutations: `surveys/actions.ts` (setup, status), `participant-actions.ts`, `send-actions.ts`. They return `{ ok: false, error }` for expected problems (shown as a toast) and throw on query failures. The participant and email work itself is in `lib/surveys/` as plain helpers taking a client, so scripts can test it.
 - Participant pages live outside the dashboard: `app/s/[slug]/[stage]` (and `app/s/[slug]/stop`), no login, actions in `app/s/actions.ts`; see the root `CLAUDE.md`.
 - Results charts are plain HTML in `_components/ResultsCharts.tsx` (server) and `ResultsInteractive.tsx` (client); the 1–5 scale uses the `--scale-1…5` tokens in `globals.css`.
+- `academy/core-questions`: edit / add / retire / reorder the core questions (actions in its `actions.ts`, rules in `lib/surveys/core-questions.ts`). Editing an answered version creates a new one; surveys nobody has answered move to it, answered ones keep theirs. A separate route, so it can't clash with a survey slug.
 - **Times:** admins type local times (`datetime-local`), the browser converts them to ISO before calling an action, and pages show times with `components/surveys/LocalDateTime` (UTC on the server render, local after hydration). Inputs that depend on the time zone render only in the browser (`useIsClient`, `SurveyTimesFields`).
 - Questions lock once anyone has answered (`isSurveyLocked`); a survey's slug never changes, since links and QR codes use it.
 
