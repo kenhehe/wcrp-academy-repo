@@ -1,5 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import type { SurveyTabId } from './SurveyTabs'
+import type { SurveyTabId } from './tabs'
 
 // What each survey tab looks like while its data loads (shown by the Suspense in page.tsx)
 export default function TabSkeleton({ tab }: { tab: SurveyTabId }) {

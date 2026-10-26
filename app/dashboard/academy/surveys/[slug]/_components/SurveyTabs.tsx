@@ -6,16 +6,7 @@
 import Link, { useLinkStatus } from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-export const SURVEY_TABS = [
-  { id: 'setup',        label: 'Setup' },
-  { id: 'participants', label: 'Participants' },
-  { id: 'send',         label: 'Send' },
-  { id: 'qr',           label: 'QR codes' },
-  { id: 'results',      label: 'Results' },
-  { id: 'export',       label: 'Export' },
-] as const
-export type SurveyTabId = typeof SURVEY_TABS[number]['id']
+import { SURVEY_TABS, type SurveyTabId } from './tabs'
 
 // Always rendered at a fixed size, so the label doesn't jump when it appears
 function PendingHint() {

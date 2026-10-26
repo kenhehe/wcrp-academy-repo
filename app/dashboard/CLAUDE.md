@@ -106,6 +106,8 @@ Wrap slow data-fetching components in `<Suspense>` so the page shell renders imm
 
 The `key` forces a remount (and re-fetch) when filters change.
 
+**The same goes for tabs and any other `?param=` view of one page.** `loading.tsx` only shows when you arrive on a route, never when only its search params change, so without a keyed Suspense the old content stays on screen with no feedback until the new data is in. `academy/surveys/[slug]` does it for its tabs: `<Suspense key={tab} fallback={<TabSkeleton tab={tab} />}>` around each tab's data, plus a `useLinkStatus` spinner on the clicked tab (`_components/SurveyTabs.tsx`).
+
 ## `export const dynamic = 'force-dynamic'`
 
 Put this at the top of every page that shows live data. It disables Next.js caching for that route. All dashboard pages use it.

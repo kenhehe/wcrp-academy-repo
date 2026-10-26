@@ -24,5 +24,6 @@ Route-private components live in that route's `_components/`; this folder is for
 ## Styling
 
 - Colours are CSS variables from `app/globals.css` (`bg-canvas` page ground, `bg-card` surfaces, tone tokens like `text-warning bg-warning-soft`). No hex values, no raw Tailwind palette classes — details in `app/dashboard/CLAUDE.md` → Theme, tokens & dark mode.
+- **A Server Component can render a component from a `'use client'` file, but can't read its other exports.** A constant or function exported next to a client component is a client reference on the server: reading it (`SURVEY_TABS.find(…)`) throws at render, which the build doesn't catch. Put values both sides need in a plain module (e.g. `academy/surveys/[slug]/_components/tabs.ts`).
 - `'use client'` only when the component needs state, effects or browser events; derive values during render instead of syncing them with `setState` inside an effect (lint rejects that).
 - Every dynamic block gets a matching skeleton from `@/components/ui/skeleton`.
