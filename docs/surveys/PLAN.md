@@ -285,18 +285,16 @@ Rules:
 
 | Variable | What | Status |
 |---|---|---|
-| `SURVEYS_SECRET` | Signs personal links and the device cookie (32+ random characters). Must be **the same everywhere**, or links made in one place fail in another | In `.env.local` (generated 2026-10-26); copy the value to Vercel |
+| `SURVEYS_SECRET` | Signs personal links and the device cookie (32+ random characters). Must be **the same everywhere**, or links made in one place fail in another | In `.env.local` and on Vercel (2026-10-26) |
 | `SURVEYS_BASE_URL` | `https://wcrp-academy-repo.vercel.app`: the address in links, QR codes and emails | Set on Vercel (optional locally) |
 | `SURVEYS_SMTP_HOST` / `_PORT` / `_USER` / `_PASS` | Infomaniak SMTP (`mail.infomaniak.com`, 587) and the mailbox's login | Waiting for the mailbox |
 | `SURVEYS_EMAIL_FROM` | `WCRP Academy <surveys@wcrp-academy.org>` | Waiting for the mailbox |
 | `SURVEYS_EMAIL_REPLY_TO` | `office@wcrp-academy.org` | Optional |
 | `SURVEYS_EMAIL_DAILY_LIMIT` | The mailbox's 24-h limit minus headroom (180 for Starter, 450 for Premium) | Optional, default 180 |
 | `SURVEYS_EMAIL_LOGO_URL` | The newsletter logo (white, for the dark band) as an image URL | Optional, text wordmark until set |
-| `SURVEYS_CRON_SECRET` | Bearer token for `/api/surveys/cron`; same value in Supabase Vault as `surveys_cron_secret` | In `.env.local` (generated 2026-10-26); copy to Vercel and Vault |
+| `SURVEYS_CRON_SECRET` | Bearer token for `/api/surveys/cron`; same value in Supabase Vault as `surveys_cron_secret` | In `.env.local` and on Vercel (2026-10-26); Vault still to do |
 
-**Migrations still to apply** (SQL editor, dry run in `begin … rollback` first):
-1. `20261026_survey_email.sql`: the "stop reminders" column. Needed before the Send tab works.
-2. `20261026_survey_email_cron.sql`: the 10-minute sending job. Only after the code is deployed to production and the env vars are set there.
+**Migrations:** `20261026_survey_email.sql` (the "stop reminders" column) was applied on 2026-10-26. Still to apply: `20261026_survey_email_cron.sql`, the 10-minute sending job, only after the code is deployed to production with the email env vars and the Vault secret is in place.
 
 ## 13. Build order
 

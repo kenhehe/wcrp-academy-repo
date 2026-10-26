@@ -2,7 +2,7 @@
 -- reminder emails of one survey ("Stop reminders for this survey" in every email's footer).
 -- Invites and the thank-you email still go; only reminders are skipped.
 --
--- NOT APPLIED YET. Needed before the Send tab or the stop link are used. Safe to re-run.
+-- Applied 2026-10-26 by hand in the Supabase SQL editor. Safe to re-run.
 
 alter table survey_event_participants
   add column if not exists reminders_off_at timestamptz;
