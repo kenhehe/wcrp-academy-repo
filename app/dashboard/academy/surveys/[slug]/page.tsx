@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft, ExternalLink, Eye } from 'lucide-react'
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import LocalDateTime from '@/components/surveys/LocalDateTime'
 import { getSurveyBySlug, getSurveyParticipants } from '@/lib/data/surveys'
 import { formatRate } from '@/lib/data/survey-progress'
-import { cn } from '@/lib/utils'
+import type { SurveyEventRow } from '@/lib/data/surveys.types'
 import SurveyStatusBadge from '../_components/SurveyStatusBadge'
 import SetupDetails from './_components/SetupDetails'
 import SetupQuestions from './_components/SetupQuestions'
@@ -19,6 +20,8 @@ import QrTab from './_components/QrTab'
 import SendTab from './_components/SendTab'
 import ResultsTab from './_components/ResultsTab'
 import ExportTab from './_components/ExportTab'
+import SurveyTabs, { SURVEY_TABS, type SurveyTabId } from './_components/SurveyTabs'
+import TabSkeleton from './_components/TabSkeleton'
 import { getSendOverview } from '@/lib/surveys/email/overview'
 
 // Sending invites from the Send tab can take a while (up to 50 emails per click)
@@ -31,19 +34,19 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-const TABS = [
-  { id: 'setup',        label: 'Setup' },
-  { id: 'participants', label: 'Participants' },
-  { id: 'send',         label: 'Send' },
-  { id: 'qr',           label: 'QR codes' },
-  { id: 'results',      label: 'Results' },
-  { id: 'export',       label: 'Export' },
-] as const
-type TabId = typeof TABS[number]['id']
+// Tabs that load their own data: they render inside a Suspense keyed by tab, so switching
+// tabs shows that tab's skeleton instead of keeping the old tab until the data arrives
+async function ParticipantsBody({ survey }: { survey: SurveyEventRow }) {
+  return <ParticipantsTab surveyId={survey.id} surveyStatus={survey.status} participants={await getSurveyParticipants(survey.id)} />
+}
+
+async function SendBody({ survey }: { survey: SurveyEventRow }) {
+  return <SendTab surveyId={survey.id} status={survey.status} overview={await getSendOverview(survey)} />
+}
 
 export default async function SurveyPage({ params, searchParams }: PageProps) {
   const [{ slug }, sp] = await Promise.all([params, searchParams])
-  const tab: TabId = TABS.find(t => t.id === sp.tab)?.id ?? 'setup'
+  const tab: SurveyTabId = SURVEY_TABS.find(t => t.id === sp.tab)?.id ?? 'setup'
   const detail = await getSurveyBySlug(slug)
   if (!detail) notFound()
   const { survey, academyEvent, questions, progress, locked, afterOpen } = detail
@@ -100,33 +103,18 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
         </dl>
       </Card>
 
-      <nav aria-label="Survey sections" className="flex flex-wrap gap-1 border-b">
-        {TABS.map(t => (
-          <Link
-            key={t.id}
-            href={t.id === 'setup' ? `/dashboard/academy/surveys/${slug}` : `/dashboard/academy/surveys/${slug}?tab=${t.id}`}
-            aria-current={t.id === tab ? 'page' : undefined}
-            className={cn(
-              '-mb-px border-b-2 px-3 py-2 text-sm transition-colors',
-              t.id === tab ? 'border-primary font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <SurveyTabs slug={slug} active={tab} />
 
-      {tab === 'results' && <ResultsTab surveyId={survey.id} progress={progress} />}
+      {(tab === 'participants' || tab === 'send' || tab === 'qr' || tab === 'results') && (
+        <Suspense key={tab} fallback={<TabSkeleton tab={tab} />}>
+          {tab === 'participants' && <ParticipantsBody survey={survey} />}
+          {tab === 'send' && <SendBody survey={survey} />}
+          {tab === 'qr' && <QrTab survey={survey} />}
+          {tab === 'results' && <ResultsTab surveyId={survey.id} progress={progress} />}
+        </Suspense>
+      )}
 
       {tab === 'export' && <ExportTab slug={slug} />}
-
-      {tab === 'qr' && <QrTab survey={survey} />}
-
-      {tab === 'send' && <SendTab surveyId={survey.id} status={survey.status} overview={await getSendOverview(survey)} />}
-
-      {tab === 'participants' && (
-        <ParticipantsTab surveyId={survey.id} surveyStatus={survey.status} participants={await getSurveyParticipants(survey.id)} />
-      )}
 
       {tab === 'setup' && (<>
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
