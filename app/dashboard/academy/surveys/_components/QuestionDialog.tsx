@@ -25,14 +25,17 @@ const TYPE_ITEMS  = Object.fromEntries(EDITABLE_QUESTION_TYPES.map(t => [t, QUES
 const STAGE_ITEMS = Object.fromEntries(QUESTION_STAGES.map(s => [s, QUESTION_STAGE_LABELS[s]]))
 
 interface Props {
-  open:         boolean
-  onOpenChange: (open: boolean) => void
-  initial?:     QuestionInput
-  title:        string
-  onSave:       (question: QuestionInput) => Promise<string | null> | string | null
+  open:          boolean
+  onOpenChange:  (open: boolean) => void
+  initial?:      QuestionInput
+  title:         string
+  description?:  string
+  lockShape?:    boolean   // core question edit: answer type and stage can't change
+  notice?:       React.ReactNode
+  onSave:        (question: QuestionInput) => Promise<string | null> | string | null
 }
 
-function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; onSave: Props['onSave']; onCancel: () => void }) {
+function QuestionForm({ initial, onSave, onCancel, lockShape, notice }: { initial: QuestionInput; onSave: Props['onSave']; onCancel: () => void; lockShape?: boolean; notice?: React.ReactNode }) {
   const [text, setText]           = useState(initial.text)
   const [type, setType]           = useState<EditableQuestionType>(initial.type)
   const [stage, setStage]         = useState<QuestionStage>(initial.stage)
@@ -66,7 +69,7 @@ function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; o
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="q-type">Answer type</Label>
-          <Select value={type} onValueChange={v => { if (v) setType(v as EditableQuestionType) }} items={TYPE_ITEMS}>
+          <Select value={type} onValueChange={v => { if (v) setType(v as EditableQuestionType) }} items={TYPE_ITEMS} disabled={lockShape}>
             <SelectTrigger id="q-type" className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               {EDITABLE_QUESTION_TYPES.map(t => <SelectItem key={t} value={t}>{QUESTION_TYPE_LABELS[t]}</SelectItem>)}
@@ -75,7 +78,7 @@ function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; o
         </div>
         <div className="space-y-2">
           <Label htmlFor="q-stage">Asked</Label>
-          <Select value={stage} onValueChange={v => { if (v) setStage(v as QuestionStage) }} items={STAGE_ITEMS}>
+          <Select value={stage} onValueChange={v => { if (v) setStage(v as QuestionStage) }} items={STAGE_ITEMS} disabled={lockShape}>
             <SelectTrigger id="q-stage" className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               {QUESTION_STAGES.map(s => <SelectItem key={s} value={s}>{QUESTION_STAGE_LABELS[s]}</SelectItem>)}
@@ -83,7 +86,9 @@ function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; o
           </Select>
         </div>
       </div>
-      {stage === 'both' && (
+      {lockShape ? (
+        <p className="text-xs text-muted-foreground">The answer type and when it&apos;s asked stay fixed, so results stay comparable. To change those, retire this question and add a new one.</p>
+      ) : stage === 'both' && (
         <p className="text-xs text-muted-foreground">Asked before and after, so results show how answers changed.</p>
       )}
       {isChoice && (
@@ -108,6 +113,7 @@ function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; o
         <Checkbox checked={required} onCheckedChange={v => setRequired(v === true)} />
         People must answer it
       </Label>
+      {notice}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
@@ -117,16 +123,16 @@ function QuestionForm({ initial, onSave, onCancel }: { initial: QuestionInput; o
   )
 }
 
-export default function QuestionDialog({ open, onOpenChange, initial = BLANK_QUESTION, title, onSave }: Props) {
+export default function QuestionDialog({ open, onOpenChange, initial = BLANK_QUESTION, title, description, lockShape, notice, onSave }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>A question of this event&apos;s own, on top of the core questions every survey asks.</DialogDescription>
+          <DialogDescription>{description ?? 'A question of this event\'s own, on top of the core questions every survey asks.'}</DialogDescription>
         </DialogHeader>
         {/* Mounted only while open, so each opening starts from `initial` */}
-        {open && <QuestionForm initial={initial} onSave={onSave} onCancel={() => onOpenChange(false)} />}
+        {open && <QuestionForm initial={initial} onSave={onSave} onCancel={() => onOpenChange(false)} lockShape={lockShape} notice={notice} />}
       </DialogContent>
     </Dialog>
   )

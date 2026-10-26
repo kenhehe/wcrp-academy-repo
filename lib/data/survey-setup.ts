@@ -29,6 +29,17 @@ export function uniqueSlug(base: string, taken: Iterable<string>): string {
   }
 }
 
+// A stable key for a new core question, from its wording:
+// 'Which tools do you use?' → 'core.which_tools_do_you_use' (then _2, _3… if taken)
+export function coreKey(text: string, taken: Iterable<string>): string {
+  const base = `core.${slugify(text).replace(/-/g, '_').slice(0, 40).replace(/_+$/, '') || 'question'}`
+  const used = new Set(taken)
+  if (!used.has(base)) return base
+  for (let n = 2; ; n++) {
+    if (!used.has(`${base}_${n}`)) return `${base}_${n}`
+  }
+}
+
 // ─── datetime-local inputs (browser time zone) ────────────────────────────────
 
 // Date → 'YYYY-MM-DDTHH:MM' in local time, the value a datetime-local input takes

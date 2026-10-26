@@ -12,7 +12,6 @@ import { emptyProgress, progressBySurvey, type ParticipantRef, type SubmissionRe
 import { EMAIL_KIND_LABELS, participantStatus, type ParticipantListItem } from './survey-participants'
 import { buildResults, type ResultAnswer, type SurveyResults } from './survey-results'
 import {
-  CORE_QUESTION_ORDER,
   type CatalogueOption, type EmailKind, type EmailLogStatus, type ParticipantSource, type QuestionStage,
   type QuestionType, type SubmissionStage, type SubmissionStatus, type SurveyAcademyEvent,
   type SurveyDetail, type SurveyEventRow, type SurveyListItem, type SurveyQuestionItem,
@@ -51,24 +50,23 @@ function toItem(v: QuestionVersionJoin, stage: QuestionStage, sortOrder: number)
   }
 }
 
-// The latest version of each core question, in CORE_QUESTION_ORDER (a new survey asks these)
+// The latest version of each core question that isn't retired, in core order (what a new
+// survey asks; the order and retiring are managed on the Core questions page)
 export async function fetchCoreQuestions(db: SupabaseClient): Promise<SurveyQuestionItem[]> {
   // The client is untyped, so joined rows are cast to their known shape
   const rows = must('core questions query', await db
     .from('survey_question_versions')
-    .select(VERSION_SELECT.replace('survey_questions(', 'survey_questions!inner('))
+    .select(VERSION_SELECT.replace('survey_questions(id,key,is_core,type,stage)', 'survey_questions!inner(id,key,is_core,type,stage,core_order)'))
     .eq('survey_questions.is_core', true)
-    .order('version', { ascending: false })) as unknown as QuestionVersionJoin[]
+    .is('survey_questions.retired_at', null)
+    .order('version', { ascending: false })) as unknown as (QuestionVersionJoin & { survey_questions: { core_order: number | null } })[]
 
-  const latest = new Map<string, QuestionVersionJoin>()
+  const latest = new Map<string, (typeof rows)[number]>()
   for (const v of rows) if (!latest.has(v.survey_questions.key)) latest.set(v.survey_questions.key, v)
 
-  const rank = (key: string) => {
-    const i = CORE_QUESTION_ORDER.indexOf(key)
-    return i === -1 ? CORE_QUESTION_ORDER.length : i
-  }
+  const rank = (v: (typeof rows)[number]) => v.survey_questions.core_order ?? Number.MAX_SAFE_INTEGER
   return [...latest.values()]
-    .sort((a, b) => rank(a.survey_questions.key) - rank(b.survey_questions.key) || a.survey_questions.key.localeCompare(b.survey_questions.key))
+    .sort((a, b) => rank(a) - rank(b) || a.survey_questions.key.localeCompare(b.survey_questions.key))
     .map((v, i) => toItem(v, v.survey_questions.stage, i))
 }
 

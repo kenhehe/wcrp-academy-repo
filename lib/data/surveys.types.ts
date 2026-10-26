@@ -58,6 +58,8 @@ export interface SurveyQuestionRow {
   type:       QuestionType
   stage:      QuestionStage
   in_bank:    boolean
+  core_order: number | null   // core questions: position in a new survey
+  retired_at: string | null   // core questions: new surveys stop asking it
   created_at: string
   updated_at: string
 }
@@ -176,12 +178,6 @@ export const QUESTION_STAGE_LABELS: Record<QuestionStage, string> = {
   pre:  'Before only',
   post: 'After only',
 }
-
-// The order core questions appear in a new survey; unknown core keys go last
-export const CORE_QUESTION_ORDER = [
-  'core.understanding', 'core.confidence_apply', 'core.confidence_explain', 'core.personal_impact',
-  'core.career_stage', 'core.region', 'core.usefulness', 'core.recommend', 'core.feedback',
-]
 
 // Types an admin can pick for an event's own questions (quiz questions come later)
 export const EDITABLE_QUESTION_TYPES = ['likert_5', 'single_choice', 'multi_choice', 'text'] as const

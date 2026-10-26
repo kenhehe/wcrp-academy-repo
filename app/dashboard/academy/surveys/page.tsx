@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ClipboardList, Plus } from 'lucide-react'
+import { ClipboardList, ListChecks, Plus } from 'lucide-react'
 import PageHeader from '@/components/base/PageHeader'
 import StatTile from '@/components/base/StatTile'
 import { buttonVariants } from '@/components/ui/button'
@@ -50,10 +50,16 @@ export default async function SurveysPage({ searchParams }: PageProps) {
         }
         description="Before and after surveys on Academy events"
         actions={
-          <Link href="/dashboard/academy/surveys/new" className={buttonVariants()}>
-            <Plus data-icon="inline-start" aria-hidden="true" />
-            New survey
-          </Link>
+          <>
+            <Link href="/dashboard/academy/core-questions" className={buttonVariants({ variant: 'outline' })}>
+              <ListChecks data-icon="inline-start" aria-hidden="true" />
+              Core questions
+            </Link>
+            <Link href="/dashboard/academy/surveys/new" className={buttonVariants()}>
+              <Plus data-icon="inline-start" aria-hidden="true" />
+              New survey
+            </Link>
+          </>
         }
       />
 

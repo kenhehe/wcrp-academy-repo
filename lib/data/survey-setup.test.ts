@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  catalogueDayToLocalInput, checkQuestionInput, checkSurveyTimes, checkTitle, describeTimeZone,
+  catalogueDayToLocalInput, checkQuestionInput, coreKey, checkSurveyTimes, checkTitle, describeTimeZone,
   estimateMinutes, formatUtcOffset, fromLocalInput, normalizeQuestionInput, questionsForStage,
   resolveSurveyTimes, slugify, stageWindow, suggestWindows, toLocalInput, uniqueSlug,
 } from './survey-setup'
@@ -18,6 +18,15 @@ describe('slugify / uniqueSlug', () => {
     expect(uniqueSlug('cmip-4', [])).toBe('cmip-4')
     expect(uniqueSlug('cmip-4', ['cmip-4', 'cmip-4-2'])).toBe('cmip-4-3')
     expect(uniqueSlug('', ['survey'])).toBe('survey-2')
+  })
+})
+
+describe('coreKey', () => {
+  it('makes a core key from the wording and numbers repeats', () => {
+    expect(coreKey('Which tools do you use?', [])).toBe('core.which_tools_do_you_use')
+    expect(coreKey('Which tools do you use?', ['core.which_tools_do_you_use'])).toBe('core.which_tools_do_you_use_2')
+    expect(coreKey('???', [])).toBe('core.question')
+    expect(coreKey('x'.repeat(80), []).length).toBeLessThanOrEqual(45)
   })
 })
 
