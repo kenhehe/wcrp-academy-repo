@@ -1,7 +1,10 @@
 // Loaders for the Academy overview (app/dashboard/academy/page.tsx). Each section of the page
-// awaits one of these inside its own Suspense boundary; cache() shares a read (the IPO list,
-// the survey list) between sections within one request. Types and pure helpers are in
-// academy-overview.types.ts.
+// awaits one of these inside its own Suspense boundary; cache() shares a read (the organisations,
+// every event, the survey list) between sections within one request. Types and pure helpers are
+// in academy-overview.types.ts.
+//
+// Reads that take in the Lighthouse programmes use the service role after the Academy admin
+// check, as Event Registry does: the Academy session is only relied on for IPO data.
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -9,7 +12,7 @@ import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { must } from '@/lib/supabase/must'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { resolveStatus } from './academy-events.types'
-import { buildActivity } from './event-activity'
+import { buildActivity, nextUpcoming, summariseLighthouse, type EventSummaryRow } from './event-activity'
 import { DUPLICATE_THRESHOLD } from './event-duplicates'
 import { todayUtc } from './event-trends'
 import { getHealthOverview } from './health'
@@ -18,27 +21,49 @@ import {
   countCatalogue, monthsAhead, splitSurveys,
   type AttentionAlert, type CatalogueSummary, type OverviewOrg, type OverviewSurveys, type UpcomingGaps,
 } from './academy-overview.types'
-import type { ActivityData } from './climate-analytics.types'
+import type { ActivityData, LighthouseSummary, UpcomingEvent } from './climate-analytics.types'
 
-const NEXT_GAPS = 5
+const NEXT_GAPS   = 5
+const NEXT_EVENTS = 6
 export const DUPLICATE_CAP = 100   // the overview shows '100+' beyond this
 
-// The 7 IPOs (type 'ipo' only: coverage is about the IPOs, not Lighthouse or the Secretariat)
-const getIpoOrgs = cache(async (): Promise<OverviewOrg[]> => {
-  const supabase = await createClient()
-  const rows = must('ipos query', await supabase.from('ipos').select('id,name,full_name,color_hex').eq('type', 'ipo').order('name'))
-  return (rows ?? []).map(o => ({ id: o.id, name: o.name, fullName: o.full_name, color: o.color_hex }))
+// The 7 IPOs and the Lighthouse programmes (never the Secretariat), each with its type
+const getOverviewOrgs = cache(async (): Promise<OverviewOrg[]> => {
+  await requireAcademyAdmin()
+  const rows = must('ipos query', await createAdminClient()
+    .from('ipos').select('id,name,full_name,color_hex,type').in('type', ['ipo', 'lighthouse']).order('name'))
+  return (rows ?? []).map(o => ({ id: o.id, name: o.name, fullName: o.full_name, color: o.color_hex, type: o.type }))
 })
 
-// Upcoming IPO events not in the Academy (confirmed duplicates counted once): the soonest few
-// and a count per month for the next year
+// Every IPO and Lighthouse event (confirmed duplicates counted once), shared by Event activity,
+// Coming up and the Lighthouse card
+const getOverviewEvents = cache(async (): Promise<EventSummaryRow[]> => {
+  const orgs = await getOverviewOrgs()   // checks for an Academy admin first
+  const db = createAdminClient()
+  const rows = await fetchAllRows<Omit<EventSummaryRow, 'start_date'> & { start_date: string | null }>(
+    'events query',
+    (from, to) => db.from('events')
+      .select('id,ipo_id,title,start_date,status,approval_status,url,in_academy')
+      .in('ipo_id', orgs.map(o => o.id))
+      .is('duplicate_of_event_id', null)
+      .order('id')
+      .range(from, to),
+  )
+  return rows.map(e => {
+    if (!e.start_date) throw new Error(`event ${e.id} of ${e.ipo_id} has no start_date`)
+    return { ...e, start_date: e.start_date }
+  })
+})
+
+// Upcoming events not in the Academy (confirmed duplicates counted once): the soonest few, IPO
+// and Lighthouse, plus the IPO count per month for the next year and the Lighthouse count apart
 export const getUpcomingGaps = cache(async (): Promise<UpcomingGaps> => {
-  const supabase = await createClient()
-  const orgs = await getIpoOrgs()
+  const orgs = await getOverviewOrgs()   // checks for an Academy admin first
   const byId = new Map(orgs.map(o => [o.id, o]))
+  const db = createAdminClient()
   const rows = await fetchAllRows<{ id: string; ipo_id: string; title: string; start_date: string; end_date: string | null; url: string | null; location: string | null }>(
     'upcoming gaps query',
-    (from, to) => supabase.from('events')
+    (from, to) => db.from('events')
       .select('id,ipo_id,title,start_date,end_date,url,location')
       .in('ipo_id', orgs.map(o => o.id))
       .eq('status', 'Upcoming')
@@ -47,14 +72,17 @@ export const getUpcomingGaps = cache(async (): Promise<UpcomingGaps> => {
       .order('start_date').order('id')
       .range(from, to),
   )
+  const gaps = rows.map(({ ipo_id, ...e }) => {
+    const org = byId.get(ipo_id)
+    if (!org) throw new Error(`event ${e.id} belongs to unknown organisation ${ipo_id}`)
+    return { ...e, org }
+  })
+  const ipo = gaps.filter(e => e.org.type === 'ipo')
   return {
-    total:   rows.length,
-    next:    rows.slice(0, NEXT_GAPS).map(({ ipo_id, ...e }) => {
-      const org = byId.get(ipo_id)
-      if (!org) throw new Error(`event ${e.id} belongs to unknown IPO ${ipo_id}`)
-      return { ...e, org }
-    }),
-    byMonth: monthsAhead(rows.map(e => e.start_date), todayUtc()),
+    total:      ipo.length,
+    lighthouse: gaps.length - ipo.length,
+    next:       gaps.slice(0, NEXT_GAPS),
+    byMonth:    monthsAhead(ipo.map(e => e.start_date), todayUtc()),
   }
 })
 
@@ -118,23 +146,23 @@ export const getAttention = cache(async (): Promise<AttentionAlert[]> => {
 
 export const getOverviewSurveys = cache(async (): Promise<OverviewSurveys> => splitSurveys(await getSurveyList()))
 
-// IPO events per year and month, with the Academy's share, for the Event activity chart
+// IPO and Lighthouse events per year and month, with the Academy's share, for Event activity
 export const getAcademyActivity = cache(async (): Promise<{ data: ActivityData; total: number }> => {
-  const supabase = await createClient()
-  const orgs = await getIpoOrgs()
-  const rows = await fetchAllRows<{ ipo_id: string; start_date: string | null; status: string | null; in_academy: boolean }>(
-    'IPO events query',
-    (from, to) => supabase.from('events')
-      .select('ipo_id,start_date,status,in_academy')
-      .in('ipo_id', orgs.map(o => o.id))
-      .is('duplicate_of_event_id', null)
-      .order('id')
-      .range(from, to),
-  )
-  const dated = rows.map(e => {
-    if (!e.start_date) throw new Error(`an IPO event of ${e.ipo_id} has no start_date`)
-    return { ...e, start_date: e.start_date }
-  })
-  const analyticsOrgs = orgs.map(o => ({ ...o, type: 'ipo' as const }))
-  return { data: buildActivity(dated, analyticsOrgs, todayUtc(), true), total: dated.length }
+  const [orgs, rows] = await Promise.all([getOverviewOrgs(), getOverviewEvents()])
+  return { data: buildActivity(rows, orgs, todayUtc(), true), total: rows.length }
+})
+
+// The next upcoming events, IPO and Lighthouse, each saying whether it's in the Academy
+export const getAcademyComingUp = cache(async (): Promise<{ next: UpcomingEvent[]; upcoming: number }> => {
+  const [orgs, rows] = await Promise.all([getOverviewOrgs(), getOverviewEvents()])
+  return {
+    next:     nextUpcoming(rows, orgs, NEXT_EVENTS, true),
+    upcoming: rows.filter(e => e.status === 'Upcoming').length,
+  }
+})
+
+// Each Lighthouse programme's events, pending approvals and events in the Academy
+export const getAcademyLighthouse = cache(async (): Promise<LighthouseSummary[]> => {
+  const [orgs, rows] = await Promise.all([getOverviewOrgs(), getOverviewEvents()])
+  return summariseLighthouse(rows, orgs, true)
 })

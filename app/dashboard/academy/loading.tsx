@@ -1,5 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import EventActivitySkeleton from '@/components/charts/EventActivitySkeleton'
+import ComingUpSkeleton from '@/components/events/ComingUpSkeleton'
+import LighthouseSummarySkeleton from '@/components/events/LighthouseSummarySkeleton'
 import { AttentionSkeleton, CoverageSkeleton, SurveysSkeleton, TilesSkeleton } from './_components/OverviewSkeletons'
 
 // Same shapes as the page's Suspense fallbacks, so arriving on the overview and its sections
@@ -18,6 +20,10 @@ export default function AcademyOverviewLoading() {
       <TilesSkeleton />
       <AttentionSkeleton />
       <CoverageSkeleton />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <ComingUpSkeleton className="xl:col-span-2" />
+        <LighthouseSummarySkeleton />
+      </div>
       <SurveysSkeleton />
       <EventActivitySkeleton />
     </div>

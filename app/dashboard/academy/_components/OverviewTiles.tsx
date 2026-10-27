@@ -36,7 +36,16 @@ export default async function OverviewTiles() {
             label={`Upcoming gaps per month, ${months[0]} to ${months[months.length - 1]}: ${gaps.byMonth.map((count, i) => `${months[i]} ${count}`).join(', ')}`}
           />
         }
-        sub={gaps.total === 0 ? 'Every upcoming IPO event is in the Academy' : 'Upcoming IPO events not in the Academy, by month ahead'}
+        sub={
+          <>
+            <span className="block">
+              {gaps.total === 0 ? 'Every upcoming IPO event is in the Academy' : 'Upcoming IPO events not in the Academy, by month ahead'}
+            </span>
+            {gaps.lighthouse > 0 && (
+              <span className="block">+ {n(gaps.lighthouse)} Lighthouse {gaps.lighthouse === 1 ? 'event' : 'events'}</span>
+            )}
+          </>
+        }
       />
       <StatTile
         label="Academy catalogue"

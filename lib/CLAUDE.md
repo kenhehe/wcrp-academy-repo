@@ -45,9 +45,9 @@ ipo-sources.ts, geo.ts, utils.ts (cn())
 | File | Used by | Reads with |
 |---|---|---|
 | `data/health.ts` | System Health | admin |
-| `data/coverage.ts` | Gap Analysis coverage table, Academy overview | session |
-| `data/academy-overview.ts` | Academy overview, one loader per section (pure helpers in `academy-overview.types.ts`) | session; admin for alerts and surveys, after `requireAcademyAdmin()` |
-| `data/climate-analytics.ts` | Climate Analytics (can_approve); its chart counts come from `buildActivity()` in `data/event-activity.ts` (pure, tested) | admin |
+| `data/coverage.ts` | Gap Analysis coverage table, Academy overview (`getLighthouseCoverageRows()` adds the Lighthouse group, counted from `events` the way `ipo_coverage_stats` counts) | session; admin for the Lighthouse rows, after `requireAcademyAdmin()` |
+| `data/academy-overview.ts` | Academy overview, one loader per section (pure helpers in `academy-overview.types.ts`) | session for the catalogue and last scrape; admin for everything that includes Lighthouse, alerts and surveys, after `requireAcademyAdmin()` |
+| `data/climate-analytics.ts` | Climate Analytics (can_approve). Its counts come from `data/event-activity.ts` (pure, tested): `buildActivity()` for the chart, `nextUpcoming()` for Coming up, `summariseLighthouse()` for the Lighthouse card; the Academy overview uses the same three with `withAcademy` | admin |
 | `data/lighthouses.ts` | LHA Accounts page + actions | admin |
 | `data/academy-events.ts` | Academy catalogue (`resolveStatus` in `academy-events.types.ts` works the status out from the dates on every read) | session |
 | `data/scrape-schedule.ts` | System Health schedule (mirror of the pg_cron jobs) | — |

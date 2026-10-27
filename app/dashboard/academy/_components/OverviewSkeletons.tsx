@@ -67,15 +67,21 @@ export function CoverageSkeleton() {
           <Skeleton className="h-7 w-28" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-2 w-36 rounded-full" />
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="ml-auto h-4 w-16" />
-            <Skeleton className="h-4 w-10" />
-            <Skeleton className="h-4 w-12" />
+      <CardContent className="space-y-5">
+        {/* The IPOs and the Lighthouse programmes, each with a subtotal row */}
+        {[7, 6].map((count, group) => (
+          <div key={group} className="space-y-3">
+            <Skeleton className="h-3 w-28" />
+            {Array.from({ length: count + 1 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-2 w-36 rounded-full" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="ml-auto h-4 w-16" />
+                <Skeleton className="h-4 w-10" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            ))}
           </div>
         ))}
       </CardContent>

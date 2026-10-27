@@ -54,7 +54,8 @@ A feature that needs to reach both `academy_admin` and a `can_approve` IPO accou
 
 ```
 app/dashboard/academy/
-  page.tsx      Overview — tiles, Needs attention, coverage by IPO, surveys, event activity (lib/data/academy-overview.ts)
+  page.tsx      Overview — tiles, Needs attention, coverage by IPO (+ Lighthouse group), Coming up + Lighthouse card,
+                surveys, event activity (lib/data/academy-overview.ts); shares its event sections with Climate Analytics
   health/       System Health — run scrapers, view logs
   events/       Academy Coverage — audit of academy_events vs IPO sources
   gaps/         Gap Analysis — IPO events not in Academy (in_academy=false)

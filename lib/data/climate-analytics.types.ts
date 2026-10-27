@@ -27,12 +27,14 @@ export interface UpcomingEvent {
   url:        string | null
   pending:    boolean
   org:        AnalyticsOrg
+  inAcademy?: boolean   // Academy overview only
 }
 
 export interface LighthouseSummary {
-  org:     AnalyticsOrg
-  total:   number
-  pending: number
+  org:        AnalyticsOrg
+  total:      number
+  pending:    number
+  inAcademy?: number   // Academy overview only
 }
 
 export interface ClimateAnalyticsData {

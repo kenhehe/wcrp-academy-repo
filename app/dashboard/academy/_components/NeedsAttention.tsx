@@ -18,12 +18,12 @@ const SOON_DAYS = 7   // gaps starting within a week get a warning badge
 
 const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
-// What to act on next: the soonest upcoming IPO events missing from the Academy, and alerts
-// (scrapers that need a look, duplicate pairs waiting for review)
+// What to act on next: the soonest upcoming IPO and Lighthouse events missing from the Academy,
+// and alerts (scrapers that need a look, duplicate pairs waiting for review)
 export default async function NeedsAttention() {
   const [gaps, alerts] = await Promise.all([getUpcomingGaps(), getAttention()])
   const today = todayUtc()
-  const more  = gaps.total - gaps.next.length
+  const more  = gaps.total + gaps.lighthouse - gaps.next.length
 
   return (
     <Card>
@@ -35,7 +35,7 @@ export default async function NeedsAttention() {
         <section aria-labelledby="gaps-title" className="min-w-0">
           <h3 id="gaps-title" className="mb-2 text-sm font-semibold text-muted-foreground">Upcoming events missing from the Academy</h3>
           {gaps.next.length === 0 ? (
-            <StatusBadge tone="success" icon={CircleCheck}>Every upcoming IPO event is in the Academy</StatusBadge>
+            <StatusBadge tone="success" icon={CircleCheck}>Every upcoming IPO and Lighthouse event is in the Academy</StatusBadge>
           ) : (
             <>
               <ul className="divide-y border-y">
@@ -60,6 +60,7 @@ export default async function NeedsAttention() {
                           <span className="inline-flex items-center gap-1.5" title={e.org.fullName ?? undefined}>
                             <OrgDot color={e.org.color} />
                             {e.org.name}
+                            {e.org.type === 'lighthouse' && <span>· Lighthouse</span>}
                           </span>
                           {e.location && <span className="truncate">{capitalise(e.location)}</span>}
                         </span>

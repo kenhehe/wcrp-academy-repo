@@ -1,14 +1,11 @@
 // The Academy overview (app/dashboard/academy/page.tsx): view types and pure helpers.
 // Loaders are in academy-overview.ts.
 import { sumProgress } from './survey-progress'
+import type { AnalyticsOrg } from './climate-analytics.types'
 import type { SurveyListItem, SurveyProgress } from './surveys.types'
 
-export interface OverviewOrg {
-  id:       string
-  name:     string          // acronym
-  fullName: string | null
-  color:    string | null   // ipos.color_hex
-}
+// An IPO or a Lighthouse programme (never the Secretariat)
+export type OverviewOrg = AnalyticsOrg
 
 export interface GapEvent {
   id:         string
@@ -21,9 +18,10 @@ export interface GapEvent {
 }
 
 export interface UpcomingGaps {
-  total:   number
-  next:    GapEvent[]   // the soonest few
-  byMonth: number[]     // missing events starting in each of the next 12 months, this month first
+  total:      number       // IPO events: the headline, as in Gap Analysis
+  lighthouse: number       // Lighthouse events, counted on their own line
+  next:       GapEvent[]   // the soonest few, IPO and Lighthouse
+  byMonth:    number[]     // missing IPO events starting in each of the next 12 months, this month first
 }
 
 export interface CatalogueSummary {
