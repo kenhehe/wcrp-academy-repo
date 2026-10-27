@@ -45,8 +45,9 @@ ipo-sources.ts, geo.ts, utils.ts (cn())
 | File | Used by | Reads with |
 |---|---|---|
 | `data/health.ts` | System Health | admin |
-| `data/coverage.ts` | Gap Analysis coverage table | session |
-| `data/climate-analytics.ts` | Climate Analytics (can_approve) | admin |
+| `data/coverage.ts` | Gap Analysis coverage table, Academy overview | session |
+| `data/academy-overview.ts` | Academy overview, one loader per section (pure helpers in `academy-overview.types.ts`) | session; admin for alerts and surveys, after `requireAcademyAdmin()` |
+| `data/climate-analytics.ts` | Climate Analytics (can_approve); its chart counts come from `buildActivity()` in `data/event-activity.ts` (pure, tested) | admin |
 | `data/lighthouses.ts` | LHA Accounts page + actions | admin |
 | `data/academy-events.ts` | Academy catalogue (`resolveStatus` in `academy-events.types.ts` works the status out from the dates on every read) | session |
 | `data/scrape-schedule.ts` | System Health schedule (mirror of the pg_cron jobs) | — |

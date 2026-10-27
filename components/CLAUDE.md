@@ -10,9 +10,9 @@ Route-private components live in that route's `_components/`; this folder is for
   - `StatusBadge` — `tone` (neutral/info/success/warning/danger/primary) + icon + label. Status is never colour alone.
   - `StatTile` — label / value / sub, plus optional `change` (green up, red down, with arrows; build it with `describeChange()`) and `aside` (a sparkline, mini columns or a button).
   - `OrgDot` — an org's identity colour (`ipos.color_hex`) with a ring for dark mode.
-- **`charts/`** — `Sparkline`, `MiniColumns` (server-safe SVG/divs), `ChartBar`, `StatusDonut` (Recharts; the donut is due for a redesign). Colours come from tokens; org colours only from `ipos.color_hex`.
+- **`charts/`** — `Sparkline`, `MiniColumns` (server-safe SVG/divs), `EventActivity` (client; Climate Analytics and the Academy overview, which passes `data.inAcademy` for a darker Academy part in each column) + `EventActivitySkeleton`, `ChartBar`, `StatusDonut` (Recharts; the donut is due for a redesign). Colours come from tokens; org colours only from `ipos.color_hex`.
 - **`layout/`** — `SidebarDrawer` (shared top bar + slide-in drawer), `AcademySidebar`, `IPOSidebar`, `ThemeToggle`.
-- **Feature folders** — `events/` (EventForm, EventsTable, Event Registry browser/filters, AdminEventDialogs, PublicationFlags), `duplicates/`, `calendar/` (public homepage calendar), `health/` (StatusStrip), `gaps/`, `ipo/`, `academy/` (export panel, filters, SyncAcademyButton), `accounts/`, `import/`, `auth/`, `surveys/` (SurveyShell and SurveyQuestions: the participant survey card and question renderer, used by both the public pages and the admin preview; LocalDateTime; TimeZoneNote).
+- **Feature folders** — `events/` (EventForm, EventsTable, Event Registry browser/filters, AdminEventDialogs, PublicationFlags), `duplicates/`, `calendar/` (public homepage calendar), `health/` (StatusStrip), `gaps/` (filters bar, CoverageTable shared by Gap Analysis and the Academy overview), `ipo/`, `academy/` (export panel, filters, SyncAcademyButton), `accounts/`, `import/`, `auth/`, `surveys/` (SurveyShell and SurveyQuestions: the participant survey card and question renderer, used by both the public pages and the admin preview; LocalDateTime; TimeZoneNote).
 
 ## Base UI gotchas
 

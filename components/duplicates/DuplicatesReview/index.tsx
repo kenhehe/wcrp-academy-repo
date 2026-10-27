@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, LinkIcon, ThumbsDown, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { linkDuplicate, unlinkDuplicate, dismissDuplicate } from '@/lib/actions/event-duplicates'
+import { DUPLICATE_THRESHOLD } from '@/lib/data/event-duplicates'
 import ManualDuplicateMatchDialog from '../ManualDuplicateMatchDialog'
 import type { DuplicatePair, ConfirmedDuplicateRow } from './types'
 
@@ -51,7 +52,7 @@ export default async function DuplicatesReview({ ipoFilter, page, ipos, sp }: Pr
 
   const [pairsRes, confirmedRes] = await Promise.all([
     supabase.rpc('find_cross_ipo_duplicate_pairs', {
-      threshold:     0.35,
+      threshold:     DUPLICATE_THRESHOLD,
       p_ipo_id:      ipoFilter ?? null,
       result_limit:  PAGE_SIZE,
       result_offset: (page - 1) * PAGE_SIZE,

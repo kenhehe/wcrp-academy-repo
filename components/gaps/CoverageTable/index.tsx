@@ -7,7 +7,8 @@ import StatusBadge from '@/components/base/StatusBadge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { coveragePct, formatPct, sumCoverage, type CoverageRow } from '@/lib/data/coverage.types'
+import { coveragePct, formatPct, sumCoverage } from '@/lib/data/coverage.types'
+import type { CoverageTableProps } from './types'
 
 type SortKey = 'upcoming' | 'coverage'
 
@@ -58,7 +59,7 @@ function PastCell({ counts }: { counts: Counts }) {
   )
 }
 
-export default function CoverageTable({ rows }: { rows: CoverageRow[] }) {
+export default function CoverageTable({ rows }: CoverageTableProps) {
   const [sort, setSort] = useState<SortKey>('upcoming')
 
   const sorted = [...rows].sort((a, b) => sort === 'coverage'

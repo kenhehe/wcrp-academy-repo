@@ -16,6 +16,8 @@ export interface ActivityData {
   byYearMonth:    Record<number, number[]>                // year → 12 monthly counts
   upcomingByYear: Record<number, number>                  // events still to come, by year
   orgs:           AnalyticsOrg[]
+  // Optional (Academy overview): of those, the events already in the Academy catalogue
+  inAcademy?:     { byYear: Record<number, number>; byYearMonth: Record<number, number[]> }
 }
 
 export interface UpcomingEvent {

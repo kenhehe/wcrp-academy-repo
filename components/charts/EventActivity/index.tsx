@@ -8,7 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import OrgDot from '@/components/base/OrgDot'
 import { cn } from '@/lib/utils'
 import { monthName } from '@/lib/data/event-trends'
-import type { ActivityData } from '@/lib/data/climate-analytics.types'
+import type { EventActivityProps } from './types'
+
+// Events per year (click one for its months and organisations). Shared by Climate Analytics
+// (IPO tree) and the Academy overview, which also passes data.inAcademy: then each column's
+// lower, darker part is the events already in the Academy, above a 2px gap.
 
 type Selection = number | 'all'
 type View      = 'chart' | 'table'
@@ -17,11 +21,7 @@ const YEAR_PLOT  = 200   // px: column height for the busiest year's axis maximu
 const YEAR_AXIS  = 28    // px: the year label band under the columns
 const MONTH_PLOT = 140
 const MONTH_AXIS = 24
-
-interface EventActivityProps {
-  data:    ActivityData
-  summary: string
-}
+const BAR = 'absolute left-1/2 w-[min(24px,64%)] -translate-x-1/2'
 
 function niceMax(value: number): number {
   for (const step of [4, 5, 8, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120, 150, 200, 250, 300, 400, 500]) {
@@ -82,9 +82,46 @@ function Gridlines({ max, plot, axis }: { max: number; plot: number; axis: numbe
   )
 }
 
-function YearChart({ years, counts, selected, hovered, onSelect, onHover }: {
+// One column, anchored to the baseline. Given an Academy count, that part sits at the bottom
+// in --primary and the rest above it in --scale-1 (lighter in light mode, darker in dark).
+function ColumnBar({ count, academy, max, dim = false }: { count: number; academy?: number; max: number; dim?: boolean }) {
+  if (count === 0) return null
+  const pct = (count / max) * 100
+  if (academy === undefined) {
+    return <span className={cn(BAR, 'bottom-0 rounded-t-[4px]', dim ? 'bg-primary/35' : 'bg-primary')} style={{ height: `max(3px, ${pct}%)` }} />
+  }
+  const inPct = (academy / max) * 100
+  const rest  = count - academy
+  return (
+    <>
+      {academy > 0 && (
+        <span className={cn(BAR, 'bottom-0 bg-primary', rest === 0 && 'rounded-t-[4px]', dim && 'opacity-35')} style={{ height: `max(2px, ${inPct}%)` }} />
+      )}
+      {rest > 0 && (
+        <span
+          className={cn(BAR, 'rounded-t-[4px] bg-[var(--scale-1)]', dim && 'opacity-35')}
+          style={academy > 0
+            ? { bottom: `calc(max(2px, ${inPct}%) + 2px)`, height: `max(2px, calc(${pct - inPct}% - 2px))` }
+            : { bottom: 0, height: `max(3px, ${pct}%)` }}
+        />
+      )}
+    </>
+  )
+}
+
+function AcademyLegend() {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-2.5 rounded-[3px] bg-primary" />In the Academy</span>
+      <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-2.5 rounded-[3px] bg-[var(--scale-1)]" />Not in the Academy</span>
+    </div>
+  )
+}
+
+function YearChart({ years, counts, academy, selected, hovered, onSelect, onHover }: {
   years:    number[]
   counts:   number[]
+  academy?: number[]   // per year, in the Academy
   selected: Selection
   hovered:  number | null
   onSelect: (selection: Selection) => void
@@ -107,7 +144,7 @@ function YearChart({ years, counts, selected, hovered, onSelect, onHover }: {
                 key={year}
                 type="button"
                 aria-pressed={isSelected}
-                aria-label={`${year}, ${eventsLabel(count)}. Show breakdown`}
+                aria-label={`${year}, ${eventsLabel(count)}${academy ? `, ${academy[i]} in the Academy` : ''}. Show breakdown`}
                 onClick={() => onSelect(isSelected ? 'all' : year)}
                 onMouseEnter={() => onHover(year)}
                 onMouseLeave={() => onHover(null)}
@@ -117,15 +154,7 @@ function YearChart({ years, counts, selected, hovered, onSelect, onHover }: {
                 style={{ height: YEAR_PLOT + YEAR_AXIS }}
               >
                 <span className="relative block w-full" style={{ height: YEAR_PLOT }}>
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        'absolute bottom-0 left-1/2 w-[min(24px,64%)] -translate-x-1/2 rounded-t-[4px]',
-                        emphasised ? 'bg-primary' : 'bg-primary/35',
-                      )}
-                      style={{ height: `max(3px, ${pct}%)` }}
-                    />
-                  )}
+                  <ColumnBar count={count} academy={academy?.[i]} max={max} dim={!emphasised} />
                   {count > 0 && (isSelected || (selected === 'all' && count === peak)) && (
                     <span
                       className="absolute -inset-x-3 text-center text-xs font-semibold tabular-nums"
@@ -141,6 +170,7 @@ function YearChart({ years, counts, selected, hovered, onSelect, onHover }: {
                       style={{ bottom: `calc(${pct}% + 26px)` }}
                     >
                       <span className="block text-[13px] font-semibold">{eventsLabel(count)}</span>
+                      {academy && <span className="block text-xs">{academy[i]} in the Academy</span>}
                       <span className="block text-xs text-muted-foreground">{year}</span>
                     </span>
                   )}
@@ -160,7 +190,7 @@ function YearChart({ years, counts, selected, hovered, onSelect, onHover }: {
   )
 }
 
-function MonthChart({ months, label }: { months: number[]; label: string }) {
+function MonthChart({ months, academy, label }: { months: number[]; academy?: number[]; label: string }) {
   const max     = niceMax(Math.max(...months, 1))
   const peak    = Math.max(...months)
   const peakIdx = months.indexOf(peak)
@@ -171,14 +201,14 @@ function MonthChart({ months, label }: { months: number[]; label: string }) {
         {months.map((count, m) => {
           const pct = (count / max) * 100
           return (
-            <div key={m} title={`${monthName(m, true)}: ${eventsLabel(count)}`} className="flex flex-col justify-end" style={{ height: MONTH_PLOT + MONTH_AXIS }}>
+            <div
+              key={m}
+              title={`${monthName(m, true)}: ${eventsLabel(count)}${academy ? `, ${academy[m]} in the Academy` : ''}`}
+              className="flex flex-col justify-end"
+              style={{ height: MONTH_PLOT + MONTH_AXIS }}
+            >
               <span className="relative block w-full" style={{ height: MONTH_PLOT }}>
-                {count > 0 && (
-                  <span
-                    className="absolute bottom-0 left-1/2 w-[min(24px,64%)] -translate-x-1/2 rounded-t-[4px] bg-primary"
-                    style={{ height: `max(3px, ${pct}%)` }}
-                  />
-                )}
+                <ColumnBar count={count} academy={academy?.[m]} max={max} />
                 {count > 0 && m === peakIdx && (
                   <span className="absolute -inset-x-3 text-center text-xs font-semibold tabular-nums" style={{ bottom: `calc(${pct}% + 4px)` }}>
                     {count}
@@ -197,12 +227,13 @@ function MonthChart({ months, label }: { months: number[]; label: string }) {
 }
 
 export default function EventActivity({ data, summary }: EventActivityProps) {
-  const { currentYear, years, byYear, byYearMonth, upcomingByYear, orgs } = data
+  const { currentYear, years, byYear, byYearMonth, upcomingByYear, orgs, inAcademy } = data
   const [selected, setSelected] = useState<Selection>(years.includes(currentYear) ? currentYear : 'all')
   const [view, setView]         = useState<View>('chart')
   const [hovered, setHovered]   = useState<number | null>(null)
 
   const counts      = years.map(year => sum(byYear[year]))
+  const academy     = inAcademy && years.map(year => inAcademy.byYear[year] ?? 0)
   const peak        = Math.max(...counts)
   const busiestYear = years[counts.indexOf(peak)]
   const lastYear    = years[years.length - 1]
@@ -219,13 +250,17 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
     .sort((a, b) => (b.count - a.count) || a.org.name.localeCompare(b.org.name))
   const total  = orgRows.reduce((s, r) => s + r.count, 0)
   const orgMax = orgRows[0]?.count ?? 1   // one scale for both groups, so bar lengths compare across them
-  const groups = ORG_GROUPS.map(group => {
+  // Only the kinds of organisation the data has (the Academy overview shows IPOs alone)
+  const groups = ORG_GROUPS.filter(group => orgs.some(org => org.type === group.type)).map(group => {
     const rows = orgRows.filter(r => r.org.type === group.type)
     return { ...group, rows, total: rows.reduce((s, r) => s + r.count, 0) }
   })
-  const months = year === null
-    ? Array.from({ length: 12 }, (_, m) => years.reduce((s, y) => s + (byYearMonth[y]?.[m] ?? 0), 0))
-    : (byYearMonth[year] ?? Array<number>(12).fill(0))
+  const monthsOf = (perYear: Record<number, number[]>) => year === null
+    ? Array.from({ length: 12 }, (_, m) => years.reduce((s, y) => s + (perYear[y]?.[m] ?? 0), 0))
+    : (perYear[year] ?? Array<number>(12).fill(0))
+  const months        = monthsOf(byYearMonth)
+  const academyMonths = inAcademy && monthsOf(inAcademy.byYearMonth)
+  const academyTotal  = academyMonths?.reduce((s, n) => s + n, 0) ?? 0
   const busiest = Math.max(...months)
   const busiestMonth = months.indexOf(busiest)
 
@@ -268,9 +303,10 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
             </Button>
           </CardAction>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {academy && view === 'chart' && <AcademyLegend />}
           {view === 'chart' ? (
-            <YearChart years={years} counts={counts} selected={selected} hovered={hovered} onSelect={setSelected} onHover={setHovered} />
+            <YearChart years={years} counts={counts} academy={academy} selected={selected} hovered={hovered} onSelect={setSelected} onHover={setHovered} />
           ) : (
             <div className="max-h-[360px] overflow-auto rounded-lg border">
               <Table>
@@ -278,6 +314,7 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                   <TableRow>
                     <TableHead className="pl-4">Year</TableHead>
                     <TableHead className="text-right">Events</TableHead>
+                    {academy && <TableHead className="text-right">In the Academy</TableHead>}
                     <TableHead className="pr-4 text-right">Change from previous year</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -292,6 +329,7 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{counts[i]}</TableCell>
+                        {academy && <TableCell className="text-right tabular-nums">{academy[i]}</TableCell>}
                         <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
                           {diff === null ? 'First year' : diff > 0 ? `+${diff}` : diff < 0 ? `−${-diff}` : '0'}
                         </TableCell>
@@ -320,6 +358,11 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
             </span>
             {note && <span>· {note}</span>}
           </p>
+          {inAcademy && total > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {academyTotal} in the Academy ({Math.round((academyTotal / total) * 1000) / 10}%)
+            </p>
+          )}
           {year !== null && (
             <CardAction className="flex gap-2">
               <Button variant="outline" size="icon" aria-label="Previous year" disabled={year <= years[0]} onClick={() => setSelected(year - 1)}>
@@ -421,7 +464,8 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                 {view === 'chart' ? (
                   <MonthChart
                     months={months}
-                    label={`Events by month${year === null ? ', all years' : ` in ${year}`}: ${months.map((n, m) => `${monthName(m)} ${n}`).join(', ')}`}
+                    academy={academyMonths}
+                    label={`Events by month${year === null ? ', all years' : ` in ${year}`}: ${months.map((n, m) => `${monthName(m)} ${n}${academyMonths ? ` (${academyMonths[m]} in the Academy)` : ''}`).join(', ')}`}
                   />
                 ) : (
                   <div className="rounded-lg border">
@@ -429,14 +473,16 @@ export default function EventActivity({ data, summary }: EventActivityProps) {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="pl-4">Month</TableHead>
-                          <TableHead className="pr-4 text-right">Events</TableHead>
+                          <TableHead className={cn('text-right', !academyMonths && 'pr-4')}>Events</TableHead>
+                          {academyMonths && <TableHead className="pr-4 text-right">In the Academy</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {months.map((n, m) => (
                           <TableRow key={m}>
                             <TableCell className="pl-4">{monthName(m, true)}</TableCell>
-                            <TableCell className="pr-4 text-right tabular-nums">{n}</TableCell>
+                            <TableCell className={cn('text-right tabular-nums', !academyMonths && 'pr-4')}>{n}</TableCell>
+                            {academyMonths && <TableCell className="pr-4 text-right tabular-nums">{academyMonths[m]}</TableCell>}
                           </TableRow>
                         ))}
                       </TableBody>

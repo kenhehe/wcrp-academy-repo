@@ -10,7 +10,7 @@ import { getCoverageRows } from '@/lib/data/coverage'
 import { coveragePct, formatPct, sumCoverage } from '@/lib/data/coverage.types'
 import GapsTable from './_components/GapsTable'
 import GapsTableSkeleton from './_components/GapsTableSkeleton'
-import CoverageTable from './_components/CoverageTable'
+import CoverageTable from '@/components/gaps/CoverageTable'
 
 export const dynamic = 'force-dynamic'
 

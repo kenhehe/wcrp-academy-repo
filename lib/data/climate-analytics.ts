@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildTrends, todayUtc } from './event-trends'
+import { buildActivity } from './event-activity'
 import type { AnalyticsOrg, ClimateAnalyticsData, LighthouseSummary } from './climate-analytics.types'
 
 const PAGE_SIZE   = 1000   // PostgREST's row cap per request
@@ -46,26 +47,7 @@ export const getClimateAnalytics = cache(async (): Promise<ClimateAnalyticsData>
     return { ...e, start_date: e.start_date }
   })
 
-  const today       = todayUtc()
-  const currentYear = Number(today.slice(0, 4))
-
-  // Per-year and per-month counts for the Event activity chart
-  const byYear: Record<number, Record<string, number>> = {}
-  const byYearMonth: Record<number, number[]> = {}
-  const upcomingByYear: Record<number, number> = {}
-  for (const e of rows) {
-    const year  = Number(e.start_date.slice(0, 4))
-    const month = Number(e.start_date.slice(5, 7)) - 1
-    byYear[year] ??= {}
-    byYear[year][e.ipo_id] = (byYear[year][e.ipo_id] ?? 0) + 1
-    byYearMonth[year] ??= Array(12).fill(0)
-    byYearMonth[year][month]++
-    if (e.status === 'Upcoming') upcomingByYear[year] = (upcomingByYear[year] ?? 0) + 1
-  }
-  const yearsWithEvents = Object.keys(byYear).map(Number)
-  const firstYear = Math.min(...yearsWithEvents, currentYear)
-  const lastYear  = Math.max(...yearsWithEvents, currentYear)
-  const years = Array.from({ length: lastYear - firstYear + 1 }, (_, i) => firstYear + i)
+  const today = todayUtc()
 
   const next = rows
     .filter(e => e.status === 'Upcoming')
@@ -109,7 +91,8 @@ export const getClimateAnalytics = cache(async (): Promise<ClimateAnalyticsData>
       past:     pending.filter(e => e.status === 'Past').length,
     },
     next,
-    activity: { currentYear, years, byYear, byYearMonth, upcomingByYear, orgs },
+    // Per-year and per-month counts for the Event activity chart
+    activity: buildActivity(rows, orgs, today),
     lighthouse,
   }
 })

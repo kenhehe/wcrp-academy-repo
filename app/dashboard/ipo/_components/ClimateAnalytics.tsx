@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { getClimateAnalytics } from '@/lib/data/climate-analytics'
 import { formatDay } from '@/lib/data/event-trends'
 import TrendTiles from './TrendTiles'
-import EventActivity from './EventActivity'
+import EventActivity from '@/components/charts/EventActivity'
 
 export default async function ClimateAnalytics() {
   const { totals, trends, awaiting, next, activity, lighthouse } = await getClimateAnalytics()
