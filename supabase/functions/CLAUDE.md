@@ -68,6 +68,17 @@ All helpers — import from here, never duplicate.
 | `computeStatus(start, end?)` | `→ 'Upcoming' \| 'Ongoing' \| 'Past'` | Compares against today |
 | `fetchWithRetry(url)` | `→ Response` | 3 retries, exponential backoff, rate-limit handling |
 | `upsertEvents(supabase, events)` | `→ { inserted, updated, skippedInvalid, errors }` | Validates each event, batches 100 at a time, upserts on `ipo_id+start_date+title` |
+
+## The Academy catalogue sync (`sync-academy-wp`)
+
+Copies every published WordPress catalogue post into `academy_events` (upsert on `academy_id`, the WordPress post id). WordPress is the only place an Academy event is edited: the dashboard has no edit form, and every sync replaces the copy.
+
+- **Dates and status:** `_shared/academy-dates.ts` (tested in `academy-dates.test.ts`). WordPress's ACF fields send days as `20270111`; until 2026-10-27 the sync couldn't read that and saved every date as empty. An **On demand** record keeps only its publish date (start and end are dropped, even when WordPress has them). Every other record's status comes from its dates (Past / Ongoing / Upcoming, UTC day), not from the hand-set WordPress tag. The app imports the same file (`lib/wordpress/mapper.ts`, `resolveStatus` in `lib/data/academy-events.types.ts`), so keep it free of imports and Deno APIs.
+- **Titles:** `_shared/wp-text.ts` turns WordPress's `&#038;` / `&#8211;` entities into characters.
+- **Skipped records:** a record that fails validation (end before start, a link that isn't a web address…) is left out and listed in the reply's `skipped` (`wp_id`, `title`, `problems`); the earlier copy, if any, stays. `triggerAcademySync` (`lib/actions/academy-sync.ts`) shows them in its message.
+- **Schedule:** daily at 02:00 UTC from pg_cron (`20261027_academy_sync_cron.sql`), plus the "Sync from WordPress" buttons (New survey, Sync / Export, Gap Analysis match dialog).
+- **Records unpublished on WordPress stay** in `academy_events` (the sync only upserts).
+- No Deno locally: to try a change, copy `index.ts` with the `esm.sh` import swapped for a fake client and run it with `tsx` (it fetches WordPress for real and writes nothing).
 | `startRun(supabase, ipoId, runId?, source?)` | `→ runId string` | Creates or updates a `scrape_runs` row |
 | `finishRun(supabase, runId, result, ipoId?)` | `→ void` | Marks run complete; if 0 events found but DB has events, auto-marks as failed |
 | `dryRunStream(supabase, ipoId, url, parser, note?)` | `→ Response` | NDJSON stream for the preview dialog — scrapes page 1 only, no DB writes |

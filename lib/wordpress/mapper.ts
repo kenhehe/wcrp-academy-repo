@@ -1,13 +1,6 @@
+import { resolveAcademyDates, utcToday } from '@/supabase/functions/_shared/academy-dates'
+import { wpTitleText } from '@/supabase/functions/_shared/wp-text'
 import type { WpCatalogueItem } from './client'
-
-const STATUS_MAP: Record<string, string> = {
-  upcoming_training:  'Upcoming training',
-  ongoing_training:   'Ongoing training',
-  on_going_training:  'Ongoing training',
-  past_training:      'Past training',
-  on_demand_training: 'On Demand',
-  on_demand:          'On Demand',
-}
 
 const TRAINING_MAP: Record<string, string> = {
   conference:       'Conference',
@@ -34,19 +27,6 @@ function mapSlug(s: unknown, map: Record<string, string>): string | null {
   return map[key] ?? map[slug(s)] ?? (String(s ?? '') || null)
 }
 
-function parseDate(s: unknown): string | null {
-  const str = String(s ?? '').trim()
-  if (!str) return null
-  // Already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str
-  const d = new Date(str)
-  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0]
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim()
-}
-
 export interface MappedCatalogue {
   id:                string
   title:             string
@@ -71,15 +51,22 @@ export interface MappedCatalogue {
   modified:          string
 }
 
-export function mapWpItem(item: WpCatalogueItem): MappedCatalogue {
+// The same date and status rule as the sync (supabase/functions/_shared/academy-dates.ts)
+export function mapWpItem(item: WpCatalogueItem, today = utcToday()): MappedCatalogue {
   const acf = item.acf ?? {}
+  const dates = resolveAcademyDates({
+    tag:     acf.event_status,
+    start:   acf.event_start_date,
+    end:     acf.event_end_date,
+    publish: acf.publication_date,
+  }, today)
   return {
     id:                String(item.id),
-    title:             stripHtml(item.title?.rendered ?? ''),
-    status:            mapSlug(acf.event_status, STATUS_MAP),
-    start_date:        parseDate(acf.event_start_date),
-    end_date:          parseDate(acf.event_end_date),
-    publish_date:      parseDate(acf.publication_date),
+    title:             wpTitleText(item.title?.rendered),
+    status:            dates.status ?? (String(acf.event_status ?? '').trim() || null),
+    start_date:        dates.start_date,
+    end_date:          dates.end_date,
+    publish_date:      dates.publish_date,
     lead_organizer:    String(acf.corresponding_organizer ?? '') || null,
     partner_organizer: String(acf.partner_organizer       ?? '') || null,
     categories:        String(acf.event_categories        ?? '') || null,

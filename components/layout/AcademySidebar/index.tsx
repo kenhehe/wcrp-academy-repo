@@ -22,7 +22,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/dashboard/academy/events',    label: 'Coverage',        icon: BookOpen },
       { href: '/dashboard/academy/catalogue', label: 'Catalogue',       icon: Database },
-      { href: '/dashboard/academy/import',    label: 'Import / Export', icon: Upload },
+      { href: '/dashboard/academy/import',    label: 'Sync / Export',   icon: Upload },
     ],
   },
   {

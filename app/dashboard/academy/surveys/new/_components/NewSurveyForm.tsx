@@ -1,19 +1,21 @@
 'use client'
 
-// New survey: (1) pick the Academy event, (2) dates, (3) questions, (4) the emails it will
-// send. Nothing is saved until "Create draft"; the server action re-checks everything.
+// New survey: (1) pick the Academy event, (2) the survey windows, (3) questions, (4) the
+// emails it will send. Nothing is saved until "Create draft"; the server action re-checks
+// everything. The event's details and dates come from the catalogue and aren't edited here.
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { AlertTriangle, Check, CircleCheck, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { CircleCheck, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import StatusBadge from '@/components/base/StatusBadge'
+import SyncAcademyButton from '@/components/academy/SyncAcademyButton'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  catalogueDayToLocalInput, checkSurveyTimes, checkTitle, questionsForStage, resolveSurveyTimes, type LocalTimes,
+  checkSurveyTimes, checkTitle, eventFromCatalogue, questionsForStage, resolveSurveyTimes, type LocalTimes,
 } from '@/lib/data/survey-setup'
 import {
   QUESTION_STAGE_LABELS, QUESTION_TYPE_LABELS,
@@ -83,7 +85,6 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
 
   const resolved   = resolveSurveyTimes(times)
   const timesIssue = checkSurveyTimes(resolved.iso)
-  const datesSet   = Boolean(resolved.iso.eventStartsAt && resolved.iso.eventEndsAt) && timesIssue !== 'The event ends before it starts.'
 
   const preCount  = questionsForStage(core, 'pre').length  + own.filter(o => o.stage !== 'post').length
   const postCount = questionsForStage(core, 'post').length + own.filter(o => o.stage !== 'pre').length
@@ -93,8 +94,11 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   const checks = [
     { ok: Boolean(selected && !selected.hasSurvey), label: 'Academy event', detail: selected?.title ?? 'Pick one from the catalogue' },
     { ok: !checkTitle(name), label: 'Survey name', detail: name.trim() || 'Give it a name' },
-    { ok: datesSet, label: 'Event dates', detail: datesSet ? 'Set' : 'When the event starts and ends' },
-    { ok: !timesIssue, label: 'Survey windows', detail: timesIssue ?? 'Suggested from the event dates' },
+    {
+      ok:     !timesIssue,
+      label:  'Survey windows',
+      detail: timesIssue ?? (resolved.edited || !times.eventStart ? 'Set' : 'Suggested from the catalogue dates'),
+    },
     { ok: true, label: 'Questions', detail: `${preCount} before · ${postCount} after (${own.length} of your own)` },
   ]
   const ready = checks.every(c => c.ok)
@@ -102,11 +106,7 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   function pick(e: CatalogueOption) {
     setEventId(e.id)
     setTitle(null)
-    setTimes({
-      eventStart: catalogueDayToLocalInput(e.startDate, '09:00'),
-      eventEnd:   catalogueDayToLocalInput(e.endDate ?? e.startDate, '17:00'),
-      windows:    {},
-    })
+    setTimes({ ...eventFromCatalogue(e.startDate, e.endDate), windows: {} })
   }
 
   function saveQuestion(question: QuestionInput): null {
@@ -189,39 +189,34 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
                     ? <StatusBadge tone="info">Has a survey</StatusBadge>
                     : e.startDate
                       ? <span className="shrink-0 text-xs text-muted-foreground">{day(e.startDate)}</span>
-                      : <StatusBadge tone="warning">No date</StatusBadge>}
+                      : e.status === 'On Demand'
+                        ? <StatusBadge tone="neutral">On demand</StatusBadge>
+                        : <StatusBadge tone="warning">No date</StatusBadge>}
                 </label>
               )
             })}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
-            Missing an event? <Link href="/dashboard/academy/catalogue/new" className="underline underline-offset-4 hover:text-foreground">Add it to the catalogue</Link> first.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+            <p>
+              {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
+              Missing an event, or its details are wrong? Add or fix it on{' '}
+              <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
+              then sync.
+            </p>
+            <SyncAcademyButton />
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="s-name">Survey name</Label>
+            <Label htmlFor="s-name">Name participants see</Label>
             <Input id="s-name" value={name} onChange={e => setTitle(e.target.value)} maxLength={200} disabled={!selected} />
-            <p className="text-xs text-muted-foreground">Participants see this at the top of the survey and in emails.</p>
+            <p className="text-xs text-muted-foreground">
+              Starts as the catalogue title; shorten it if it&apos;s long. Shown at the top of the survey and in emails.
+            </p>
           </div>
         </Step>
 
-        <Step n={2} title="Dates">
+        <Step n={2} title="Survey windows" description="When people can answer before and after the event.">
           {selected ? (
-            <SurveyTimesFields
-              value={times}
-              onChange={setTimes}
-              note={selected.startDate ? (
-                <p className="flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-sm">
-                  <Check className="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />
-                  Event dates filled in from the Academy catalogue, 09:00 to 17:00. Change the times if you know them.
-                </p>
-              ) : (
-                <p className="flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2.5 text-sm">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-                  This event has no date in the Academy catalogue. Enter it here; it&apos;s only used to suggest when the surveys open and close.
-                </p>
-              )}
-            />
+            <SurveyTimesFields value={times} onChange={setTimes} />
           ) : (
             <p className="text-sm text-muted-foreground">Pick the Academy event first.</p>
           )}

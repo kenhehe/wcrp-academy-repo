@@ -1,11 +1,6 @@
-export const CATALOGUE_PAGE_SIZE = 25
+import { resolveAcademyDates, utcToday } from '@/supabase/functions/_shared/academy-dates'
 
-export const ACADEMY_STATUS_OPTIONS = [
-  'Upcoming training',
-  'Ongoing training',
-  'Past training',
-  'On Demand',
-] as const
+export const CATALOGUE_PAGE_SIZE = 25
 
 export interface AcademyEventRow {
   id:                string
@@ -48,8 +43,9 @@ export interface AcademyEventFilters {
   pageSize?: number
 }
 
-export function resolveStatus(row: Pick<AcademyEventRow, 'status' | 'start_date' | 'end_date' | 'publish_date'>): string {
-  if (row.status === 'On Demand') return 'On Demand'
-  if (!row.start_date && !row.end_date && row.publish_date) return 'On Demand'
-  return row.status ?? '—'
+// Worked out again from the dates on every read (the rule in
+// supabase/functions/_shared/academy-dates.ts), so a status stays right between daily syncs
+export function resolveStatus(row: Pick<AcademyEventRow, 'status' | 'start_date' | 'end_date' | 'publish_date'>, today = utcToday()): string {
+  const { status } = resolveAcademyDates({ tag: row.status, start: row.start_date, end: row.end_date, publish: row.publish_date }, today)
+  return status ?? row.status ?? '—'
 }

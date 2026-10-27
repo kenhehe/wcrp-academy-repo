@@ -2,10 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { must } from '@/lib/supabase/must'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/base/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { RefreshCw, AlertCircle } from 'lucide-react'
-import AcademyImportWizard from '@/components/academy/AcademyImportWizard'
+import { RefreshCw } from 'lucide-react'
+import SyncAcademyButton from '@/components/academy/SyncAcademyButton'
 import AcademyExportPanel from '@/components/academy/AcademyExportPanel'
 
 export const dynamic = 'force-dynamic'
@@ -55,29 +53,26 @@ export default async function AcademyImportPage() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader
-        title="Import / Export"
-        info="Sync the Academy catalogue from WordPress or export events for offline review. Use Force Sync to pull fresh data regardless of cache, or export to CSV/Excel for sharing."
-        description="Manage Academy event data — sync from WordPress or export to spreadsheet"
+        title="Sync and export"
+        info="The Academy catalogue is edited on WordPress (wcrp-academy.org) and copied here by a daily sync. Sync now to pull a change straight away, or export the catalogue to CSV or Excel."
+        description="Academy events come from WordPress. Export them to a spreadsheet for offline review."
       />
 
-      {/* WordPress sync status banner */}
+      {/* WordPress sync status */}
       <Card className="border-border bg-muted/20">
         <CardContent className="pt-4 pb-4">
-          <div className="flex items-start gap-3">
-            <RefreshCw className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="flex flex-wrap items-start gap-3">
+            <RefreshCw className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-medium">WordPress sync is the primary data source</p>
-                <Badge variant="secondary" className="text-xs">Auto · every 12 h</Badge>
-              </div>
+              <p className="text-sm font-medium">Synced from WordPress every day at 10:00 (UTC+8)</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Academy events are synced automatically from{' '}
-                <a href="https://wcrp-academy.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                To add or change an Academy event, edit it on{' '}
+                <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
                   wcrp-academy.org
-                </a>{' '}
-                via the WordPress REST API. Any changes on the Academy site appear here within 12 hours.
+                </a>
+                . The dashboard&apos;s copy is replaced on every sync.
               </p>
-              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                 <span>
                   Last synced:{' '}
                   <span className="font-medium text-foreground">
@@ -90,50 +85,23 @@ export default async function AcademyImportPage() {
                 </span>
               </div>
             </div>
+            <SyncAcademyButton label="Sync now" />
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="export">
-        <TabsList>
-          <TabsTrigger value="export">Export</TabsTrigger>
-          <TabsTrigger value="import">Manual import</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="export" className="mt-6">
-          <Card className="max-w-xl">
-            <CardHeader>
-              <CardTitle className="text-base font-medium">Export academy events</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AcademyExportPanel
-                availableYears={availableYears}
-                trainingTypes={trainingTypes}
-                statusOptions={statusOptions}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="import" className="mt-6 space-y-4">
-          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-sm">
-            <AlertCircle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
-            <p className="text-foreground">
-              <span className="font-medium">Manual import is a fallback only.</span>{' '}
-              For events managed on the Academy WordPress site, use the automatic sync instead.
-              This import is useful for one-off additions or events not on the Academy site.
-            </p>
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-medium">Import from spreadsheet</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AcademyImportWizard />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Export academy events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AcademyExportPanel
+            availableYears={availableYears}
+            trainingTypes={trainingTypes}
+            statusOptions={statusOptions}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

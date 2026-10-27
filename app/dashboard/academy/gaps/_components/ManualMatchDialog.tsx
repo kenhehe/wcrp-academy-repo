@@ -10,7 +10,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { searchAcademyEvents, confirmMatch, triggerAcademySync } from '../actions'
+import { triggerAcademySync } from '@/lib/actions/academy-sync'
+import { searchAcademyEvents, confirmMatch } from '../actions'
 
 interface AcademyResult {
   id:         string

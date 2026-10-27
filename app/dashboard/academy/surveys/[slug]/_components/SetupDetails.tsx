@@ -1,6 +1,7 @@
 'use client'
 
-// Setup tab: the survey's name, event dates and windows. The slug (and so every link and
+// Setup tab: the name participants see and the survey windows. The event's dates come from the
+// Academy catalogue (edited on WordPress) and show read-only. The slug (and so every link and
 // QR code) stays the same when the name changes.
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -8,19 +9,24 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { checkSurveyTimes, checkTitle, resolveSurveyTimes, toLocalInput, type LocalTimes } from '@/lib/data/survey-setup'
+import { checkSurveyTimes, checkTitle, eventFromCatalogue, resolveSurveyTimes, toLocalInput, type LocalTimes } from '@/lib/data/survey-setup'
 import type { SurveyEventRow } from '@/lib/data/surveys.types'
 import { updateSurveyDetails } from '../../actions'
 import SurveyTimesFields from '../../_components/SurveyTimesFields'
 
 const local = (iso: string | null) => (iso ? toLocalInput(new Date(iso)) : '')
 
-// Saved times as the admin's local inputs; the windows count as typed, so they stay put
-// until "Use suggested times"
-function savedTimes(s: SurveyEventRow): LocalTimes {
+export interface SetupEvent {
+  title: string
+  start: string | null   // catalogue days, '2027-01-11'
+  end:   string | null
+}
+
+// Saved windows as the admin's local inputs; they count as typed, so they stay put until
+// "Use suggested times"
+function savedTimes(s: SurveyEventRow, event: SetupEvent | null): LocalTimes {
   return {
-    eventStart: local(s.event_starts_at),
-    eventEnd:   local(s.event_ends_at),
+    ...eventFromCatalogue(event?.start ?? null, event?.end ?? null),
     windows: {
       preOpensAt:   local(s.pre_opens_at),
       preClosesAt:  local(s.pre_closes_at),
@@ -30,10 +36,10 @@ function savedTimes(s: SurveyEventRow): LocalTimes {
   }
 }
 
-export default function SetupDetails({ survey }: { survey: SurveyEventRow }) {
+export default function SetupDetails({ survey, event }: { survey: SurveyEventRow; event: SetupEvent | null }) {
   const [title, setTitle] = useState(survey.title)
   // Computed again in the browser on hydration, so the inputs show the admin's local time
-  const [initial] = useState(() => savedTimes(survey))
+  const [initial] = useState(() => savedTimes(survey, event))
   const [times, setTimes] = useState<LocalTimes>(initial)
   const [pending, startTransition] = useTransition()
 
@@ -57,12 +63,15 @@ export default function SetupDetails({ survey }: { survey: SurveyEventRow }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Name and dates</CardTitle>
+        <CardTitle>Name and survey windows</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="s-title">Survey name</Label>
+          <Label htmlFor="s-title">Name participants see</Label>
           <Input id="s-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
+          {event && title.trim() !== event.title && (
+            <p className="text-xs text-muted-foreground">Catalogue title: {event.title}</p>
+          )}
         </div>
         <SurveyTimesFields value={times} onChange={setTimes} />
         <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4">

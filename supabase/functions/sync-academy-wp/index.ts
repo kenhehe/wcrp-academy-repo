@@ -1,40 +1,42 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { parseDate } from '../_shared/utils.ts'
+import { resolveAcademyDates, utcToday } from '../_shared/academy-dates.ts'
+import { wpTitleText } from '../_shared/wp-text.ts'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const URL_RE  = /^https?:\/\/.+/
 
 type WpRow = ReturnType<typeof mapPost>
 
+// Problems that keep a record out of the sync, in words the sync button's message can show
 function validateWpRow(row: WpRow): { valid: boolean; errors: string[] } {
   const errors: string[] = []
 
   if (!row.academy_id?.trim())
-    errors.push('missing academy_id')
+    errors.push('no WordPress id')
 
   if (!row.title?.trim())
-    errors.push('missing title')
+    errors.push('no title')
   else if (row.title.length > 500)
-    errors.push(`title too long (${row.title.length} chars)`)
+    errors.push(`title is ${row.title.length} characters, over 500`)
 
   if (row.start_date && !DATE_RE.test(row.start_date))
-    errors.push(`invalid start_date "${row.start_date}"`)
+    errors.push(`start date "${row.start_date}" isn't a date`)
 
   if (row.end_date && !DATE_RE.test(row.end_date))
-    errors.push(`invalid end_date "${row.end_date}"`)
+    errors.push(`end date "${row.end_date}" isn't a date`)
 
   if (
     row.start_date && row.end_date &&
     DATE_RE.test(row.start_date) && DATE_RE.test(row.end_date) &&
     row.end_date < row.start_date
   )
-    errors.push(`end_date (${row.end_date}) before start_date (${row.start_date})`)
+    errors.push(`end date ${row.end_date} is before start date ${row.start_date}`)
 
   if (row.official_link && !URL_RE.test(row.official_link))
-    errors.push(`invalid official_link "${row.official_link}"`)
+    errors.push(`official link "${row.official_link}" isn't a web address`)
 
   if (row.permalink && !URL_RE.test(row.permalink))
-    errors.push(`invalid permalink "${row.permalink}"`)
+    errors.push(`application link "${row.permalink}" isn't a web address`)
 
   return { valid: errors.length === 0, errors }
 }
@@ -42,15 +44,7 @@ function validateWpRow(row: WpRow): { valid: boolean; errors: string[] } {
 const WP_BASE = 'https://wcrp-academy.org/wp-json/wp/v2/catalogues'
 const PER_PAGE = 100
 
-// ACF slug → display label maps
-const STATUS_MAP: Record<string, string> = {
-  upcoming_training: 'Upcoming training',
-  ongoing_training:  'Ongoing training',
-  past_training:     'Past training',
-  on_demand_training:'On Demand',
-  on_demand:         'On Demand',
-}
-
+// ACF slug → display label maps (event_status is handled by _shared/academy-dates.ts)
 const TRAINING_TYPE_MAP: Record<string, string> = {
   conference:      'Conference',
   mooc:            'MOOC',
@@ -91,8 +85,15 @@ interface WpPost {
   acf:      Record<string, unknown>
 }
 
-function mapPost(post: WpPost) {
+// `today` (UTC) decides Past / Ongoing / Upcoming from the dates; see _shared/academy-dates.ts
+function mapPost(post: WpPost, today: string) {
   const acf = post.acf ?? {}
+  const dates = resolveAcademyDates({
+    tag:     acf.event_status,
+    start:   acf.event_start_date,
+    end:     acf.event_end_date,
+    publish: acf.publication_date,
+  }, today)
 
   // Target audience: pipe or comma separated slugs/labels
   const rawAudience = String(acf.event_target_audience ?? '')
@@ -104,12 +105,13 @@ function mapPost(post: WpPost) {
 
   return {
     academy_id:        String(post.id),
-    title:             post.title?.rendered?.replace(/&amp;/g, '&').replace(/<[^>]+>/g, '').trim() ?? '',
+    title:             wpTitleText(post.title?.rendered),
     description:       post.content?.rendered ?? null,
-    status:            mapSlug(String(acf.event_status ?? ''), STATUS_MAP) || null,
-    start_date:        parseDate(String(acf.event_start_date ?? '')) ,
-    end_date:          parseDate(String(acf.event_end_date   ?? '')),
-    publish_date:      parseDate(String(acf.publication_date ?? '')),
+    // An unknown tag with no dates is kept as WordPress sent it, so it shows up instead of vanishing
+    status:            dates.status ?? (String(acf.event_status ?? '').trim() || null),
+    start_date:        dates.start_date,
+    end_date:          dates.end_date,
+    publish_date:      dates.publish_date,
     lead_organizer:    String(acf.corresponding_organizer ?? '') || null,
     partner_organizer: String(acf.partner_organizer       ?? '') || null,
     categories:        String(acf.event_categories        ?? '') || null,
@@ -174,28 +176,25 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'No posts fetched', synced: 0 })
     }
 
-    const mapped = posts.map(mapPost)
+    const today  = utcToday()
+    const mapped = posts.map(post => mapPost(post, today))
 
-    const validRows:   WpRow[]  = []
-    const invalidMsgs: string[] = []
+    // Records with a problem are left out (the copy from an earlier sync, if any, stays) and
+    // listed in the reply, so the sync button can say which ones to fix on WordPress
+    const validRows: WpRow[] = []
+    const skipped: { wp_id: string; title: string; problems: string[] }[] = []
     for (const row of mapped) {
       const { valid, errors } = validateWpRow(row)
       if (valid) {
         validRows.push(row)
       } else {
-        const label = row.title ? `"${row.title.slice(0, 60)}"` : `academy_id=${row.academy_id}`
-        const msg   = `INVALID ${label}: ${errors.join('; ')}`
-        invalidMsgs.push(msg)
-        console.warn(`[sync-academy-wp] ${msg}`)
+        skipped.push({ wp_id: row.academy_id, title: row.title || `WordPress post ${row.academy_id}`, problems: errors })
+        console.warn(`[sync-academy-wp] skipped ${row.academy_id} "${row.title.slice(0, 60)}": ${errors.join('; ')}`)
       }
     }
 
     if (!validRows.length) {
-      return Response.json({
-        message: 'No valid rows after validation',
-        invalid: invalidMsgs.length,
-        errors:  invalidMsgs,
-      })
+      return Response.json({ message: 'No valid rows after validation', fetched: posts.length, synced: 0, skipped })
     }
 
     const { error, count } = await supabase
@@ -205,12 +204,10 @@ Deno.serve(async (req) => {
     if (error) throw error
 
     return Response.json({
-      message:        'Sync complete',
-      fetched:        posts.length,
-      valid:          validRows.length,
-      invalid:        invalidMsgs.length,
-      synced:         count ?? validRows.length,
-      ...(invalidMsgs.length > 0 && { validationErrors: invalidMsgs }),
+      message: 'Sync complete',
+      fetched: posts.length,
+      synced:  count ?? validRows.length,
+      skipped,
     })
   } catch (err) {
     console.error('sync-academy-wp error:', err)

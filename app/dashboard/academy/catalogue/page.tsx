@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fetchWpCatalogues, type WpCatalogueItem } from '@/lib/wordpress/client'
 import { mapWpItem } from '@/lib/wordpress/mapper'
+import { ACADEMY_STATUSES, utcToday } from '@/supabase/functions/_shared/academy-dates'
 import CatalogueFilters from './_components/CatalogueFilters'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   'On Demand':         'secondary',
 }
 
-const ALL_STATUSES = ['Upcoming training', 'Ongoing training', 'Past training', 'On Demand']
+const ALL_STATUSES = [...ACADEMY_STATUSES]
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -41,8 +42,9 @@ export default async function AcademyCataloguePage({ searchParams }: PageProps) 
     error = String(e)
   }
 
+  const today  = utcToday()
   const mapped = allItems
-    .map(mapWpItem)
+    .map(item => mapWpItem(item, today))
     .filter(e => {
       if (search && !e.title.toLowerCase().includes(search)) return false
       if (status && e.status !== status) return false

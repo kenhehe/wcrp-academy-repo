@@ -59,9 +59,9 @@ app/dashboard/academy/
   gaps/         Gap Analysis — IPO events not in Academy (in_academy=false)
   duplicates/   Cross-IPO Duplicates — same event scraped from two IPO sites (academy_admin)
   event-registry/ Searchable browse of every event across every org (IPO + LHA), plus add / edit / delete for any org
-  catalogue/    CRUD editor for academy_events table
+  catalogue/    Read-only live view of the WordPress catalogue (edit events on WordPress only)
   accounts/     User management
-  import/       Bulk CSV import
+  import/       Sync / Export: WordPress sync status + "Sync now", CSV/Excel export of academy_events
   surveys/      Pre/post surveys on Academy events (Phases 1–7 built on feat/surveys) — see docs/surveys/PLAN.md
 
 app/s/[slug]/[stage]/   Participant survey pages, no login (proxy.ts `isSurveyPublic`); app/s/[slug]/stop = stop reminders
@@ -107,7 +107,9 @@ supabase/functions/
   _shared/utils.ts      All scraper helpers: parseDateRange, upsertEvents, dryRunStream, etc.
   _shared/types.ts      ScrapedEvent and ScrapeResult interfaces
   scrape-*/index.ts     One scraper per IPO — see CLAUDE.md in this directory
-  sync-academy-wp/      Fetches WordPress catalogue, upserts into academy_events
+  _shared/academy-dates.ts  The Academy date/status rule (WordPress 20270111 days, On demand = publish date only,
+                        status from dates); also imported by the app. _shared/wp-text.ts decodes title entities
+  sync-academy-wp/      Fetches WordPress catalogue, upserts into academy_events (daily pg_cron, 02:00 UTC)
 ```
 
 ## Standard Page Pattern

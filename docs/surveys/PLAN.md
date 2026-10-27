@@ -43,7 +43,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 | `event_id` → `events` | `academy_event_id` → `academy_events` | Ken's call: Academy events only for now |
 | "Migrations apply on a dev DB" | Dry run in the SQL editor inside `begin … rollback`, then the real run | There is no dev database |
 | `email citext` | `text` with a lower-case check | Avoids enabling an extension; the app normalises emails anyway |
-| Windows prefilled from the event's dates | The admin types the event's start and end on the New survey page; windows are suggested from them | 308 of 309 `academy_events` rows have no dates (likely a WordPress sync bug, see Open items) |
+| Windows prefilled from the event's dates | Windows are suggested from the catalogue's dates (09:00 on the first day, 17:00 on the last); the event's dates show read-only and are edited on WordPress only. Until 2026-10-27 admins typed the event's start and end, because the sync saved every date as empty | One place for event facts (WordPress); a survey keeps only its name and windows, and warns when the catalogue dates move |
 | Vercel Cron for sending | `pg_cron` + `pg_net` calling a protected route, key from Vault | Matches the scrapers' scheduling; the Vercel cron was removed on 2026-10-24 |
 | No admin log | `survey_admin_log` table | Section 11 asks for merges, deletes and sends to be logged |
 | Token = 32 random bytes | Token = HMAC-SHA256 of the participant id with `SURVEYS_SECRET`; still only its SHA-256 is stored | The same personal link can be shown ("Copy link") and re-sent in every email without storing it |
@@ -58,7 +58,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 | Route | What |
 |---|---|
 | `/dashboard/academy/surveys` | List: survey, Academy event, status, before / after / matched, match rate |
-| `/dashboard/academy/surveys/new` | Create: pick the Academy event, name, event dates, windows (suggested), questions, emails; saves a draft |
+| `/dashboard/academy/surveys/new` | Create: pick the Academy event, the name participants see, windows (suggested from the catalogue dates), questions, emails; saves a draft |
 | `/dashboard/academy/surveys/[slug]` | One survey, tabs via `?tab=`: Setup, Participants, Send, QR codes, Results (anonymised), Export |
 | `/dashboard/academy/surveys/[slug]/preview?stage=pre\|post` | The survey as a participant sees it; answers not saved |
 | `/dashboard/academy/surveys/[slug]/export/answers.csv`, `…/participants.csv` | The two exports (route handler, admins only) |
@@ -155,7 +155,7 @@ Files: `supabase/migrations/20261026_survey_module.sql` (tables) and `20261026_s
 | Table | Holds |
 |---|---|
 | `survey_people` | One row per email (lower-case, unique; null after the retention purge) and a pseudonym like `P-7F3K` used in every result |
-| `survey_events` | A survey: `academy_event_id` (unique), slug, title, event start/end, the four window times, status `draft` / `active` / `closed` |
+| `survey_events` | A survey: `academy_event_id` (unique), slug, title (the name participants see), the four window times, status `draft` / `active` / `closed`. `event_starts_at` / `event_ends_at` are no longer written since 2026-10-27 (the event's dates come from `academy_events`) |
 | `survey_questions` + `survey_question_versions` | Stable question (`key`, type, stage, core or not, in the bank) and its versioned wording, options, scale labels, correct option |
 | `survey_event_questions` | Which question versions a survey asks, in what order and at which stage |
 | `survey_event_participants` | Who is in which survey: `token_hash` (SHA-256; the raw token only ever lives in emails and links), `source` imported / walk-in |
@@ -345,8 +345,8 @@ Each phase: build → run its checks (`npx tsc --noEmit`, `npm run lint`, `npm t
 - `nodemailer` is pinned at 10.1.7, released 8 days before it was added: the two-week rule gave way to a security fix (10.1.0–10.1.3 have address-parsing advisories).
 - A wrong stage in a participant URL (`/s/x/middle`) shows the 404 page with HTTP 200 (the page streams behind its loading screen). Harmless; noted.
 - Newsletter assets: logo image for the dark band, exact colours, social links.
-- `academy_events` dates: 308 of 309 rows have no `start_date` / `end_date`; `lib/wordpress/mapper.ts` (`parseDate(acf.event_start_date)`) probably reads the wrong field. Fixing it would let the New survey page prefill event dates.
-- Deleting a catalogue event that has a survey is refused by the database (`on delete restrict`). The dashboard has no delete button today (`catalogue/_components/DeleteEventButton.tsx` and `deleteAcademyEventAction` are unused, and the action ignores the delete's error); `/api/academy/events/[id]` returns the database error. Clean up or wire up those leftovers separately.
+- `academy_events` dates: fixed on `fix/academy-dates` (2026-10-27). WordPress sends `20270111` days, which the sync couldn't read; the shared rule is `supabase/functions/_shared/academy-dates.ts`. The daily sync is `20261027_academy_sync_cron.sql` (applied 2026-10-27).
+- Deleting a catalogue event that has a survey is refused by the database (`on delete restrict`). The dashboard's catalogue edit / delete pages were removed on 2026-10-27 (WordPress is the only place to edit); `/api/academy/events/[id]` can still delete and returns the database error.
 
 ## 16. Out of scope (for now)
 

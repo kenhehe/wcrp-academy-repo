@@ -55,10 +55,33 @@ export function fromLocalInput(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-// Catalogue dates are whole days ('2026-11-18'); start at 09:00 and end at 17:00 until
-// the admin types the real times
+// Catalogue dates are whole days ('2026-11-18'); the windows are suggested as if the event
+// starts at 09:00 and ends at 17:00, and the admin adjusts the windows themselves
 export function catalogueDayToLocalInput(day: string | null, time: '09:00' | '17:00'): string {
   return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day}T${time}` : ''
+}
+
+// The event's days from the Academy catalogue (WordPress is the only place they're edited),
+// as the start and end the window suggestions work from
+export function eventFromCatalogue(start: string | null, end: string | null): Pick<LocalTimes, 'eventStart' | 'eventEnd'> {
+  return {
+    eventStart: catalogueDayToLocalInput(start ?? end, '09:00'),
+    eventEnd:   catalogueDayToLocalInput(end ?? start, '17:00'),
+  }
+}
+
+const utcDay = (withYear: boolean) =>
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' })
+
+// ('2027-01-11', '2027-01-29') → '11 Jan to 29 Jan 2027'; one day → '11 Jan 2027'; none → null.
+// Whole days, so the same on server and browser.
+export function formatCatalogueDays(start: string | null, end: string | null): string | null {
+  const first = start ?? end
+  const last  = end ?? start
+  if (!first || !last) return null
+  const at = (day: string, withYear: boolean) => utcDay(withYear).format(new Date(`${day}T00:00:00Z`))
+  if (first === last) return at(first, true)
+  return `${at(first, first.slice(0, 4) !== last.slice(0, 4))} to ${at(last, true)}`
 }
 
 export interface SuggestedWindows {
@@ -83,7 +106,9 @@ export function suggestWindows(eventStart: Date, eventEnd: Date): SuggestedWindo
 export const WINDOW_KEYS = ['preOpensAt', 'preClosesAt', 'postOpensAt', 'postClosesAt'] as const
 export type WindowKey = typeof WINDOW_KEYS[number]
 
-// What the admin has typed, in datetime-local format. A window left out follows the suggestion.
+// The event's start and end (from the catalogue, see eventFromCatalogue; '' when it has no
+// dates) and the windows the admin has typed, in datetime-local format. A window left out
+// follows the suggestion.
 export interface LocalTimes {
   eventStart: string
   eventEnd:   string
@@ -109,8 +134,6 @@ export function resolveSurveyTimes(t: LocalTimes): ResolvedTimes {
     windows,
     edited: WINDOW_KEYS.some(k => t.windows[k] !== undefined),
     iso: {
-      eventStartsAt: iso(t.eventStart),
-      eventEndsAt:   iso(t.eventEnd),
       preOpensAt:    iso(windows.preOpensAt),
       preClosesAt:   iso(windows.preClosesAt),
       postOpensAt:   iso(windows.postOpensAt),
@@ -145,13 +168,11 @@ const time = (iso: string | null | undefined) => {
   return Number.isNaN(t) ? null : t
 }
 
-// First problem with a survey's event dates and windows, or null when they're fine
+// First problem with a survey's windows, or null when they're fine. The event's own dates
+// come from the catalogue and aren't checked here (an On demand course has none).
 export function checkSurveyTimes(t: Partial<SurveyTimesInput>): string | null {
-  const eventStart = time(t.eventStartsAt), eventEnd = time(t.eventEndsAt)
   const preOpen = time(t.preOpensAt), preClose = time(t.preClosesAt)
   const postOpen = time(t.postOpensAt), postClose = time(t.postClosesAt)
-  if (eventStart === null || eventEnd === null) return 'Enter when the event starts and ends.'
-  if (eventEnd < eventStart) return 'The event ends before it starts.'
   if (preOpen === null || preClose === null || postOpen === null || postClose === null) {
     return 'Set when each survey opens and closes.'
   }
@@ -159,6 +180,25 @@ export function checkSurveyTimes(t: Partial<SurveyTimesInput>): string | null {
   if (postClose <= postOpen) return 'The after-survey closes before it opens.'
   if (postOpen < preOpen) return 'The after-survey opens before the before-survey.'
   return null
+}
+
+// Whole local days between two times, ignoring the hour (DST-safe)
+const dayNumber = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000
+const localDay = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+
+// A warning when the catalogue's event dates and the windows no longer line up, typically
+// because the event moved on WordPress after the windows were set: the before-survey should
+// close on the event's first day and the after-survey open on its last, give or take a day.
+// Never blocks saving. Local time, so call it in the browser.
+export function windowsVsEvent(windows: Record<WindowKey, string>, eventStart: string, eventEnd: string): string | null {
+  const start = fromLocalInput(eventStart), end = fromLocalInput(eventEnd)
+  const preClose = fromLocalInput(windows.preClosesAt), postOpen = fromLocalInput(windows.postOpensAt)
+  if (!start || !end || !preClose || !postOpen) return null
+  const off = (a: Date, b: Date) => Math.abs(dayNumber(a) - dayNumber(b)) > 1
+  if (!off(preClose, start) && !off(postOpen, end)) return null
+  const days = formatCatalogueDays(eventStart.slice(0, 10), eventEnd.slice(0, 10))
+  return `The Academy catalogue has the event on ${days}, but the before-survey closes on ${localDay.format(preClose)} `
+    + `and the after-survey opens on ${localDay.format(postOpen)}. Check the survey windows.`
 }
 
 export function checkTitle(title: string): string | null {

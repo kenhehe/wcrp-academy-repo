@@ -31,8 +31,6 @@ function revalidateSurveys() {
 function timesRow(t: SurveyTimesInput) {
   const iso = (v: string) => new Date(v).toISOString()
   return {
-    event_starts_at: iso(t.eventStartsAt),
-    event_ends_at:   iso(t.eventEndsAt),
     pre_opens_at:    iso(t.preOpensAt),
     pre_closes_at:   iso(t.preClosesAt),
     post_opens_at:   iso(t.postOpensAt),

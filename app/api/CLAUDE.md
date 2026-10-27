@@ -15,7 +15,7 @@ The only route used outside this app; changes here reach whoever consumes WCRP e
 ## Internal routes (signed-in users only)
 
 - `scrape/preview/[ipoId]` (POST) — runs a scraper with `{ dry_run: true }` for the Preview dialog on System Health; `academy_admin` only (403 for org accounts); calls the Edge Function with the service-role key server-side.
-- `academy/events` and `academy/events/[id]` — read (any signed-in user) and create/update (`academy_admin`) the Academy catalogue. No page in this app calls them today; check for outside users before removing.
+- `academy/events` and `academy/events/[id]` — read (any signed-in user) and create/update (`academy_admin`) the Academy catalogue. No page in this app calls them today; check for outside users before removing. **Writes here are overwritten by the next WordPress sync** (WordPress is the only place to edit an Academy event since 2026-10-27), so the write methods are candidates for removal.
 
 Scraping has no cron route: it is scheduled only by `pg_cron` (see `supabase/functions/CLAUDE.md`).
 

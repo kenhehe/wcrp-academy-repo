@@ -8,6 +8,7 @@ import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { must } from '@/lib/supabase/must'
+import { resolveStatus } from './academy-events.types'
 import { emptyProgress, progressBySurvey, type ParticipantRef, type SubmissionRef } from './survey-progress'
 import { EMAIL_KIND_LABELS, participantStatus, type ParticipantListItem } from './survey-participants'
 import { buildResults, type ResultAnswer, type SurveyResults } from './survey-results'
@@ -135,7 +136,7 @@ export const getSurveyBySlug = cache(async (slug: string): Promise<SurveyDetail 
   const db = createAdminClient()
   const row = must('survey query', await db
     .from('survey_events')
-    .select('*,academy_events(id,title,training_type,lead_organizer,delivery_mode,location,start_date,end_date,permalink)')
+    .select('*,academy_events(id,academy_id,title,status,training_type,lead_organizer,delivery_mode,location,start_date,end_date,publish_date,permalink)')
     .eq('slug', slug)
     .maybeSingle()) as unknown as (SurveyEventRow & { academy_events: SurveyAcademyEvent | null }) | null
   if (!row) return null
@@ -163,10 +164,10 @@ export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> =>
   await requireAcademyAdmin()
   const db = createAdminClient()
   const [events, taken] = await Promise.all([
-    fetchAllRows<{ id: string; title: string; training_type: string | null; lead_organizer: string | null; delivery_mode: string | null; start_date: string | null; end_date: string | null }>(
+    fetchAllRows<{ id: string; title: string; status: string | null; training_type: string | null; lead_organizer: string | null; delivery_mode: string | null; start_date: string | null; end_date: string | null; publish_date: string | null }>(
       'academy events query',
       (from, to) => db.from('academy_events')
-        .select('id,title,training_type,lead_organizer,delivery_mode,start_date,end_date')
+        .select('id,title,status,training_type,lead_organizer,delivery_mode,start_date,end_date,publish_date')
         .order('title').order('id').range(from, to),
     ),
     db.from('survey_events').select('academy_event_id')
@@ -180,6 +181,7 @@ export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> =>
     deliveryMode: e.delivery_mode,
     startDate:    e.start_date,
     endDate:      e.end_date,
+    status:       resolveStatus(e),
     hasSurvey:    taken.has(e.id),
   }))
 })

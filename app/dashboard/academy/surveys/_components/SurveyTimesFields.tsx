@@ -1,16 +1,18 @@
 'use client'
 
-// Event dates, the four survey windows (suggested from the event dates until the admin types
-// their own) and a before / event / after timeline. Local time throughout, so it renders only
-// in the browser.
-import type { ReactNode } from 'react'
+// The event's dates (read-only, from the Academy catalogue: WordPress is where they change),
+// the four survey windows (suggested from those dates until the admin types their own) and a
+// before / event / after timeline. Local time throughout, so it renders only in the browser.
+import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import TimeZoneNote from '@/components/surveys/TimeZoneNote'
 import { useIsClient } from '@/lib/hooks/use-is-client'
-import { fromLocalInput, resolveSurveyTimes, type LocalTimes, type WindowKey } from '@/lib/data/survey-setup'
+import {
+  formatCatalogueDays, fromLocalInput, resolveSurveyTimes, windowsVsEvent, type LocalTimes, type WindowKey,
+} from '@/lib/data/survey-setup'
 
 const WINDOW_LABELS: Record<WindowKey, string> = {
   preOpensAt:   'Before-survey opens',
@@ -27,34 +29,33 @@ const show = (value: string) => {
 }
 
 interface Props {
-  value:     LocalTimes
+  value:     LocalTimes   // eventStart / eventEnd from eventFromCatalogue()
   onChange:  (value: LocalTimes) => void
-  note?:     ReactNode   // shown above the event dates (where they came from)
   disabled?: boolean
 }
 
-export default function SurveyTimesFields({ value, onChange, note, disabled }: Props) {
+export default function SurveyTimesFields({ value, onChange, disabled }: Props) {
   const isClient = useIsClient()
   if (!isClient) return <Skeleton className="h-64 w-full rounded-lg" />
 
   const { windows, edited } = resolveSurveyTimes(value)
   const complete = Object.values(windows).every(Boolean)
+  const eventDays = formatCatalogueDays(value.eventStart.slice(0, 10) || null, value.eventEnd.slice(0, 10) || null)
+  const mismatch = windowsVsEvent(windows, value.eventStart, value.eventEnd)
 
   return (
     <div className="space-y-4">
-      {note}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="t-ev-start">Event starts</Label>
-          <Input id="t-ev-start" type="datetime-local" value={value.eventStart} disabled={disabled}
-            onChange={e => onChange({ ...value, eventStart: e.target.value })} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="t-ev-end">Event ends</Label>
-          <Input id="t-ev-end" type="datetime-local" value={value.eventEnd} disabled={disabled}
-            onChange={e => onChange({ ...value, eventEnd: e.target.value })} />
-        </div>
+      <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm">
+        <span className="block text-xs font-medium text-muted-foreground">Event, from the Academy catalogue</span>
+        {eventDays ?? 'No start and end dates in the catalogue (an On demand course, for example). Set each window yourself.'}
       </div>
+
+      {mismatch && (
+        <p role="status" className="flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2.5 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+          {mismatch}
+        </p>
+      )}
 
       {complete && (
         <ol aria-label="Survey timeline" className="grid overflow-hidden rounded-lg border text-sm sm:grid-cols-[1fr_0.8fr_1fr]">
@@ -64,7 +65,7 @@ export default function SurveyTimesFields({ value, onChange, note, disabled }: P
           </li>
           <li className="flex flex-col gap-0.5 border-t bg-muted/50 px-3 py-2.5 sm:border-t-0 sm:border-l">
             <span className="text-xs font-medium text-muted-foreground">Event</span>
-            {show(value.eventStart)} to {show(value.eventEnd)}
+            {eventDays ?? 'No dates'}
           </li>
           <li className="flex flex-col gap-0.5 border-t px-3 py-2.5 sm:border-t-0 sm:border-l">
             <span className="text-xs font-medium text-muted-foreground">After-survey</span>
@@ -85,13 +86,16 @@ export default function SurveyTimesFields({ value, onChange, note, disabled }: P
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
-            Suggested: the before-survey opens a week ahead and closes when the event starts; the after-survey
-            opens when it ends and stays open two weeks.
-          </p>
+          {eventDays && (
+            <p className="text-xs text-muted-foreground">
+              Suggested from the catalogue dates: the before-survey opens a week ahead and closes at 09:00 on the
+              first day; the after-survey opens at 17:00 on the last day and stays open two weeks. Change any
+              time to match the sessions.
+            </p>
+          )}
           <TimeZoneNote />
         </div>
-        {edited && !disabled && (
+        {edited && eventDays && !disabled && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...value, windows: {} })}>
             Use suggested times
           </Button>

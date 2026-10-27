@@ -200,9 +200,9 @@ export interface QuestionInput {
 }
 
 // ISO instants; the browser converts the admin's local times before sending
+// The four windows. The event's own dates come from the Academy catalogue; the survey's
+// event_starts_at / event_ends_at columns are no longer written (kept from before 2026-10-27).
 export interface SurveyTimesInput {
-  eventStartsAt: string
-  eventEndsAt:   string
   preOpensAt:    string
   preClosesAt:   string
   postOpensAt:   string
@@ -248,7 +248,10 @@ export interface SurveyQuestionItem {
 
 export interface SurveyAcademyEvent {
   id:             string
+  academy_id:     string | null   // the WordPress post id
   title:          string
+  status:         string | null
+  publish_date:   string | null
   training_type:  string | null
   lead_organizer: string | null
   delivery_mode:  string | null
@@ -290,5 +293,6 @@ export interface CatalogueOption {
   deliveryMode: string | null
   startDate:    string | null   // a day, '2026-11-18'
   endDate:      string | null
+  status:       string          // resolveStatus(): 'On Demand' has no start or end
   hasSurvey:    boolean
 }

@@ -136,7 +136,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - Threshold: 0.35 (raised from 0.15 to reduce noise)
 - Rows sorted by fuzzy score descending (high confidence first)
 - Three actions: "Yes same event" (writes `academy_event_id`), "Already in Academy" (sets `in_academy=true`), "Link manually" (ManualMatchDialog)
-- `ManualMatchDialog`: searches `academy_events` table locally; if no results, offers "Sync from Academy" button that calls `sync-academy-wp` edge function
+- `ManualMatchDialog`: searches `academy_events` table locally; if no results, offers "Sync from Academy" button that calls `triggerAcademySync` (`lib/actions/academy-sync.ts`, shared with `components/academy/SyncAcademyButton`)
 - `markInAcademy`/`confirmMatch` in `actions.ts` both call `setAcademyStatus()` (`lib/data/event-duplicates.ts`) instead of updating `in_academy`/`academy_event_id` directly — this propagates the change to a linked duplicate pair too, so matching either side to the Academy catalogue keeps both in sync
 
 ### `academy/duplicates` and `ipo/duplicates` (Cross-IPO Duplicates)
@@ -150,19 +150,22 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - Both IPOs keep full, unmodified credit in `ipo_coverage_stats` and their own event counts when a link is made — linking is additive metadata, never a per-IPO credit transfer (see `CLAUDE.md` root for the `duplicate_of_event_id` link)
 
 ### `academy/catalogue`
-- Full CRUD for `academy_events`
-- `AcademyEventForm` is a large form component — edit it in `_components/AcademyEventForm.tsx`
-- Uses `AcademyEventInput` type from `lib/data/academy-events.types.ts`
+- Read-only, live from the WordPress REST API (`lib/wordpress/client.ts` + `mapper.ts`, cached 5 min); the dates and status follow the sync's rule (`supabase/functions/_shared/academy-dates.ts`).
+- **WordPress is the only place an Academy event is edited.** The edit / new / delete pages were removed on 2026-10-27: the daily sync overwrote anything changed here. Link to `https://wcrp-academy.org/wp-admin/post.php?post=<academy_id>&action=edit` instead.
+
+### `academy/import` (sidebar: Sync / Export)
+- The sync status (last sync, count, a "Sync now" button) and the CSV / Excel export. The manual CSV import of Academy events was removed on 2026-10-27 for the same reason as the catalogue forms.
 
 ### `academy/surveys` (in progress on `feat/surveys`)
 - Pre/post surveys on Academy catalogue events; the plan, routes, phases and decisions are in `docs/surveys/PLAN.md`, the screens in the mockup linked there.
 - Survey tables (`survey_*`) have RLS on with **no policies** and privileges revoked from `anon`/`authenticated`, so the session client sees nothing: loaders read with `createAdminClient()` **after** `requireAcademyAdmin()`, and actions start with the same guard.
 - Results are anonymised: never put a participant's email next to their answers, in the UI or an export.
-- Pages: `surveys/` (list with status filter), `surveys/new` (`_components/NewSurveyForm`: catalogue picker, dates, own questions), `surveys/[slug]` with tabs `?tab=` Setup / Participants / Send / QR codes / Results / Export (one `_components/*Tab` each; the header's `SurveyStatusButton` opens, closes and reopens), `surveys/[slug]/preview?stage=pre|post`, and the CSV route `surveys/[slug]/export/[file]` (`answers.csv` with pseudonyms only, `participants.csv` with emails and statuses only).
+- Pages: `surveys/` (list with status filter), `surveys/new` (`_components/NewSurveyForm`: catalogue picker, survey windows, own questions), `surveys/[slug]` with tabs `?tab=` Setup / Participants / Send / QR codes / Results / Export (one `_components/*Tab` each; the header's `SurveyStatusButton` opens, closes and reopens), `surveys/[slug]/preview?stage=pre|post`, and the CSV route `surveys/[slug]/export/[file]` (`answers.csv` with pseudonyms only, `participants.csv` with emails and statuses only).
 - Mutations: `surveys/actions.ts` (setup, status), `participant-actions.ts`, `send-actions.ts`. They return `{ ok: false, error }` for expected problems (shown as a toast) and throw on query failures. The participant and email work itself is in `lib/surveys/` as plain helpers taking a client, so scripts can test it.
 - Participant pages live outside the dashboard: `app/s/[slug]/[stage]` (and `app/s/[slug]/stop`), no login, actions in `app/s/actions.ts`; see the root `CLAUDE.md`.
 - Results charts are plain HTML in `_components/ResultsCharts.tsx` (server) and `ResultsInteractive.tsx` (client); the 1–5 scale uses the `--scale-1…5` tokens in `globals.css`.
 - `academy/core-questions`: edit / add / retire / reorder the core questions (actions in its `actions.ts`, rules in `lib/surveys/core-questions.ts`). Editing an answered version creates a new one; surveys nobody has answered move to it, answered ones keep theirs. A separate route, so it can't clash with a survey slug.
+- **Event dates come from the catalogue, read-only** (`eventFromCatalogue`, as 09:00 on the first day to 17:00 on the last); a survey stores only its name and the four windows. `survey_events.event_starts_at` / `event_ends_at` are no longer written (kept from before 2026-10-27). `SurveyTimesFields` warns (`windowsVsEvent`) when the windows no longer line up with the catalogue dates, e.g. after the event moved on WordPress; it never moves the windows itself.
 - **Times:** admins type local times (`datetime-local`), the browser converts them to ISO before calling an action, and pages show times with `components/surveys/LocalDateTime` (UTC on the server render, local after hydration). Inputs that depend on the time zone render only in the browser (`useIsClient`, `SurveyTimesFields`).
 - Questions lock once anyone has answered (`isSurveyLocked`); a survey's slug never changes, since links and QR codes use it.
 

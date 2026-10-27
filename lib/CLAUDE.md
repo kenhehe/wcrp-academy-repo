@@ -20,7 +20,8 @@ surveys/    server-only survey internals, plain helpers taking a client (scripts
   core-questions.ts  the Core questions page: edit (in place or new version), add, retire, reorder
   respond.ts      the participant side: find the survey, recognise the person, save answers
   email/          config (env), templates (pure, tested), send (SMTP, daily limit, jobs), overview (Send tab)
-wordpress/  WordPress REST client + mapper for the Academy catalogue sync
+wordpress/  WordPress REST client + mapper for the live Catalogue page (dates, status and titles via supabase/functions/_shared/academy-dates.ts and wp-text.ts, the same rules as the sync)
+actions/academy-sync.ts  'use server' triggerAcademySync: runs sync-academy-wp now; used by Gap Analysis, New survey, Sync / Export
 ipo-sources.ts, geo.ts, utils.ts (cn())
 ```
 
@@ -47,7 +48,7 @@ ipo-sources.ts, geo.ts, utils.ts (cn())
 | `data/coverage.ts` | Gap Analysis coverage table | session |
 | `data/climate-analytics.ts` | Climate Analytics (can_approve) | admin |
 | `data/lighthouses.ts` | LHA Accounts page + actions | admin |
-| `data/academy-events.ts` | Academy catalogue | session |
+| `data/academy-events.ts` | Academy catalogue (`resolveStatus` in `academy-events.types.ts` works the status out from the dates on every read) | session |
 | `data/scrape-schedule.ts` | System Health schedule (mirror of the pg_cron jobs) | — |
 | `data/surveys.ts` | Surveys pages (each loader calls `requireAcademyAdmin()` first; survey tables have no RLS policies) | admin |
 

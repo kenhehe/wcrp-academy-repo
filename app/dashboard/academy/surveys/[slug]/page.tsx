@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import LocalDateTime from '@/components/surveys/LocalDateTime'
 import { getSurveyBySlug, getSurveyParticipants } from '@/lib/data/surveys'
 import { formatRate } from '@/lib/data/survey-progress'
+import { formatCatalogueDays } from '@/lib/data/survey-setup'
+import { resolveStatus } from '@/lib/data/academy-events.types'
 import type { SurveyEventRow } from '@/lib/data/surveys.types'
 import SurveyStatusBadge from '../_components/SurveyStatusBadge'
 import SetupDetails from './_components/SetupDetails'
@@ -119,24 +121,45 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
 
       {tab === 'setup' && (<>
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <SetupDetails key={survey.updated_at} survey={survey} />
+          <SetupDetails
+            key={survey.updated_at}
+            survey={survey}
+            event={academyEvent ? { title: academyEvent.title, start: academyEvent.start_date, end: academyEvent.end_date } : null}
+          />
           <Card>
             <CardHeader>
               <CardTitle>Academy event</CardTitle>
-              <CardDescription>A survey stays with its event. To use another event, delete this draft and create a new survey.</CardDescription>
+              <CardDescription>
+                From the Academy catalogue, read-only: edit the event on WordPress and it updates here after the next sync.
+                A survey stays with its event; to use another event, delete this draft and create a new survey.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {academyEvent ? (
                 <div className="space-y-1.5 rounded-lg bg-muted/50 p-3">
                   <p className="font-medium">{academyEvent.title}</p>
+                  <p className="text-sm">
+                    {resolveStatus(academyEvent) === 'On Demand'
+                      ? `On demand${academyEvent.publish_date ? `, published ${formatCatalogueDays(academyEvent.publish_date, null)}` : ''}`
+                      : formatCatalogueDays(academyEvent.start_date, academyEvent.end_date) ?? 'No dates in the catalogue'}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {[academyEvent.training_type, academyEvent.lead_organizer, academyEvent.delivery_mode, academyEvent.location].filter(Boolean).join(' · ') || 'No details in the catalogue'}
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm">
-                    <Link href={`/dashboard/academy/catalogue/${academyEvent.id}/edit`} className="underline underline-offset-4">Open in Catalogue</Link>
+                    {academyEvent.academy_id && (
+                      <a
+                        href={`https://wcrp-academy.org/wp-admin/post.php?post=${encodeURIComponent(academyEvent.academy_id)}&action=edit`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 underline underline-offset-4"
+                      >
+                        Edit on WordPress <ExternalLink className="size-3.5" aria-hidden="true" />
+                      </a>
+                    )}
                     {academyEvent.permalink && (
                       <a href={academyEvent.permalink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4">
-                        On wcrp-academy.org <ExternalLink className="size-3.5" aria-hidden="true" />
+                        Application page <ExternalLink className="size-3.5" aria-hidden="true" />
                       </a>
                     )}
                   </div>

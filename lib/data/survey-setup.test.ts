@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   catalogueDayToLocalInput, checkQuestionInput, coreKey, checkSurveyTimes, checkTitle, describeTimeZone,
-  estimateMinutes, formatUtcOffset, fromLocalInput, normalizeQuestionInput, questionsForStage,
-  resolveSurveyTimes, slugify, stageWindow, suggestWindows, toLocalInput, uniqueSlug,
+  estimateMinutes, eventFromCatalogue, formatCatalogueDays, formatUtcOffset, fromLocalInput, normalizeQuestionInput,
+  questionsForStage, resolveSurveyTimes, slugify, stageWindow, suggestWindows, toLocalInput, uniqueSlug, windowsVsEvent,
 } from './survey-setup'
 import type { QuestionInput } from './surveys.types'
 
@@ -76,7 +76,44 @@ describe('resolveSurveyTimes', () => {
     expect(typed.edited).toBe(true)
     const empty = resolveSurveyTimes({ eventStart: '', eventEnd: '', windows: {} })
     expect(empty.windows.preOpensAt).toBe('')
-    expect(empty.iso.eventStartsAt).toBe('')
+    expect(empty.iso.preOpensAt).toBe('')
+  })
+})
+
+describe('eventFromCatalogue / formatCatalogueDays', () => {
+  it('turns catalogue days into the start and end the suggestions use', () => {
+    expect(eventFromCatalogue('2027-01-11', '2027-01-29')).toEqual({ eventStart: '2027-01-11T09:00', eventEnd: '2027-01-29T17:00' })
+    expect(eventFromCatalogue('2027-01-11', null)).toEqual({ eventStart: '2027-01-11T09:00', eventEnd: '2027-01-11T17:00' })
+    expect(eventFromCatalogue(null, null)).toEqual({ eventStart: '', eventEnd: '' })
+  })
+
+  it('writes the days as one short phrase', () => {
+    expect(formatCatalogueDays('2027-01-11', '2027-01-29')).toBe('11 Jan to 29 Jan 2027')
+    expect(formatCatalogueDays('2026-12-30', '2027-01-02')).toBe('30 Dec 2026 to 2 Jan 2027')
+    expect(formatCatalogueDays('2027-01-11', '2027-01-11')).toBe('11 Jan 2027')
+    expect(formatCatalogueDays(null, null)).toBeNull()
+  })
+})
+
+describe('windowsVsEvent', () => {
+  const event = eventFromCatalogue('2027-01-11', '2027-01-29')
+  const suggested = resolveSurveyTimes({ ...event, windows: {} }).windows
+
+  it('is quiet while the windows match the event, give or take a day', () => {
+    expect(windowsVsEvent(suggested, event.eventStart, event.eventEnd)).toBeNull()
+    expect(windowsVsEvent({ ...suggested, postOpensAt: '2027-01-30T09:00' }, event.eventStart, event.eventEnd)).toBeNull()
+  })
+
+  it('warns when the event moved after the windows were set', () => {
+    const moved = eventFromCatalogue('2027-02-08', '2027-02-26')
+    expect(windowsVsEvent(suggested, moved.eventStart, moved.eventEnd)).toBe(
+      'The Academy catalogue has the event on 8 Feb to 26 Feb 2027, but the before-survey closes on 11 Jan '
+      + 'and the after-survey opens on 29 Jan. Check the survey windows.',
+    )
+  })
+
+  it('says nothing without catalogue dates', () => {
+    expect(windowsVsEvent(suggested, '', '')).toBeNull()
   })
 })
 
@@ -96,7 +133,6 @@ describe('time zone label', () => {
 
 describe('checkSurveyTimes', () => {
   const ok = {
-    eventStartsAt: '2026-11-23T01:00:00Z', eventEndsAt: '2026-11-27T09:00:00Z',
     preOpensAt:    '2026-11-16T01:00:00Z', preClosesAt: '2026-11-23T01:00:00Z',
     postOpensAt:   '2026-11-27T09:00:00Z', postClosesAt: '2026-12-11T15:59:00Z',
   }
@@ -106,8 +142,6 @@ describe('checkSurveyTimes', () => {
   })
 
   it('names the first problem', () => {
-    expect(checkSurveyTimes({ ...ok, eventStartsAt: '' })).toBe('Enter when the event starts and ends.')
-    expect(checkSurveyTimes({ ...ok, eventEndsAt: '2026-11-20T00:00:00Z' })).toBe('The event ends before it starts.')
     expect(checkSurveyTimes({ ...ok, postClosesAt: 'not a date' })).toBe('Set when each survey opens and closes.')
     expect(checkSurveyTimes({ ...ok, preClosesAt: ok.preOpensAt })).toBe('The before-survey closes before it opens.')
     expect(checkSurveyTimes({ ...ok, postClosesAt: '2026-11-27T08:00:00Z' })).toBe('The after-survey closes before it opens.')
