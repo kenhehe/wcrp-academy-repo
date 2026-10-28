@@ -3,8 +3,8 @@
 -- before: still one survey per catalogue event (the unique constraint ignores NULLs), and
 -- deleting a catalogue event that has a survey is still refused (on delete restrict).
 --
--- Apply by hand in the Supabase SQL editor before deploying the New survey page that offers
--- "No event". Safe to re-run.
+-- Applied 2026-10-28 by hand in the Supabase SQL editor, before the New survey page that offers
+-- "No event" was deployed. Safe to re-run.
 
 alter table survey_events alter column academy_event_id drop not null;
 
