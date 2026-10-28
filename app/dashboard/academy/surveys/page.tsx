@@ -132,7 +132,7 @@ export default async function SurveysPage({ searchParams }: PageProps) {
                   <TableCell className="pl-4">
                     <Link href={`/dashboard/academy/surveys/${s.slug}`} className="font-medium hover:underline">{s.title}</Link>
                     <span className="block max-w-md truncate text-xs text-muted-foreground">
-                      {[s.eventTitle, s.trainingType].filter(Boolean).join(' · ')}
+                      {s.eventTitle ? [s.eventTitle, s.trainingType].filter(Boolean).join(' · ') : 'No event'}
                     </span>
                   </TableCell>
                   <TableCell><SurveyStatusBadge status={s.status} /></TableCell>

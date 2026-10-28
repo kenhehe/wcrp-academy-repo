@@ -170,7 +170,7 @@ export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> =>
         .select('id,title,status,training_type,lead_organizer,delivery_mode,start_date,end_date,publish_date')
         .order('title').order('id').range(from, to),
     ),
-    db.from('survey_events').select('academy_event_id')
+    db.from('survey_events').select('academy_event_id').not('academy_event_id', 'is', null)
       .then(res => new Set((must('surveyed events query', res) ?? []).map(r => r.academy_event_id as string))),
   ])
   return events.map(e => ({

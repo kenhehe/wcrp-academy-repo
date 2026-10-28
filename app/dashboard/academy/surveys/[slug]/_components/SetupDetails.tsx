@@ -1,8 +1,8 @@
 'use client'
 
 // Setup tab: the name participants see and the survey windows. The event's dates come from the
-// Academy catalogue (edited on WordPress) and show read-only. The slug (and so every link and
-// QR code) stays the same when the name changes.
+// Academy catalogue (edited on WordPress) and show read-only; a stand-alone survey has none. The
+// slug (and so every link and QR code) stays the same when the name changes.
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -73,7 +73,7 @@ export default function SetupDetails({ survey, event }: { survey: SurveyEventRow
             <p className="text-xs text-muted-foreground">Catalogue title: {event.title}</p>
           )}
         </div>
-        <SurveyTimesFields value={times} onChange={setTimes} />
+        <SurveyTimesFields value={times} onChange={setTimes} noEvent={survey.academy_event_id === null} />
         <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4">
           {dirty && problem && <p role="alert" className="mr-auto text-sm text-danger">{problem}</p>}
           <Button type="button" variant="outline" disabled={!dirty || pending} onClick={() => { setTitle(survey.title); setTimes(initial) }}>

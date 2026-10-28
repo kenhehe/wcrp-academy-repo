@@ -1,8 +1,9 @@
 'use client'
 
-// New survey: (1) pick the Academy event, (2) the survey windows, (3) questions, (4) the
-// emails it will send. Nothing is saved until "Create draft"; the server action re-checks
-// everything. The event's details and dates come from the catalogue and aren't edited here.
+// New survey: (1) pick the Academy event, or none for a stand-alone survey, (2) the survey
+// windows, (3) questions, (4) the emails it will send. Nothing is saved until "Create draft";
+// the server action re-checks everything. The event's details and dates come from the catalogue
+// and aren't edited here.
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -43,6 +44,13 @@ const day = (iso: string) =>
 
 type OwnQuestion = QuestionInput & { id: string }
 
+type EventMode = 'catalogue' | 'none'
+
+const EVENT_MODES: { id: EventMode; label: string; detail: string }[] = [
+  { id: 'catalogue', label: 'An Academy catalogue event', detail: 'Pick it below; the survey windows are suggested from its dates.' },
+  { id: 'none',      label: 'No event',                   detail: 'A stand-alone survey: you name it and set the survey windows yourself.' },
+]
+
 interface Props {
   catalogue: CatalogueOption[]
   core:      SurveyQuestionItem[]
@@ -66,6 +74,7 @@ function Step({ n, title, children, description }: { n: number; title: string; d
 export default function NewSurveyForm({ catalogue, core }: Props) {
   const router = useRouter()
   const [query, setQuery]       = useState('')
+  const [mode, setMode]         = useState<EventMode>('catalogue')
   const [eventId, setEventId]   = useState<string | null>(null)
   const [title, setTitle]       = useState<string | null>(null)   // null: use the event's title
   const [times, setTimes]       = useState<LocalTimes>(EMPTY_TIMES)
@@ -74,8 +83,9 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   const [dialog, setDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; id: string } | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const selected = catalogue.find(e => e.id === eventId) ?? null
-  const name     = title ?? selected?.title ?? ''
+  const standalone = mode === 'none'
+  const selected   = standalone ? null : catalogue.find(e => e.id === eventId) ?? null
+  const name       = title ?? selected?.title ?? ''
 
   const q = query.trim().toLowerCase()
   const matches = q
@@ -92,7 +102,9 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   const corePost  = questionsForStage(core, 'post').length
 
   const checks = [
-    { ok: Boolean(selected && !selected.hasSurvey), label: 'Academy event', detail: selected?.title ?? 'Pick one from the catalogue' },
+    standalone
+      ? { ok: true, label: 'Event', detail: 'None: a stand-alone survey' }
+      : { ok: Boolean(selected && !selected.hasSurvey), label: 'Event', detail: selected?.title ?? 'Pick one from the catalogue' },
     { ok: !checkTitle(name), label: 'Survey name', detail: name.trim() || 'Give it a name' },
     {
       ok:     !timesIssue,
@@ -102,6 +114,14 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
     { ok: true, label: 'Questions', detail: `${preCount} before · ${postCount} after (${own.length} of your own)` },
   ]
   const ready = checks.every(c => c.ok)
+
+  // Switching starts the event, name and windows over
+  function chooseMode(next: EventMode) {
+    setMode(next)
+    setEventId(null)
+    setTitle(null)
+    setTimes(EMPTY_TIMES)
+  }
 
   function pick(e: CatalogueOption) {
     setEventId(e.id)
@@ -120,11 +140,11 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   }
 
   function handleCreate() {
-    if (!selected || !ready) return
+    if (!ready || (!standalone && !selected)) return
     startTransition(async () => {
       try {
         const result = await createSurvey({
-          academyEventId: selected.id,
+          academyEventId: selected?.id ?? null,
           title:          name,
           ...resolved.iso,
           questions:      own.map(o => ({
@@ -146,79 +166,109 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-6">
-        <Step n={1} title="Academy event" description="Only events in the Academy catalogue can have a survey, one survey each.">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <Input
-              type="search"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search the Academy catalogue"
-              aria-label="Search the Academy catalogue"
-              className="pl-8"
-            />
+        <Step n={1} title="Event" description="What the survey is about: an Academy catalogue event (one survey each), or no event at all.">
+          <div role="radiogroup" aria-label="What the survey is about" className="grid gap-2 sm:grid-cols-2">
+            {EVENT_MODES.map(m => (
+              <label
+                key={m.id}
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 hover:bg-muted/50',
+                  mode === m.id && 'border-primary bg-accent hover:bg-accent',
+                )}
+              >
+                <input
+                  type="radio"
+                  name="event-mode"
+                  checked={mode === m.id}
+                  onChange={() => chooseMode(m.id)}
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{m.label}</span>
+                  <span className="block text-xs text-muted-foreground">{m.detail}</span>
+                </span>
+              </label>
+            ))}
           </div>
-          <div role="radiogroup" aria-label="Academy events" className="max-h-80 overflow-y-auto rounded-lg border">
-            {listed.length === 0 && <p className="p-4 text-sm text-muted-foreground">No Academy event matches “{query}”.</p>}
-            {listed.map(e => {
-              const checked = e.id === eventId
-              return (
-                <label
-                  key={e.id}
-                  className={cn(
-                    'flex items-center gap-3 border-t px-3 py-2.5 first:border-t-0',
-                    e.hasSurvey ? 'cursor-default opacity-60' : 'cursor-pointer hover:bg-muted/50',
-                    checked && 'bg-accent hover:bg-accent',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="academy-event"
-                    checked={checked}
-                    disabled={e.hasSurvey}
-                    onChange={() => pick(e)}
-                    className="size-4 shrink-0 accent-primary"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{e.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {[e.trainingType, e.organiser, e.deliveryMode].filter(Boolean).join(' · ') || 'No details in the catalogue'}
-                    </span>
-                  </span>
-                  {e.hasSurvey
-                    ? <StatusBadge tone="info">Has a survey</StatusBadge>
-                    : e.startDate
-                      ? <span className="shrink-0 text-xs text-muted-foreground">{day(e.startDate)}</span>
-                      : e.status === 'On Demand'
-                        ? <StatusBadge tone="neutral">On demand</StatusBadge>
-                        : <StatusBadge tone="warning">No date</StatusBadge>}
-                </label>
-              )
-            })}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-            <p>
-              {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
-              Missing an event, or its details are wrong? Add or fix it on{' '}
-              <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
-              then sync.
-            </p>
-            <SyncAcademyButton />
-          </div>
+
+          {!standalone && (
+            <>
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search the Academy catalogue"
+                  aria-label="Search the Academy catalogue"
+                  className="pl-8"
+                />
+              </div>
+              <div role="radiogroup" aria-label="Academy events" className="max-h-80 overflow-y-auto rounded-lg border">
+                {listed.length === 0 && <p className="p-4 text-sm text-muted-foreground">No Academy event matches “{query}”.</p>}
+                {listed.map(e => {
+                  const checked = e.id === eventId
+                  return (
+                    <label
+                      key={e.id}
+                      className={cn(
+                        'flex items-center gap-3 border-t px-3 py-2.5 first:border-t-0',
+                        e.hasSurvey ? 'cursor-default opacity-60' : 'cursor-pointer hover:bg-muted/50',
+                        checked && 'bg-accent hover:bg-accent',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="academy-event"
+                        checked={checked}
+                        disabled={e.hasSurvey}
+                        onChange={() => pick(e)}
+                        className="size-4 shrink-0 accent-primary"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{e.title}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {[e.trainingType, e.organiser, e.deliveryMode].filter(Boolean).join(' · ') || 'No details in the catalogue'}
+                        </span>
+                      </span>
+                      {e.hasSurvey
+                        ? <StatusBadge tone="info">Has a survey</StatusBadge>
+                        : e.startDate
+                          ? <span className="shrink-0 text-xs text-muted-foreground">{day(e.startDate)}</span>
+                          : e.status === 'On Demand'
+                            ? <StatusBadge tone="neutral">On demand</StatusBadge>
+                            : <StatusBadge tone="warning">No date</StatusBadge>}
+                    </label>
+                  )
+                })}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                <p>
+                  {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
+                  Missing an event, or its details are wrong? Add or fix it on{' '}
+                  <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
+                  then sync.
+                </p>
+                <SyncAcademyButton />
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="s-name">Name participants see</Label>
-            <Input id="s-name" value={name} onChange={e => setTitle(e.target.value)} maxLength={200} disabled={!selected} />
+            <Input id="s-name" value={name} onChange={e => setTitle(e.target.value)} maxLength={200} disabled={!standalone && !selected} />
             <p className="text-xs text-muted-foreground">
-              Starts as the catalogue title; shorten it if it&apos;s long. Shown at the top of the survey and in emails.
+              {standalone
+                ? 'Shown at the top of the survey and in emails.'
+                : <>Starts as the catalogue title; shorten it if it&apos;s long. Shown at the top of the survey and in emails.</>}
             </p>
           </div>
         </Step>
 
         <Step n={2} title="Survey windows" description="When people can answer before and after the event.">
-          {selected ? (
-            <SurveyTimesFields value={times} onChange={setTimes} />
+          {selected || standalone ? (
+            <SurveyTimesFields value={times} onChange={setTimes} noEvent={standalone} />
           ) : (
-            <p className="text-sm text-muted-foreground">Pick the Academy event first.</p>
+            <p className="text-sm text-muted-foreground">Pick the Academy event first, or choose No event.</p>
           )}
         </Step>
 
@@ -244,7 +294,7 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
           )}
 
           <div className="space-y-1 pt-2">
-            <p className="text-sm font-medium">This event&apos;s own questions</p>
+            <p className="text-sm font-medium">{standalone ? 'This survey\'s own questions' : <>This event&apos;s own questions</>}</p>
             <p className="text-xs text-muted-foreground">Optional. Ask the same question before and after to measure the change.</p>
           </div>
           {own.length > 0 && (

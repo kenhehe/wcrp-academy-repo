@@ -36,7 +36,7 @@ export interface SurveyPersonRow {
 
 export interface SurveyEventRow {
   id:               string
-  academy_event_id: string
+  academy_event_id: string | null   // null: a stand-alone survey with no event
   slug:             string
   title:            string
   event_starts_at:  string | null
@@ -214,7 +214,7 @@ export interface SurveyDetailsInput extends SurveyTimesInput {
 }
 
 export interface NewSurveyInput extends SurveyDetailsInput {
-  academyEventId: string
+  academyEventId: string | null   // null: a stand-alone survey with no event
   questions:      QuestionInput[]
 }
 
@@ -266,7 +266,7 @@ export interface SurveyListItem {
   slug:          string
   title:         string
   status:        SurveyStatus
-  eventTitle:    string | null
+  eventTitle:    string | null   // null: a stand-alone survey
   trainingType:  string | null
   preOpensAt:    string | null
   postOpensAt:   string | null

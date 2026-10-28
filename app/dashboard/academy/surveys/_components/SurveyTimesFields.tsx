@@ -2,7 +2,8 @@
 
 // The event's dates (read-only, from the Academy catalogue: WordPress is where they change),
 // the four survey windows (suggested from those dates until the admin types their own) and a
-// before / event / after timeline. Local time throughout, so it renders only in the browser.
+// before / event / after timeline. A stand-alone survey (`noEvent`) has no dates to suggest
+// from. Local time throughout, so it renders only in the browser.
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,9 +33,10 @@ interface Props {
   value:     LocalTimes   // eventStart / eventEnd from eventFromCatalogue()
   onChange:  (value: LocalTimes) => void
   disabled?: boolean
+  noEvent?:  boolean      // a stand-alone survey, not about any event
 }
 
-export default function SurveyTimesFields({ value, onChange, disabled }: Props) {
+export default function SurveyTimesFields({ value, onChange, disabled, noEvent }: Props) {
   const isClient = useIsClient()
   if (!isClient) return <Skeleton className="h-64 w-full rounded-lg" />
 
@@ -46,8 +48,10 @@ export default function SurveyTimesFields({ value, onChange, disabled }: Props) 
   return (
     <div className="space-y-4">
       <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm">
-        <span className="block text-xs font-medium text-muted-foreground">Event, from the Academy catalogue</span>
-        {eventDays ?? 'No start and end dates in the catalogue (an On demand course, for example). Set each window yourself.'}
+        <span className="block text-xs font-medium text-muted-foreground">{noEvent ? 'Event' : 'Event, from the Academy catalogue'}</span>
+        {noEvent
+          ? 'None: a stand-alone survey. Set each window yourself.'
+          : eventDays ?? 'No start and end dates in the catalogue (an On demand course, for example). Set each window yourself.'}
       </div>
 
       {mismatch && (
@@ -65,7 +69,7 @@ export default function SurveyTimesFields({ value, onChange, disabled }: Props) 
           </li>
           <li className="flex flex-col gap-0.5 border-t bg-muted/50 px-3 py-2.5 sm:border-t-0 sm:border-l">
             <span className="text-xs font-medium text-muted-foreground">Event</span>
-            {eventDays ?? 'No dates'}
+            {noEvent ? 'None' : eventDays ?? 'No dates'}
           </li>
           <li className="flex flex-col gap-0.5 border-t px-3 py-2.5 sm:border-t-0 sm:border-l">
             <span className="text-xs font-medium text-muted-foreground">After-survey</span>

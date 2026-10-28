@@ -126,12 +126,18 @@ export async function createSurvey(input: NewSurveyInput): Promise<ActionResult<
   if (own.length > MAX_OWN_QUESTIONS) return fail(`Keep it to ${MAX_OWN_QUESTIONS} questions of your own or fewer.`)
 
   const db = createAdminClient()
-  const event = must('academy event query', await db
-    .from('academy_events').select('id').eq('id', String(input.academyEventId ?? '')).maybeSingle()) as { id: string } | null
-  if (!event) return fail('That Academy event no longer exists. Pick another one.')
-  const existing = must('existing survey query', await db
-    .from('survey_events').select('id').eq('academy_event_id', event.id).maybeSingle())
-  if (existing) return fail('This Academy event already has a survey.')
+  // null: a stand-alone survey with no event. Otherwise an Academy catalogue event, which can
+  // have one survey.
+  let academyEventId: string | null = null
+  if (input.academyEventId !== null) {
+    const event = must('academy event query', await db
+      .from('academy_events').select('id').eq('id', String(input.academyEventId ?? '')).maybeSingle()) as { id: string } | null
+    if (!event) return fail('That Academy event no longer exists. Pick another one.')
+    const existing = must('existing survey query', await db
+      .from('survey_events').select('id').eq('academy_event_id', event.id).maybeSingle())
+    if (existing) return fail('This Academy event already has a survey.')
+    academyEventId = event.id
+  }
 
   const base = slugify(title)
   const taken = must('slug query', await db
@@ -140,7 +146,7 @@ export async function createSurvey(input: NewSurveyInput): Promise<ActionResult<
 
   const inserted = await db
     .from('survey_events')
-    .insert({ academy_event_id: event.id, slug, title, ...timesRow(input), status: 'draft', created_by: user.id })
+    .insert({ academy_event_id: academyEventId, slug, title, ...timesRow(input), status: 'draft', created_by: user.id })
     .select('id')
     .single()
   // Someone else created a survey for this event, or took the slug, a moment ago
@@ -158,7 +164,7 @@ export async function createSurvey(input: NewSurveyInput): Promise<ActionResult<
       rows.push({ survey_event_id: survey.id, question_version_id: versionId, stage: q.stage, sort_order: rows.length })
     }
     must('survey questions insert', await db.from('survey_event_questions').insert(rows))
-    await logAction(db, user.id, 'survey.create', survey.id, { slug, academy_event_id: event.id })
+    await logAction(db, user.id, 'survey.create', survey.id, { slug, academy_event_id: academyEventId })
   } catch (err) {
     // The REST API has no transactions: remove the half-made survey before reporting the failure
     const undo = await db.from('survey_events').delete().eq('id', survey.id)

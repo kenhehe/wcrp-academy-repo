@@ -163,7 +163,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 - The sync status (last sync, count, a "Sync now" button) and the CSV / Excel export. The manual CSV import of Academy events was removed on 2026-10-27 for the same reason as the catalogue forms.
 
 ### `academy/surveys` (in progress on `feat/surveys`)
-- Pre/post surveys on Academy catalogue events; the plan, routes, phases and decisions are in `docs/surveys/PLAN.md`, the screens in the mockup linked there.
+- Pre/post surveys on Academy catalogue events, or stand-alone surveys with no event (New survey → Event → "No event"; `survey_events.academy_event_id` is null, the admin sets the windows by hand and every page says "No event" instead of the catalogue details); the plan, routes, phases and decisions are in `docs/surveys/PLAN.md`, the screens in the mockup linked there.
 - Survey tables (`survey_*`) have RLS on with **no policies** and privileges revoked from `anon`/`authenticated`, so the session client sees nothing: loaders read with `createAdminClient()` **after** `requireAcademyAdmin()`, and actions start with the same guard.
 - Results are anonymised: never put a participant's email next to their answers, in the UI or an export.
 - Pages: `surveys/` (list with status filter), `surveys/new` (`_components/NewSurveyForm`: catalogue picker, survey windows, own questions), `surveys/[slug]` with tabs `?tab=` Setup / Participants / Send / QR codes / Results / Export (one `_components/*Tab` each; the header's `SurveyStatusButton` opens, closes and reopens), `surveys/[slug]/preview?stage=pre|post`, and the CSV route `surveys/[slug]/export/[file]` (`answers.csv` with pseudonyms only, `participants.csv` with emails and statuses only).

@@ -23,7 +23,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 |---|---|
 | Where it lives | A new section of the Academy dashboard: `/dashboard/academy/surveys` |
 | Who runs it | The Academy team: the existing `academy_admin` role. No new login or allowlist. |
-| Events | A survey attaches to an **Academy catalogue event** (`academy_events`), not to the IPO `events` table. One survey per event. Scope kept narrow while the module is new. |
+| Events | A survey attaches to an **Academy catalogue event** (`academy_events`), not to the IPO `events` table, one survey per event; or, since 2026-10-28, to **no event at all** (a stand-alone survey). |
 | Database | Production (the only Supabase project). Migrations are written as files, reviewed, dry-run, then applied by hand in the SQL editor. |
 | Matching | Personal link per participant; QR code with email entry as the fallback; the device is remembered |
 | Stages | Before (`pre`) and after (`post`) only. The model allows more stages later. |
@@ -40,7 +40,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 |---|---|---|
 | `/admin/surveys/**` | `/dashboard/academy/surveys/**` | Every Academy page lives there; `app/dashboard/academy/layout.tsx` and `proxy.ts` already gate it to `academy_admin` |
 | Admin auth with an email allowlist | Existing `academy_admin` role + `requireAcademyAdmin()` (`lib/auth/guards.ts`) in every server action and loader | Same people, already enforced; a second admin list would drift |
-| `event_id` → `events` | `academy_event_id` → `academy_events` | Ken's call: Academy events only for now |
+| `event_id` → `events` | `academy_event_id` → `academy_events`, optional since 2026-10-28 (`20261028_survey_without_event.sql`) | Ken's call: Academy events only, then (28 Oct) surveys with no event too, for events outside the catalogue. No link to IPO / Lighthouse `events` |
 | "Migrations apply on a dev DB" | Dry run in the SQL editor inside `begin … rollback`, then the real run | There is no dev database |
 | `email citext` | `text` with a lower-case check | Avoids enabling an extension; the app normalises emails anyway |
 | Windows prefilled from the event's dates | Windows are suggested from the catalogue's dates (09:00 on the first day, 17:00 on the last); the event's dates show read-only and are edited on WordPress only. Until 2026-10-27 admins typed the event's start and end, because the sync saved every date as empty | One place for event facts (WordPress); a survey keeps only its name and windows, and warns when the catalogue dates move |
@@ -58,7 +58,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 | Route | What |
 |---|---|
 | `/dashboard/academy/surveys` | List: survey, Academy event, status, before / after / matched, match rate |
-| `/dashboard/academy/surveys/new` | Create: pick the Academy event, the name participants see, windows (suggested from the catalogue dates), questions, emails; saves a draft |
+| `/dashboard/academy/surveys/new` | Create: pick the Academy event or "No event", the name participants see, windows (suggested from the catalogue dates; typed by hand with no event), questions, emails; saves a draft |
 | `/dashboard/academy/surveys/[slug]` | One survey, tabs via `?tab=`: Setup, Participants, Send, QR codes, Results (anonymised), Export |
 | `/dashboard/academy/surveys/[slug]/preview?stage=pre\|post` | The survey as a participant sees it; answers not saved |
 | `/dashboard/academy/surveys/[slug]/export/answers.csv`, `…/participants.csv` | The two exports (route handler, admins only) |
@@ -155,7 +155,7 @@ Files: `supabase/migrations/20261026_survey_module.sql` (tables) and `20261026_s
 | Table | Holds |
 |---|---|
 | `survey_people` | One row per email (lower-case, unique; null after the retention purge) and a pseudonym like `P-7F3K` used in every result |
-| `survey_events` | A survey: `academy_event_id` (unique), slug, title (the name participants see), the four window times, status `draft` / `active` / `closed`. `event_starts_at` / `event_ends_at` are no longer written since 2026-10-27 (the event's dates come from `academy_events`) |
+| `survey_events` | A survey: `academy_event_id` (unique; null for a stand-alone survey), slug, title (the name participants see), the four window times, status `draft` / `active` / `closed`. `event_starts_at` / `event_ends_at` are no longer written since 2026-10-27 (the event's dates come from `academy_events`) |
 | `survey_questions` + `survey_question_versions` | Stable question (`key`, type, stage, core or not, in the bank) and its versioned wording, options, scale labels, correct option |
 | `survey_event_questions` | Which question versions a survey asks, in what order and at which stage |
 | `survey_event_participants` | Who is in which survey: `token_hash` (SHA-256; the raw token only ever lives in emails and links), `source` imported / walk-in |

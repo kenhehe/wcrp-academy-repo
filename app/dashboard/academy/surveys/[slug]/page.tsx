@@ -83,7 +83,9 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
           </span>
         }
         title={survey.title}
-        description={academyEvent ? `Academy event: ${academyEvent.title}` : 'The Academy event is missing'}
+        description={academyEvent
+          ? `Academy event: ${academyEvent.title}`
+          : survey.academy_event_id ? 'The Academy event is missing' : 'A stand-alone survey, not linked to an event'}
         actions={
           <>
             <Link href={`/dashboard/academy/surveys/${slug}/preview?stage=pre`} className={buttonVariants({ variant: 'outline' })}>
@@ -128,13 +130,22 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
           />
           <Card>
             <CardHeader>
-              <CardTitle>Academy event</CardTitle>
+              <CardTitle>{survey.academy_event_id ? 'Academy event' : 'Event'}</CardTitle>
               <CardDescription>
-                From the Academy catalogue, read-only: edit the event on WordPress and it updates here after the next sync.
-                A survey stays with its event; to use another event, delete this draft and create a new survey.
+                {survey.academy_event_id ? (
+                  <>
+                    From the Academy catalogue, read-only: edit the event on WordPress and it updates here after the next sync.
+                    A survey stays with its event; to use another event, delete this draft and create a new survey.
+                  </>
+                ) : (
+                  <>
+                    None: a stand-alone survey, not linked to an event. It stays that way; for a survey on an Academy event,
+                    create a new survey.
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            {survey.academy_event_id && <CardContent className="space-y-3">
               {academyEvent ? (
                 <div className="space-y-1.5 rounded-lg bg-muted/50 p-3">
                   <p className="font-medium">{academyEvent.title}</p>
@@ -167,7 +178,7 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
               ) : (
                 <StatusBadge tone="danger">The linked Academy event wasn&apos;t found</StatusBadge>
               )}
-            </CardContent>
+            </CardContent>}
           </Card>
         </div>
 
@@ -175,7 +186,9 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
 
         {survey.status === 'draft' && !locked && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed p-4">
-            <p className="text-sm text-muted-foreground">Drafts nobody has answered can be deleted. The Academy event stays.</p>
+            <p className="text-sm text-muted-foreground">
+              Drafts nobody has answered can be deleted.{survey.academy_event_id ? ' The Academy event stays.' : ''}
+            </p>
             <DeleteSurveyButton surveyId={survey.id} title={survey.title} />
           </div>
         )}

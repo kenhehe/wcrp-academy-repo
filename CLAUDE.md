@@ -16,7 +16,7 @@ Links:
 - `events.academy_event_id` → `academy_events.id` (set when matched to the Academy catalogue)
 - `events.duplicate_of_event_id` → `events.id` (set when two IPOs independently scraped the same real-world event — see `app/dashboard/academy/duplicates` / `app/dashboard/ipo/duplicates`). Both rows are kept for attribution; `in_academy`/`academy_event_id` stay in lockstep across a linked pair via `lib/data/event-duplicates.ts`'s `setAcademyStatus`.
 
-**In progress (`feat/surveys`): pre/post surveys** that measure an event's impact. A survey attaches to one `academy_events` row (`survey_events.academy_event_id`); its tables all start with `survey_` and are service-role only (RLS on, no policies, privileges revoked from `anon`/`authenticated`). Plan, phases and decisions: `docs/surveys/PLAN.md`.
+**In progress (`feat/surveys`): pre/post surveys** that measure an event's impact. A survey attaches to one `academy_events` row (`survey_events.academy_event_id`), or to none (a stand-alone survey, `academy_event_id` null); its tables all start with `survey_` and are service-role only (RLS on, no policies, privileges revoked from `anon`/`authenticated`). Plan, phases and decisions: `docs/surveys/PLAN.md`.
 
 ## Account Types & Access
 
