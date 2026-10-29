@@ -12,6 +12,7 @@ import { resolveStatus } from './academy-events.types'
 import { emptyProgress, progressBySurvey, type ParticipantRef, type SubmissionRef } from './survey-progress'
 import { EMAIL_KIND_LABELS, participantStatus, type ParticipantListItem } from './survey-participants'
 import { buildResults, type ResultAnswer, type SurveyResults } from './survey-results'
+import { surveyableEvents } from './survey-setup'
 import {
   type CatalogueOption, type EmailKind, type EmailLogStatus, type ParticipantSource, type QuestionStage,
   type QuestionType, type SubmissionStage, type SubmissionStatus, type SurveyAcademyEvent,
@@ -159,7 +160,8 @@ export const getCoreQuestions = cache(async (): Promise<SurveyQuestionItem[]> =>
   return fetchCoreQuestions(createAdminClient())
 })
 
-// Every Academy catalogue event for the New survey picker, marking the ones that already have a survey
+// The Academy catalogue events a new survey can be about (surveyableEvents: not past, soonest
+// first), marking the ones that already have a survey
 export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> => {
   await requireAcademyAdmin()
   const db = createAdminClient()
@@ -168,12 +170,12 @@ export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> =>
       'academy events query',
       (from, to) => db.from('academy_events')
         .select('id,title,status,training_type,lead_organizer,delivery_mode,start_date,end_date,publish_date')
-        .order('title').order('id').range(from, to),
+        .order('id').range(from, to),
     ),
     db.from('survey_events').select('academy_event_id').not('academy_event_id', 'is', null)
       .then(res => new Set((must('surveyed events query', res) ?? []).map(r => r.academy_event_id as string))),
   ])
-  return events.map(e => ({
+  return surveyableEvents(events.map(e => ({
     id:           e.id,
     title:        e.title,
     trainingType: e.training_type,
@@ -183,7 +185,7 @@ export const getCatalogueOptions = cache(async (): Promise<CatalogueOption[]> =>
     endDate:      e.end_date,
     status:       resolveStatus(e),
     hasSurvey:    taken.has(e.id),
-  }))
+  })))
 })
 
 // Everyone in one survey with their status (Participants tab). Emails and statuses only:

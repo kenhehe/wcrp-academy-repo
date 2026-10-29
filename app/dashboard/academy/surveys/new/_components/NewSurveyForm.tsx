@@ -205,7 +205,13 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
                 />
               </div>
               <div role="radiogroup" aria-label="Academy events" className="max-h-80 overflow-y-auto rounded-lg border">
-                {listed.length === 0 && <p className="p-4 text-sm text-muted-foreground">No Academy event matches “{query}”.</p>}
+                {listed.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">
+                    {q
+                      ? <>No upcoming, ongoing or on-demand Academy event matches “{query}”.</>
+                      : 'No upcoming, ongoing or on-demand events in the Academy catalogue.'}
+                  </p>
+                )}
                 {listed.map(e => {
                   const checked = e.id === eventId
                   return (
@@ -245,6 +251,7 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                 <p>
                   {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
+                  Past events aren&apos;t listed: they&apos;re over, so there&apos;s nothing to survey before them.
                   Missing an event, or its details are wrong? Add or fix it on{' '}
                   <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
                   then sync.

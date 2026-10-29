@@ -2,11 +2,36 @@
 // datetime-local conversion. Shared by the client forms and the server actions, which
 // re-run every check. Local-time helpers use the runtime's time zone, so call them in
 // the browser for the admin's own time.
+import type { AcademyStatus } from '@/supabase/functions/_shared/academy-dates'
 import type {
-  QuestionInput, QuestionStage, SubmissionStage, SurveyQuestionItem, SurveyTimesInput,
+  CatalogueOption, QuestionInput, QuestionStage, SubmissionStage, SurveyQuestionItem, SurveyTimesInput,
 } from './surveys.types'
 
 const pad = (n: number) => String(n).padStart(2, '0')
+
+// ─── Which Academy events can get a survey ────────────────────────────────────
+
+const PAST: AcademyStatus = 'Past training'
+
+// A past event can't get a new survey: its before-survey would come after the event.
+// `status` is resolveStatus()'s, worked out from the dates for today.
+export function eventHasEnded(status: string): boolean {
+  return status === PAST
+}
+
+// The New survey picker's list: every event that hasn't ended, soonest first. Dated events by
+// their first day (so the ones running now come before the upcoming ones), then On demand,
+// then those with no date; the title breaks ties.
+export function surveyableEvents(events: CatalogueOption[]): CatalogueOption[] {
+  const firstDay = (e: CatalogueOption) => e.startDate ?? e.endDate
+  const rank     = (e: CatalogueOption) => (firstDay(e) ? 0 : e.status === 'On Demand' ? 1 : 2)
+  return events
+    .filter(e => !eventHasEnded(e.status))
+    .sort((a, b) =>
+      rank(a) - rank(b)
+      || (firstDay(a) ?? '').localeCompare(firstDay(b) ?? '')
+      || a.title.localeCompare(b.title))
+}
 
 // 'CMIP Seminar Series 2026 #4' → 'cmip-seminar-series-2026-4'
 export function slugify(title: string): string {

@@ -58,7 +58,7 @@ Uses: evidence of impact for the Academy stocktake (outcomes, not only outputs),
 | Route | What |
 |---|---|
 | `/dashboard/academy/surveys` | List: survey, Academy event, status, before / after / matched, match rate |
-| `/dashboard/academy/surveys/new` | Create: pick the Academy event or "No event", the name participants see, windows (suggested from the catalogue dates; typed by hand with no event), questions, emails; saves a draft |
+| `/dashboard/academy/surveys/new` | Create: pick the Academy event (upcoming, ongoing or on demand, soonest first; past events aren't offered and `createSurvey` refuses them) or "No event", the name participants see, windows (suggested from the catalogue dates; typed by hand with no event), questions, emails; saves a draft |
 | `/dashboard/academy/surveys/[slug]` | One survey, tabs via `?tab=`: Setup, Participants, Send, QR codes, Results (anonymised), Export |
 | `/dashboard/academy/surveys/[slug]/preview?stage=pre\|post` | The survey as a participant sees it; answers not saved |
 | `/dashboard/academy/surveys/[slug]/export/answers.csv`, `…/participants.csv` | The two exports (route handler, admins only) |

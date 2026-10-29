@@ -8,9 +8,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { requireAcademyAdmin } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { must } from '@/lib/supabase/must'
+import { resolveStatus, type AcademyEventRow } from '@/lib/data/academy-events.types'
 import { fetchCoreQuestions, fetchSurveyQuestions, isSurveyLocked } from '@/lib/data/surveys'
 import {
-  checkQuestionInput, checkSurveyTimes, checkTitle, normalizeQuestionInput, questionsForStage, slugify, uniqueSlug,
+  checkQuestionInput, checkSurveyTimes, checkTitle, eventHasEnded, normalizeQuestionInput, questionsForStage, slugify,
+  uniqueSlug,
 } from '@/lib/data/survey-setup'
 import {
   EDITABLE_QUESTION_TYPES, QUESTION_STAGES,
@@ -126,13 +128,15 @@ export async function createSurvey(input: NewSurveyInput): Promise<ActionResult<
   if (own.length > MAX_OWN_QUESTIONS) return fail(`Keep it to ${MAX_OWN_QUESTIONS} questions of your own or fewer.`)
 
   const db = createAdminClient()
-  // null: a stand-alone survey with no event. Otherwise an Academy catalogue event, which can
-  // have one survey.
+  // null: a stand-alone survey with no event. Otherwise an Academy catalogue event that hasn't
+  // ended, which can have one survey.
   let academyEventId: string | null = null
   if (input.academyEventId !== null) {
     const event = must('academy event query', await db
-      .from('academy_events').select('id').eq('id', String(input.academyEventId ?? '')).maybeSingle()) as { id: string } | null
+      .from('academy_events').select('id,status,start_date,end_date,publish_date')
+      .eq('id', String(input.academyEventId ?? '')).maybeSingle()) as Pick<AcademyEventRow, 'id' | 'status' | 'start_date' | 'end_date' | 'publish_date'> | null
     if (!event) return fail('That Academy event no longer exists. Pick another one.')
+    if (eventHasEnded(resolveStatus(event))) return fail('This event has already ended. Pick another one, or choose No event.')
     const existing = must('existing survey query', await db
       .from('survey_events').select('id').eq('academy_event_id', event.id).maybeSingle())
     if (existing) return fail('This Academy event already has a survey.')

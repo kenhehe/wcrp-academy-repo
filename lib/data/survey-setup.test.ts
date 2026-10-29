@@ -1,10 +1,47 @@
 import { describe, expect, it } from 'vitest'
 import {
   catalogueDayToLocalInput, checkQuestionInput, coreKey, checkSurveyTimes, checkTitle, describeTimeZone,
-  estimateMinutes, eventFromCatalogue, formatCatalogueDays, formatUtcOffset, fromLocalInput, normalizeQuestionInput,
-  questionsForStage, resolveSurveyTimes, slugify, stageWindow, suggestWindows, toLocalInput, uniqueSlug, windowsVsEvent,
+  estimateMinutes, eventFromCatalogue, eventHasEnded, formatCatalogueDays, formatUtcOffset, fromLocalInput,
+  normalizeQuestionInput, questionsForStage, resolveSurveyTimes, slugify, stageWindow, suggestWindows, surveyableEvents,
+  toLocalInput, uniqueSlug, windowsVsEvent,
 } from './survey-setup'
-import type { QuestionInput } from './surveys.types'
+import type { CatalogueOption, QuestionInput } from './surveys.types'
+
+describe('eventHasEnded / surveyableEvents', () => {
+  const event = (title: string, status: string, startDate: string | null = null, endDate: string | null = startDate): CatalogueOption => ({
+    id: title, title, trainingType: null, organiser: null, deliveryMode: null, startDate, endDate, status, hasSurvey: false,
+  })
+
+  it('treats only a past event as ended', () => {
+    expect(eventHasEnded('Past training')).toBe(true)
+    for (const s of ['Ongoing training', 'Upcoming training', 'On Demand', '—']) expect(eventHasEnded(s)).toBe(false)
+  })
+
+  it('leaves out past events and keeps upcoming, ongoing, On demand and undated ones', () => {
+    const list = surveyableEvents([
+      event('Old school', 'Past training', '2026-01-10', '2026-01-20'),
+      event('Course', 'On Demand'),
+      event('Undated', '—'),
+      event('Next', 'Upcoming training', '2026-12-01'),
+      event('Running', 'Ongoing training', '2026-10-01', '2026-11-30'),
+    ])
+    expect(list.map(e => e.title)).toEqual(['Running', 'Next', 'Course', 'Undated'])
+  })
+
+  it('puts the soonest first, the title breaking ties, without touching the input', () => {
+    const input = [
+      event('B later', 'Upcoming training', '2027-02-01'),
+      event('Zed course', 'On Demand'),
+      event('B soon', 'Upcoming training', '2026-11-05'),
+      event('A soon', 'Upcoming training', '2026-11-05'),
+      event('Alpha course', 'On Demand'),
+      event('End only', 'Upcoming training', null, '2026-12-10'),
+    ]
+    expect(surveyableEvents(input).map(e => e.title))
+      .toEqual(['A soon', 'B soon', 'End only', 'B later', 'Alpha course', 'Zed course'])
+    expect(input[0].title).toBe('B later')
+  })
+})
 
 describe('slugify / uniqueSlug', () => {
   it('makes a URL-safe slug from a title', () => {
