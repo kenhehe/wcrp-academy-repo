@@ -1,0 +1,190 @@
+# Check, build and release this app to dashboard.wcrp-academy.org / survey.wcrp-academy.org
+# (Infomaniak Node.js hosting, the same site as wcrpacademy/wcrp-academy, over SFTP).
+# Runs on every push to main and by hand (Actions tab -> "Check and deploy" -> Run workflow).
+# Pull requests into main run the checks only.
+#
+# The Node.js site runs the router from wcrpacademy/wcrp-academy-host (run command:
+# node host/router.mjs). This workflow uploads the package to apps/repo/incoming/ and asks the
+# router to switch: it starts the new release on a spare port, health-checks /api/health, switches
+# traffic, and keeps the old release if the check fails. No restart in the Manager needed. Status,
+# restart and rollback: wcrp-academy-host -> Actions -> Control.
+#
+# Repository SECRETS (Settings -> Secrets and variables -> Actions -> Secrets). Values never go in the repo:
+#   SFTP_HOST, SFTP_PORT (usually 22), SFTP_USER, SFTP_PASSWORD
+#                             a user with Environment "Node.js" (Manager -> FTP / SSH; host ....ssh.hosting-ik.com).
+#   SFTP_PATH                 the Node.js site's folder, relative to the login folder, no leading slash, typed by
+#                             hand: sites/<the Node.js site's folder>. The app's files go to apps/repo/ inside it.
+# Repository VARIABLES (... -> Variables), baked into the client bundle at build time (NEXT_PUBLIC_*
+# values can't be changed later without rebuilding):
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Runtime settings (SUPABASE_SERVICE_ROLE_KEY, SURVEYS_SECRET, SURVEYS_CRON_SECRET,
+# CF_ACCESS_CLIENT_ID/SECRET, WP_API_URL/USER/PASSWORD, ...) live on the SERVER in apps/repo/.env
+# (the router copies it into each release), never here — Next.js reads server-only env vars at
+# startup, so this workflow never needs their real values. Until SFTP_HOST is set, the deploy job
+# only checks and builds.
+
+name: Check and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-repo
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npx next typegen
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      SFTP_HOST: ${{ secrets.SFTP_HOST }}
+      SFTP_PORT: ${{ secrets.SFTP_PORT }}
+      SFTP_USER: ${{ secrets.SFTP_USER }}
+      LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+      SFTP_PATH: ${{ secrets.SFTP_PATH }}
+    steps:
+      # Pasted secrets often carry quotes, spaces or a line break: strip them from host, user, port and path.
+      # The password is left as typed. The path must not contain quotes or spaces: lftp keeps quotes literally,
+      # so it is passed to mirror unquoted.
+      - name: Check the SFTP secrets
+        id: secrets
+        run: |
+          clean() { python3 -c 'import sys; print(sys.argv[1].strip(" \t\r\n ​﻿\"\x27`“”‘’«»"), end="")' "$1"; }
+          SFTP_HOST=$(clean "$SFTP_HOST")
+          SFTP_USER=$(clean "$SFTP_USER")
+          SFTP_PORT=$(clean "$SFTP_PORT")
+          SFTP_PATH=$(clean "$SFTP_PATH")
+          if [ -z "$SFTP_HOST" ] || [ -z "$SFTP_USER" ] || [ -z "$LFTP_PASSWORD" ] || [ -z "$SFTP_PATH" ]; then
+            echo "SFTP secrets are not set yet: building only, no upload."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif printf '%s' "$SFTP_PATH" | python3 -c 'import sys; p=sys.stdin.read(); sys.exit(0 if all(c.isascii() and c.isprintable() and c not in "\"\x27` " for c in p) else 1)'; then
+            {
+              echo "DEPLOY_HOST=$SFTP_HOST"
+              echo "DEPLOY_USER=$SFTP_USER"
+              echo "DEPLOY_PORT=${SFTP_PORT:-22}"
+              echo "DEPLOY_PATH=$SFTP_PATH"
+            } >> "$GITHUB_ENV"
+            echo "Will upload to: $SFTP_PATH"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::SFTP_PATH contains quotes, spaces or unusual characters. Retype it by hand (don't paste): sites/<the Node.js site's folder>"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Unset NEXT_PUBLIC_* vars would otherwise fall back to CI's placeholders and bake a broken
+      # Supabase URL into the client bundle — fail loudly instead of shipping that.
+      - name: Check build variables are set
+        run: |
+          if [ -z "${{ vars.NEXT_PUBLIC_SUPABASE_URL }}" ] || [ -z "${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::Set repository variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY before deploying."
+            exit 1
+          fi
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Server-only: never read by the client bundle. The deployed server loads the real value
+          # from apps/repo/.env on the server instead; this placeholder only satisfies the build.
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      # deploy/standalone: server.js, node_modules, .next, public. No .env files.
+      - run: npm run package:standalone
+
+      # Start the package exactly as the server will, and fetch the health path: a package that
+      # cannot start is never uploaded.
+      - name: Start the package once
+        working-directory: deploy/standalone
+        run: |
+          PORT=3100 HOSTNAME=127.0.0.1 node server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          pid=$!
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3100/api/health; then
+              echo "The package starts and answers."
+              kill "$pid"
+              exit 0
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          echo "::error::The packaged server did not start. Its log:"
+          cat "$RUNNER_TEMP/server.log"
+          kill "$pid" 2>/dev/null || true
+          exit 1
+
+      # Steps from wcrpacademy/wcrp-academy-host templates/app-release-steps.yml, APP=repo.
+      - name: Upload the release to incoming/
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          APP: repo
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          echo "RELEASE_VERSION=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          APP_PATH="$DEPLOY_PATH/apps/$APP"
+          mirror_do() { lftp -u "$DEPLOY_USER" --env-password -p "$DEPLOY_PORT" "sftp://$DEPLOY_HOST" -e "set sftp:auto-confirm yes; set net:max-retries 3; $1 bye"; }
+          mirror_do "mkdir -p -f $APP_PATH/incoming; mkdir -p -f $APP_PATH/deploy; set cmd:fail-exit yes; mirror --reverse --dereference --no-perms --parallel=8 --delete deploy/standalone/ $APP_PATH/incoming/; cls -1 $APP_PATH/incoming/server.js $APP_PATH/incoming/node_modules/next/package.json $APP_PATH/incoming/.next/BUILD_ID;"
+
+      - name: Ask the router to switch (health-checked, old release kept if it fails)
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          APP: repo
+        run: |
+          APP_PATH="$DEPLOY_PATH/apps/$APP"
+          ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          jq -n --arg id "$ID" --arg version "$RELEASE_VERSION" '{id: $id, action: "deploy", version: $version}' > request.json
+          cat request.json
+          sftp_do() { lftp -u "$DEPLOY_USER" --env-password -p "$DEPLOY_PORT" "sftp://$DEPLOY_HOST" -e "set sftp:auto-confirm yes; set net:max-retries 3; $1 bye"; }
+          sftp_do "set cmd:fail-exit yes; put request.json -o $APP_PATH/deploy/request.json.tmp; set cmd:fail-exit no; rm $APP_PATH/deploy/request.json; set cmd:fail-exit yes; mv $APP_PATH/deploy/request.json.tmp $APP_PATH/deploy/request.json;"
+          if ! sftp_do "set cmd:fail-exit yes; cls -1 $DEPLOY_PATH/run/status.json;" > /dev/null 2>&1; then
+            echo "::notice::The router has not run on the server yet. The release waits in apps/$APP/incoming/ and is deployed when the router starts."
+            exit 0
+          fi
+          for i in $(seq 1 60); do
+            sleep 5
+            sftp_do "cat $APP_PATH/deploy/result.json;" > result.json 2>/dev/null || continue
+            if jq -e --arg id "$ID" '.id == $id and (has("state") | not)' result.json > /dev/null 2>&1; then
+              jq . result.json
+              if jq -e '.ok' result.json > /dev/null; then echo "Now serving $RELEASE_VERSION."; exit 0; fi
+              echo "::error::$(jq -r .message result.json)"; exit 1
+            fi
+          done
+          echo "::error::No answer from the router within 5 minutes. The release is uploaded; check host status (wcrp-academy-host -> Actions -> Control -> status)."
+          exit 1

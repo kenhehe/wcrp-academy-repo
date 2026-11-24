@@ -3,6 +3,10 @@
 -- daily limit. Same approach as the scrapers' jobs (20261001_add_clivar_cron.sql); the
 -- Vercel cron was removed on 2026-10-24.
 --
+-- URL points at survey.wcrp-academy.org (Infomaniak, proxy.ts gates that host to /s/, this
+-- route and /api/health only), not the old wcrp-academy-repo.vercel.app — updated 25 Nov 2026
+-- as part of the move off Vercel, before this job has ever been applied.
+--
 -- NOT APPLIED YET. Apply only once the survey code is deployed to production and the email
 -- env vars are set there, or every run will fail.
 --
@@ -23,7 +27,7 @@ select cron.schedule(
   '*/10 * * * *',
   $$
   select net.http_post(
-    url := 'https://wcrp-academy-repo.vercel.app/api/surveys/cron',
+    url := 'https://survey.wcrp-academy.org/api/surveys/cron',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (

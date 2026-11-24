@@ -4,6 +4,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Host-based gating for the Infomaniak router (wcrpacademy/wcrp-academy-host): one process
+  // answers both dashboard.wcrp-academy.org and survey.wcrp-academy.org (host.config.json).
+  // QR codes and survey links point at survey., so it only ever needs the participant pages,
+  // the email cron route and the health check — never the admin dashboard.
+  const host = request.headers.get('host') ?? ''
+  const isSurveyHost = host.startsWith('survey.')
+  const isSurveyAllowed = pathname.startsWith('/s/') || pathname === '/api/surveys/cron' || pathname === '/api/health'
+  if (isSurveyHost && !isSurveyAllowed) {
+    return new NextResponse('Not found', { status: 404 })
+  }
+
   // Guard: env vars must be present or skip auth entirely
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -48,9 +59,11 @@ export async function proxy(request: NextRequest) {
   // Survey participants have no login: /s/… checks a personal-link token or a signed cookie,
   // and the survey email cron route checks its own Bearer secret
   const isSurveyPublic = pathname.startsWith('/s/') || pathname === '/api/surveys/cron'
+  // Polled by the router with no session at all (see app/api/health/route.ts)
+  const isHealthCheck  = pathname === '/api/health'
 
   // No session → force login (/ is the public summary board — allow through)
-  if (!user && !isLoginRoute && pathname !== '/' && !isPublicApi && !isSurveyPublic) {
+  if (!user && !isLoginRoute && pathname !== '/' && !isPublicApi && !isSurveyPublic && !isHealthCheck) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

@@ -20,6 +20,9 @@
 # production
 /build
 
+# standalone package assembled by scripts/package-standalone.mjs for the Infomaniak deploy
+/deploy/
+
 # misc
 .DS_Store
 *.pem
