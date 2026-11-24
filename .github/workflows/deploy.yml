@@ -14,9 +14,10 @@
 #                             a user with Environment "Node.js" (Manager -> FTP / SSH; host ....ssh.hosting-ik.com).
 #   SFTP_PATH                 the Node.js site's folder, relative to the login folder, no leading slash, typed by
 #                             hand: sites/<the Node.js site's folder>. The app's files go to apps/repo/ inside it.
-# Repository VARIABLES (... -> Variables), baked into the client bundle at build time (NEXT_PUBLIC_*
-# values can't be changed later without rebuilding):
 #   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+#                             baked into the client bundle at build time (can't be changed later without
+#                             rebuilding) — not actually sensitive, just kept here rather than Variables
+#                             because that's where they were set.
 # Runtime settings (SUPABASE_SERVICE_ROLE_KEY, SURVEYS_SECRET, SURVEYS_CRON_SECRET,
 # CF_ACCESS_CLIENT_ID/SECRET, WP_API_URL/USER/PASSWORD, ...) live on the SERVER in apps/repo/.env
 # (the router copies it into each release), never here — Next.js reads server-only env vars at
@@ -111,16 +112,18 @@ jobs:
       # Supabase URL into the client bundle — fail loudly instead of shipping that.
       - name: Check build variables are set
         run: |
-          if [ -z "${{ vars.NEXT_PUBLIC_SUPABASE_URL }}" ] || [ -z "${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
-            echo "::error::Set repository variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY before deploying."
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ] || [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::Set repository secrets NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY before deploying."
             exit 1
           fi
 
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Not actually sensitive (they end up in the browser bundle either way) — kept as
+          # repository Secrets rather than Variables only because that's where they were set.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           # Server-only: never read by the client bundle. The deployed server loads the real value
           # from apps/repo/.env on the server instead; this placeholder only satisfies the build.
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
