@@ -1,12 +1,29 @@
-const WP_BASE    = 'https://wcrp-academy.org/wp-json/wp/v2'
 const PER_PAGE   = 100
+const TIMEOUT_MS = 10_000
+
+// cms.wcrp-academy.org sits behind Cloudflare Access: the two CF-Access-* headers
+// get past Access, WP_API_USER/PASSWORD then authenticate to WordPress itself.
+function wpBase(): string {
+  const base = process.env.WP_API_URL
+  if (!base) throw new Error('WP_API_URL env var not set')
+  return `${base}/wp/v2`
+}
 
 function getAuthHeader(): HeadersInit {
   const user = process.env.WP_API_USER
   const pass = process.env.WP_API_PASSWORD
   if (!user || !pass) throw new Error('WP_API_USER / WP_API_PASSWORD env vars not set')
   const credentials = Buffer.from(`${user}:${pass}`).toString('base64')
-  return { Authorization: `Basic ${credentials}` }
+
+  const cfId     = process.env.CF_ACCESS_CLIENT_ID
+  const cfSecret = process.env.CF_ACCESS_CLIENT_SECRET
+  if (!cfId || !cfSecret) throw new Error('CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET env vars not set')
+
+  return {
+    Authorization: `Basic ${credentials}`,
+    'CF-Access-Client-Id':     cfId,
+    'CF-Access-Client-Secret': cfSecret,
+  }
 }
 
 export interface WpCatalogueItem {
@@ -47,10 +64,11 @@ export interface WpFetchResult {
 }
 
 export async function fetchWpCatalogues(page = 1, perPage = PER_PAGE): Promise<WpFetchResult> {
-  const url = `${WP_BASE}/catalogues?per_page=${perPage}&page=${page}&_fields=id,title,content,modified,acf&status=publish`
+  const url = `${wpBase()}/catalogues?per_page=${perPage}&page=${page}&_fields=id,title,content,modified,acf&status=publish`
 
   const res = await fetch(url, {
     headers: getAuthHeader(),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
     next: { revalidate: 300 }, // cache 5 min
   })
 

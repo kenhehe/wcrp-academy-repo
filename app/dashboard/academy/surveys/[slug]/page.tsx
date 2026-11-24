@@ -160,7 +160,7 @@ export default async function SurveyPage({ params, searchParams }: PageProps) {
                   <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm">
                     {academyEvent.academy_id && (
                       <a
-                        href={`https://wcrp-academy.org/wp-admin/post.php?post=${encodeURIComponent(academyEvent.academy_id)}&action=edit`}
+                        href={`https://cms.wcrp-academy.org/wp-admin/post.php?post=${encodeURIComponent(academyEvent.academy_id)}&action=edit`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 underline underline-offset-4"

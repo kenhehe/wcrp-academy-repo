@@ -157,7 +157,7 @@ Put this at the top of every page that shows live data. It disables Next.js cach
 
 ### `academy/catalogue`
 - Read-only, live from the WordPress REST API (`lib/wordpress/client.ts` + `mapper.ts`, cached 5 min); the dates and status follow the sync's rule (`supabase/functions/_shared/academy-dates.ts`).
-- **WordPress is the only place an Academy event is edited.** The edit / new / delete pages were removed on 2026-10-27: the daily sync overwrote anything changed here. Link to `https://wcrp-academy.org/wp-admin/post.php?post=<academy_id>&action=edit` instead.
+- **WordPress is the only place an Academy event is edited.** The edit / new / delete pages were removed on 2026-10-27: the daily sync overwrote anything changed here. Link to `https://cms.wcrp-academy.org/wp-admin/post.php?post=<academy_id>&action=edit` instead — WordPress moved behind Cloudflare Access at `cms.` on 2026-11-17; the old `wcrp-academy.org/wp-admin` now just redirects there.
 
 ### `academy/import` (sidebar: Sync / Export)
 - The sync status (last sync, count, a "Sync now" button) and the CSV / Excel export. The manual CSV import of Academy events was removed on 2026-10-27 for the same reason as the catalogue forms.

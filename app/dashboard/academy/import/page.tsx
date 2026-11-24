@@ -67,8 +67,8 @@ export default async function AcademyImportPage() {
               <p className="text-sm font-medium">Synced from WordPress every day at 10:00 (UTC+8)</p>
               <p className="text-xs text-muted-foreground mt-1">
                 To add or change an Academy event, edit it on{' '}
-                <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
-                  wcrp-academy.org
+                <a href="https://cms.wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                  cms.wcrp-academy.org
                 </a>
                 . The dashboard&apos;s copy is replaced on every sync.
               </p>

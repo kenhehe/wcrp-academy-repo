@@ -253,7 +253,7 @@ export default function NewSurveyForm({ catalogue, core }: Props) {
                   {matches.length > MAX_LISTED && `Showing ${MAX_LISTED} of ${matches.length}; search to narrow it down. `}
                   Past events aren&apos;t listed: they&apos;re over, so there&apos;s nothing to survey before them.
                   Missing an event, or its details are wrong? Add or fix it on{' '}
-                  <a href="https://wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
+                  <a href="https://cms.wcrp-academy.org/wp-admin/edit.php?post_type=catalogues" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">WordPress</a>,
                   then sync.
                 </p>
                 <SyncAcademyButton />

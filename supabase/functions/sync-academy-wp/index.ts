@@ -41,8 +41,24 @@ function validateWpRow(row: WpRow): { valid: boolean; errors: string[] } {
   return { valid: errors.length === 0, errors }
 }
 
-const WP_BASE = 'https://wcrp-academy.org/wp-json/wp/v2/catalogues'
 const PER_PAGE = 100
+const TIMEOUT_MS = 10_000
+
+// cms.wcrp-academy.org sits behind Cloudflare Access; the two CF-Access-* headers
+// are the only auth this endpoint needs (confirmed: it serves published catalogues
+// with no WordPress credentials, Access alone gates it).
+function wpBase(): string {
+  const base = Deno.env.get('WP_API_URL')
+  if (!base) throw new Error('WP_API_URL env var not set')
+  return `${base}/wp/v2/catalogues`
+}
+
+function accessHeaders(): HeadersInit {
+  const id     = Deno.env.get('CF_ACCESS_CLIENT_ID')
+  const secret = Deno.env.get('CF_ACCESS_CLIENT_SECRET')
+  if (!id || !secret) throw new Error('CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET env vars not set')
+  return { 'CF-Access-Client-Id': id, 'CF-Access-Client-Secret': secret }
+}
 
 // ACF slug → display label maps (event_status is handled by _shared/academy-dates.ts)
 const TRAINING_TYPE_MAP: Record<string, string> = {
@@ -141,8 +157,11 @@ async function fetchAllPosts(): Promise<WpPost[]> {
   let page = 1
 
   while (true) {
-    const url = `${WP_BASE}?per_page=${PER_PAGE}&page=${page}&_fields=id,title,content,modified,acf&status=publish`
-    const res = await fetch(url)
+    const url = `${wpBase()}?per_page=${PER_PAGE}&page=${page}&_fields=id,title,content,modified,acf&status=publish`
+    const res = await fetch(url, {
+      headers: accessHeaders(),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
 
     if (res.status === 400) break // past last page
     if (!res.ok) throw new Error(`WP API error ${res.status}: ${await res.text()}`)
