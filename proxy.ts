@@ -12,6 +12,12 @@ export async function proxy(request: NextRequest) {
   const isSurveyHost = host.startsWith('survey.')
   const isSurveyAllowed = pathname.startsWith('/s/') || pathname === '/api/surveys/cron' || pathname === '/api/health'
   if (isSurveyHost && !isSurveyAllowed) {
+    // Someone landing on the bare domain (no survey link) gets sent somewhere real, rather than a
+    // blank 404 — but only the exact root: every other disallowed path (probing, /dashboard/*, …)
+    // still gets a flat 404, so nothing here hints at what's behind the gate.
+    if (pathname === '/') {
+      return NextResponse.redirect('https://wcrp-academy.org')
+    }
     return new NextResponse('Not found', { status: 404 })
   }
 
